@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { GoogleMap, LoadScript, Marker, InfoWindow } from '@react-google-maps/api';
+import React from 'react';
 
 // Define property type
 interface PropertyType {

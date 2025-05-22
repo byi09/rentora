@@ -1,6 +1,6 @@
 'use client';
 
-import ClientLayout from "@/components/ClientLayout";
+import ClientLayout from "@/src/components/ClientLayout";
 
 export default function MainLayout({
   children,

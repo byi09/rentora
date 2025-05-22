@@ -1,13 +1,24 @@
 'use client';
-
 import React, { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { signInWithEmail } from '../../../utils/supabase/actions';
 
 export default function SignIn() {
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPopup, setShowPopup] = useState(false);
   const router = useRouter();
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    await signInWithEmail(new FormData(e.target as HTMLFormElement));
+    setShowPopup(true);
+    setTimeout(() => setShowPopup(false), 2000);
+    // Optionally redirect after popup
+    // router.push('/');
+  }
 
   return (
     <div className="flex min-h-screen relative">
@@ -41,7 +52,7 @@ export default function SignIn() {
 
           <h1 className="text-2xl font-bold text-gray-900 mb-6">Sign in</h1>
 
-          <form className="space-y-5">
+          <form className="space-y-5" onSubmit={handleSubmit}>
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
                 Email Address*
@@ -58,14 +69,36 @@ export default function SignIn() {
                 placeholder="Enter your email"
               />
             </div>
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+                Password*
+              </label>
+              <input
+                id="password"
+                name="password"
+                type="password"
+                autoComplete="current-password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="block w-full px-4 py-3 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Enter your password"
+              />
+            </div>
 
             <button
               type="submit"
               className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             >
-              Continue
+              Sign in
             </button>
           </form>
+
+          {showPopup && (
+            <div className="fixed top-8 left-1/2 transform -translate-x-1/2 bg-green-500 text-white px-6 py-3 rounded shadow-lg z-50 transition-all">
+              Login successful!
+            </div>
+          )}
 
           <div className="mt-5">
             <p className="text-sm text-gray-600 mb-4">New to Rentora? <Link href="/sign-up" className="text-blue-600 hover:text-blue-800 font-medium">Create account</Link></p>
