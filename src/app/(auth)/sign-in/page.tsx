@@ -3,25 +3,103 @@ import React, { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { signInWithEmail } from '../../../utils/supabase/actions';
+import { createClient } from '@/utils/supabase/client';
+import OneTapComponent from '@/src/components/googleOneTap';
 
 export default function SignIn() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPopup, setShowPopup] = useState(false);
+  const [errorPopup, setErrorPopup] = useState<{show: boolean, type: string, message: string}>({
+    show: false,
+    type: '',
+    message: ''
+  });
   const router = useRouter();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    await signInWithEmail(new FormData(e.target as HTMLFormElement));
-    setShowPopup(true);
-    setTimeout(() => setShowPopup(false), 2000);
-    // Optionally redirect after popup
-    // router.push('/');
+    
+    const supabase = createClient();
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    
+    if (error) {
+      // Show different error popups based on error type
+      if (error.message === 'Email not confirmed') {
+        setErrorPopup({
+          show: true,
+          type: 'email_not_confirmed',
+          message: 'Please check your email and click the confirmation link before signing in.'
+        });
+      } else if (error.message === 'Invalid login credentials') {
+        setErrorPopup({
+          show: true,
+          type: 'invalid_credentials',
+          message: 'The email or password you entered is incorrect.'
+        });
+      } else {
+        setErrorPopup({
+          show: true,
+          type: 'unknown',
+          message: 'An unexpected error occurred. Please try again.'
+        });
+      }
+      
+      // Hide error popup after 5 seconds
+      setTimeout(() => {
+        setErrorPopup({show: false, type: '', message: ''});
+      }, 5000);
+    } else {
+      // Success
+      setShowPopup(true);
+      setTimeout(() => setShowPopup(false), 2000);
+      router.push('/');
+    }
   }
+
+  const handleGoogleSignIn = async () => {
+    const supabase = createClient();
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/confirm`
+      }
+    });
+    
+    if (error) {
+      console.error('Error signing in with Google:', error);
+    }
+  };
+
+  const handleResendConfirmation = async () => {
+    const supabase = createClient();
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email,
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth/confirm`
+      }
+    });
+    
+    if (!error) {
+      setErrorPopup({
+        show: true,
+        type: 'success',
+        message: 'Confirmation email sent! Check your inbox.'
+      });
+      setTimeout(() => {
+        setErrorPopup({show: false, type: '', message: ''});
+      }, 3000);
+    }
+  };
 
   return (
     <div className="flex min-h-screen relative">
+      <OneTapComponent />
+      
       {/* Back button - positioned at the top left */}
       <button 
         onClick={() => router.push('/')}
@@ -113,7 +191,10 @@ export default function SignIn() {
             </div>
 
             <div className="mt-4 space-y-3">
-              <button className="w-full inline-flex items-center justify-center py-2.5 px-4 border border-gray-300 rounded-md bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
+              <button 
+                onClick={handleGoogleSignIn}
+                className="w-full inline-flex items-center justify-center py-2.5 px-4 border border-gray-300 rounded-md bg-white text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
                 <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
                   <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
@@ -159,6 +240,38 @@ export default function SignIn() {
           />
         </div>
       </div>
+
+      {/* Error Popup */}
+      {errorPopup.show && (
+        <div className={`fixed top-8 left-1/2 transform -translate-x-1/2 px-6 py-4 rounded shadow-lg z-50 transition-all max-w-md ${
+          errorPopup.type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
+        }`}>
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <p className="font-medium mb-1">
+                {errorPopup.type === 'email_not_confirmed' ? 'Email Not Verified' :
+                 errorPopup.type === 'invalid_credentials' ? 'Invalid Credentials' :
+                 errorPopup.type === 'success' ? 'Success' : 'Error'}
+              </p>
+              <p className="text-sm">{errorPopup.message}</p>
+              {errorPopup.type === 'email_not_confirmed' && (
+                <button 
+                  onClick={handleResendConfirmation}
+                  className="mt-2 text-sm underline hover:no-underline"
+                >
+                  Resend confirmation email
+                </button>
+              )}
+            </div>
+            <button 
+              onClick={() => setErrorPopup({show: false, type: '', message: ''})}
+              className="ml-4 text-white hover:text-gray-200"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 } 

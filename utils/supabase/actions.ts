@@ -67,12 +67,25 @@ export async function signInWithEmail(formData: FormData) {
   const supabase = await createClient()
   const email = formData.get('email') as string
   const password = formData.get('password') as string
-  const { error } = await supabase.auth.signInWithPassword({
+  
+  const { data, error } = await supabase.auth.signInWithPassword({
     email,
     password,
   })
+  
   if (error) {
-    redirect('/error')
+    console.log('Sign in error:', error) // Debug log
+    
+    // Check specific error types
+    if (error.message === 'Email not confirmed') {
+      redirect('/error?type=email_not_confirmed')
+    } else if (error.message === 'Invalid login credentials') {
+      redirect('/error?type=invalid_credentials')
+    } else {
+      redirect('/error?type=unknown')
+    }
   }
-  redirect('/confirm-email')
+  
+  // Success - redirect to home
+  redirect('/')
 }
