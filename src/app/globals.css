@@ -27,9 +27,10 @@ body {
 
 .hero-section {
   @apply relative min-h-screen flex items-center justify-center;
-  background-image: url('/hero-bg.jpg');
+  background-image: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)), url('https://images.unsplash.com/photo-1560518883-ce09059eeffa?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1973&q=80');
   background-size: cover;
   background-position: center;
+  background-repeat: no-repeat;
 }
 
 /* Custom animations */

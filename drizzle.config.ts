@@ -1,10 +1,10 @@
+import type { Config } from 'drizzle-kit';
 
-import { defineConfig } from 'drizzle-kit';
-export default defineConfig({
-  schema: '@/src/db/schema.ts',
-  out: '@/utils/supabase/migrations',
+export default {
+  schema: './src/db/schema.ts',
+  out: './supabase/migrations',
   dialect: 'postgresql',
   dbCredentials: {
-    url: process.env.DATABASE_URL!,
+    url: 'postgresql://postgres:Home135!a38xQ6@db.fzkkrztvbflpbnayrfne.supabase.co:5432/postgres',
   },
-});
+} satisfies Config; 

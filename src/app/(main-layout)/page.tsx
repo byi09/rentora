@@ -1,7 +1,19 @@
 import React from "react";
 import Image from "next/image";
+import { createClient } from '@/utils/supabase/server';
+import Dashboard from '@/src/components/Dashboard';
 
-export default function Home() {
+export default async function Home() {
+  // Check if user is authenticated
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  // If user is logged in, show the dashboard
+  if (user) {
+    return <Dashboard />;
+  }
+
+  // Otherwise, show the marketing page
   return (
     <main className="min-h-screen">
       <section className="hero-section">
@@ -37,4 +49,4 @@ export default function Home() {
       </section>
     </main>
   );
-} 
+}  
