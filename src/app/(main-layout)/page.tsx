@@ -1,5 +1,4 @@
 import React from "react";
-import Image from "next/image";
 import { createClient } from '@/utils/supabase/server';
 import Dashboard from '@/src/components/Dashboard';
 

@@ -401,7 +401,7 @@ export const usersRelations = relations(users, ({ one }) => ({
 }));
 
 // Customer relations
-export const customersRelations = relations(customers, ({ one, many }) => ({
+export const customersRelations = relations(customers, ({ one }) => ({
     user: one(users, {
         fields: [customers.userId],
         references: [users.id],
