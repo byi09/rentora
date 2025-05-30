@@ -17,7 +17,7 @@ const propertyTypeOptions = [
 
 const bedOptions = [
   { value: "null", label: "Beds" },
-  { value: "studio", label: "Studio" },
+  { value: "-1", label: "Studio" },
   { value: "1", label: "1 Bed" },
   { value: "2", label: "2 Beds" },
   { value: "3+", label: "3+ Beds" }
@@ -58,25 +58,37 @@ export default function PropertySearch() {
   const { register, handleSubmit, formState: { errors } } = useForm<SearchFormValues>({ resolver });
 
   const onSubmit = useCallback(async (data: SearchFormValues) => {
-    // TODO: remove this console log in production
-    console.log(data);
+    // Uncomment the following lines to test search functionality
 
-    // TODO: parse location into city, state, country
-    // WARNING: currently, we'll assume the location is always "Berkeley, CA, USA"
-    const results = await searchPropertiesWithFilter({
-      city: "Berkeley",
-      state: "CA",
-      country: "USA",
-      propertyType: data.propertyType !== "null" ? data.propertyType : undefined,
-      beds: data.beds !== "null" ? data.beds : undefined,
-      petFriendly: data.petFriendly,
-      parking: data.parking,
-      furnished: data.furnished,
-      utilitiesIncluded: data.utilitiesIncluded
-    })
+    // // TODO: remove this console log in production
+    // console.log("Form data:", data);
 
-    // TODO: remove this console log in production
-    console.log(results);
+    // // TODO: use a more robust location parsing method
+    // const location = data.location.split(",").map(part => part.trim());
+
+    // const bedOptionInt = !data.beds || data.beds === "null" ? undefined : parseInt(data.beds, 10);
+    // const numBeds = bedOptionInt === -1 ? 0 : bedOptionInt;
+
+    // const query = {
+    //   city: location[0] || "San Francisco",
+    //   state: location[1] || "CA",
+    //   country: location[2] || "United States",
+    //   propertyType: data.propertyType !== "null" ? data.propertyType : undefined,
+    //   beds: numBeds,
+    //   petFriendly: data.petFriendly,
+    //   parking: data.parking,
+    //   furnished: data.furnished,
+    //   utilitiesIncluded: data.utilitiesIncluded
+    // };
+
+    // console.log("Parsed search query:", query);
+
+    // // TODO: parse location into city, state, country
+    // // WARNING: currently, we'll assume the location is always "San Francisco, CA, USA"
+    // const results = await searchPropertiesWithFilter(query);
+
+    // // TODO: remove this console log in production
+    // console.log("Results:", results);
   }, []);
 
   return (
@@ -92,7 +104,7 @@ export default function PropertySearch() {
             <input
               type="text"
               placeholder="Enter city, neighborhood, or address"
-              defaultValue="Berkeley, CA"
+              defaultValue="San Francisco, CA"
               className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
               {...register("location", { required: true })}
             />
