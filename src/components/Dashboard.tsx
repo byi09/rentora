@@ -1,8 +1,7 @@
-import React from "react";
-import Link from "next/link";
 import { HiLocationMarker, HiHeart } from 'react-icons/hi';
 import { HiCalendarDays, HiMapPin, HiCalculator, HiChatBubbleLeftRight, HiCreditCard, HiDocumentText } from 'react-icons/hi2';
 import { BsCarFront } from 'react-icons/bs';
+import PropertySearch from './PropertySearch';
 
 export default function Dashboard() {
   return (
@@ -18,73 +17,9 @@ export default function Dashboard() {
               Discover amazing properties in your ideal location with our comprehensive search tools
             </p>
           </div>
-          
+
           {/* Search Form */}
-          <div className="max-w-5xl mx-auto bg-white rounded-2xl shadow-2xl p-8">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-              {/* Location Input */}
-              <div className="md:col-span-2">
-                <div className="relative">
-                  <HiLocationMarker className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                  <input
-                    type="text"
-                    placeholder="Enter city, neighborhood, or address"
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
-                  />
-                </div>
-              </div>
-              
-              {/* Property Type */}
-              <div>
-                <select className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900">
-                  <option>Property Type</option>
-                  <option>Apartment</option>
-                  <option>House</option>
-                  <option>Condo</option>
-                  <option>Townhouse</option>
-                </select>
-              </div>
-              
-              {/* Beds */}
-              <div>
-                <select className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900">
-                  <option>Beds</option>
-                  <option>Studio</option>
-                  <option>1 Bed</option>
-                  <option>2 Beds</option>
-                  <option>3+ Beds</option>
-                </select>
-              </div>
-            </div>
-            
-            {/* Filters and Search */}
-            <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-              <div className="flex flex-wrap gap-4">
-                <label className="flex items-center space-x-2 text-gray-700">
-                  <input type="checkbox" className="rounded" />
-                  <span>Pet Friendly</span>
-                </label>
-                <label className="flex items-center space-x-2 text-gray-700">
-                  <input type="checkbox" className="rounded" />
-                  <span>Parking Available</span>
-                </label>
-                <label className="flex items-center space-x-2 text-gray-700">
-                  <input type="checkbox" className="rounded" />
-                  <span>Furnished</span>
-                </label>
-                <label className="flex items-center space-x-2 text-gray-700">
-                  <input type="checkbox" className="rounded" />
-                  <span>Utilities Included</span>
-                </label>
-                <button className="text-blue-600 font-medium hover:text-blue-800">
-                  More Filters
-                </button>
-              </div>
-              <button className="bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors">
-                Search
-              </button>
-            </div>
-          </div>
+          <PropertySearch />
         </div>
       </section>
 
@@ -99,7 +34,7 @@ export default function Dashboard() {
               Handpicked rentals that offer exceptional value and prime locations
             </p>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             {/* Property Card 1 */}
             <div className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
@@ -259,7 +194,7 @@ export default function Dashboard() {
               Explore trending areas with the best rental opportunities
             </p>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
             {/* Neighborhood 1 */}
             <div className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
@@ -327,7 +262,7 @@ export default function Dashboard() {
               </div>
             </div>
           </div>
-          
+
           <div className="text-center">
             <button className="bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors">
               Explore All Neighborhoods
@@ -347,7 +282,7 @@ export default function Dashboard() {
               Everything you need for your rental journey
             </p>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {/* Rent Calculator */}
             <div className="bg-white rounded-xl shadow-lg p-8 hover:shadow-xl transition-shadow text-center">

@@ -15,6 +15,7 @@
     "@supabase/ssr": "^0.6.1",
     "@supabase/supabase-js": "^2.49.8",
     "@types/mapbox-gl": "^3.4.1",
+    "clsx": "^2.1.1",
     "dotenv": "^16.5.0",
     "drizzle-orm": "^0.43.1",
     "mapbox-gl": "^3.12.0",
@@ -23,6 +24,7 @@
     "psql": "^0.0.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-hook-form": "^7.56.4",
     "react-icons": "^5.5.0",
     "react-map-gl": "^8.0.4"
   },
