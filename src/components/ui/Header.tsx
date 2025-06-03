@@ -1,6 +1,5 @@
 'use client';
 
-import Image from 'next/image';
 import Link from 'next/link';
 import { useState } from 'react';
 import { HiHeart, HiBell, HiUser, HiChevronDown, HiCog, HiChat, HiUserCircle } from 'react-icons/hi';
@@ -36,8 +35,8 @@ const Header = ({ toggleSidebar, user }: HeaderProps) => {
             <div className="flex items-center">
               {/* Menu button for mobile */}
               {toggleSidebar && (
-                <button 
-                  className="text-white p-1 focus:outline-none" 
+                <button
+                  className="text-white p-1 focus:outline-none"
                   onClick={toggleSidebar}
                   aria-label="Toggle menu"
                 >
@@ -46,7 +45,7 @@ const Header = ({ toggleSidebar, user }: HeaderProps) => {
                   </svg>
                 </button>
               )}
-              
+
               <Link href="/" className="flex items-center ml-1 group">
                 <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center mr-2 transition-transform duration-200 group-hover:scale-110">
                   <span className="text-white font-bold text-lg">R</span>
@@ -88,7 +87,7 @@ const Header = ({ toggleSidebar, user }: HeaderProps) => {
               <span className="text-xl font-bold text-gray-900">Rentora</span>
             </div>
           </Link>
-          
+
           {/* Navigation */}
           <nav className="hidden md:flex items-center space-x-8">
             <Link href="/buy" className="text-gray-700 hover:text-gray-900 font-medium transition-colors">
@@ -104,7 +103,7 @@ const Header = ({ toggleSidebar, user }: HeaderProps) => {
               Manage Rentals
             </Link>
           </nav>
-          
+
           {/* Right side actions */}
           <div className="flex items-center space-x-4">
             {/* Saved properties */}
@@ -112,7 +111,7 @@ const Header = ({ toggleSidebar, user }: HeaderProps) => {
               <HiHeart className="w-5 h-5" />
               <span className="hidden sm:inline font-medium">Saved</span>
             </Link>
-            
+
             {/* Notifications */}
             <button className="relative p-2 text-gray-700 hover:text-gray-900 transition-colors">
               <HiBell className="w-5 h-5" />
@@ -120,10 +119,10 @@ const Header = ({ toggleSidebar, user }: HeaderProps) => {
                 3
               </span>
             </button>
-            
+
             {/* User profile dropdown */}
             <div className="relative">
-              <button 
+              <button
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                 className="flex items-center space-x-2 text-gray-700 hover:text-gray-900 transition-colors focus:outline-none"
               >
@@ -140,16 +139,16 @@ const Header = ({ toggleSidebar, user }: HeaderProps) => {
               {isDropdownOpen && (
                 <>
                   {/* Backdrop */}
-                  <div 
-                    className="fixed inset-0 z-10" 
+                  <div
+                    className="fixed inset-0 z-10"
                     onClick={() => setIsDropdownOpen(false)}
                   />
-                  
+
                   {/* Dropdown Content */}
                   <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-20">
                     {/* Profile */}
-                    <Link 
-                      href="/profile" 
+                    <Link
+                      href="/profile"
                       className="flex items-center px-4 py-3 text-gray-700 hover:bg-gray-50 transition-colors"
                       onClick={() => setIsDropdownOpen(false)}
                     >
@@ -158,8 +157,8 @@ const Header = ({ toggleSidebar, user }: HeaderProps) => {
                     </Link>
 
                     {/* Messages */}
-                    <Link 
-                      href="/messages" 
+                    <Link
+                      href="/messages"
                       className="flex items-center px-4 py-3 text-gray-700 hover:bg-gray-50 transition-colors"
                       onClick={() => setIsDropdownOpen(false)}
                     >
@@ -168,8 +167,8 @@ const Header = ({ toggleSidebar, user }: HeaderProps) => {
                     </Link>
 
                     {/* Saved Properties */}
-                    <Link 
-                      href="/saved" 
+                    <Link
+                      href="/saved"
                       className="flex items-center px-4 py-3 text-gray-700 hover:bg-gray-50 transition-colors"
                       onClick={() => setIsDropdownOpen(false)}
                     >
@@ -178,8 +177,8 @@ const Header = ({ toggleSidebar, user }: HeaderProps) => {
                     </Link>
 
                     {/* Settings */}
-                    <Link 
-                      href="/settings" 
+                    <Link
+                      href="/settings"
                       className="flex items-center px-4 py-3 text-gray-700 hover:bg-gray-50 transition-colors"
                       onClick={() => setIsDropdownOpen(false)}
                     >
@@ -191,7 +190,7 @@ const Header = ({ toggleSidebar, user }: HeaderProps) => {
                     <div className="border-t border-gray-200 my-2" />
 
                     {/* Sign Out */}
-                    <button 
+                    <button
                       onClick={handleSignOut}
                       className="flex items-center w-full px-4 py-3 text-red-600 hover:bg-red-50 transition-colors"
                     >
@@ -202,11 +201,11 @@ const Header = ({ toggleSidebar, user }: HeaderProps) => {
                 </>
               )}
             </div>
-            
+
             {/* Mobile menu button */}
             {toggleSidebar && (
-              <button 
-                className="md:hidden text-gray-700 p-1 focus:outline-none" 
+              <button
+                className="md:hidden text-gray-700 p-1 focus:outline-none"
                 onClick={toggleSidebar}
                 aria-label="Toggle menu"
               >
