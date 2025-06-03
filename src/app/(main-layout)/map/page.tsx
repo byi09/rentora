@@ -1,7 +1,9 @@
-"use client";
-
-import MapComponent from "@/src/app/(main-layout)/(ui)/map";
+import MapAndListings from "@/src/components/map/MapAndListings";
 
 export default function MapPage() {
-  return <MapComponent />
+  return (
+    <main className="w-full h-full">
+      <MapAndListings />
+    </main>
+  )
 }

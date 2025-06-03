@@ -22,11 +22,13 @@
     "next": "15.3.1",
     "postgres": "^3.4.7",
     "psql": "^0.0.1",
+    "radix-ui": "^1.4.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-hook-form": "^7.56.4",
     "react-icons": "^5.5.0",
-    "react-map-gl": "^8.0.4"
+    "react-map-gl": "^8.0.4",
+    "react-select": "^5.10.1"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",

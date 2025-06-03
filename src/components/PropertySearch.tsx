@@ -1,7 +1,6 @@
 'use client'
 
-import { HiLocationMarker } from "react-icons/hi";
-import { SearchCheckbox, SearchSelect } from "./ui/SearchForm";
+import { LocationSearchInput, Checkbox, SearchSelect } from "./ui/Form";
 import { FieldErrors, Resolver, useForm } from "react-hook-form";
 import { useCallback } from "react";
 import { searchPropertiesWithFilter } from "../db/queries";
@@ -99,21 +98,13 @@ export default function PropertySearch() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         {/* Location Input */}
         <div className="md:col-span-2">
-          <div className="relative">
-            <HiLocationMarker className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-            <input
-              type="text"
-              placeholder="Enter city, neighborhood, or address"
-              defaultValue="San Francisco, CA"
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
-              {...register("location", { required: true })}
-            />
+          <LocationSearchInput {...register("location", { required: true })}>
             {errors.location && (
               <p className="text-red-500 text-sm mt-1 absolute">
                 {errors.location.message}
               </p>
             )}
-          </div>
+          </LocationSearchInput>
         </div>
 
         {/* Property Type */}
@@ -126,10 +117,10 @@ export default function PropertySearch() {
       {/* Filters and Search */}
       <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
         <div className="flex flex-wrap gap-4">
-          <SearchCheckbox {...register("petFriendly")} id="pet-friendly" field="Pet Friendly" />
-          <SearchCheckbox {...register("parking")} id="parking" field="Parking Available" />
-          <SearchCheckbox {...register("furnished")} id="furnished" field="Furnished" />
-          <SearchCheckbox {...register("utilitiesIncluded")} id="utilities-included" field="Utilities Included" />
+          <Checkbox {...register("petFriendly")} id="pet-friendly" field="Pet Friendly" />
+          <Checkbox {...register("parking")} id="parking" field="Parking Available" />
+          <Checkbox {...register("furnished")} id="furnished" field="Furnished" />
+          <Checkbox {...register("utilitiesIncluded")} id="utilities-included" field="Utilities Included" />
           <button
             className="text-blue-600 font-medium hover:text-blue-800"
             onClick={e => e.preventDefault()}
