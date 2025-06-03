@@ -19,9 +19,7 @@ export default function ClientLayout({ children, user }: ClientLayoutProps) {
     <div className="h-[100svh] bg-white">
       <Header user={user} />
 
-      <main className="h-[calc(100%-64.8px)]">
-        {children}
-      </main>
+      {children}
 
       {/* Footer */}
       {!excludeFooterPaths.includes(pathname) && (

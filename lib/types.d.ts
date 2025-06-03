@@ -1,6 +1,6 @@
 import { searchPropertiesWithFilter } from "@/src/db/queries";
 
-export interface FilterOptions {
+interface FilterOptions {
   swBounds?: {
     lat: number;
     lng: number;
