@@ -3,7 +3,7 @@
 import { formatBedroomsAndBathrooms, formatPriceRange } from "@/utils/formatters";
 import Dropdown from "../ui/Dropdown";
 import { Checkbox, CheckboxGroup, RadioGroup, SearchInput, ToggleGroup } from "../ui/Form";
-import { useMapContext } from "./map-context";
+import { useMapContext } from "../../contexts/MapContext";
 import Select from 'react-select';
 import { useMemo } from "react";
 import { listToMap } from "@/utils/converters";

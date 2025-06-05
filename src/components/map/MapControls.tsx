@@ -2,9 +2,10 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useMap } from "react-map-gl/mapbox";
-import { useMapContext } from "./map-context";
+import { useMapContext } from "../../contexts/MapContext";
 import { MapEvent } from "mapbox-gl";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useGeolocationContext } from "@/src/contexts/GeolocationContext";
 
 export default function MapControls() {
   const { current: map } = useMap();
@@ -12,6 +13,7 @@ export default function MapControls() {
     throw new Error('Map instance is not available. MapControls must be used within a Map component.');
 
   const { setFilterOptions, setReady } = useMapContext();
+  const { coords } = useGeolocationContext();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -54,33 +56,13 @@ export default function MapControls() {
       return;
     }
 
-    // if no lat/lng in query params, use browser geolocation API
-    const navigatorResult = new Promise((resolve, reject) => {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          map.setCenter([longitude, latitude]);
-          resolve(true);
-        },
-        (error) => {
-          reject(error);
-        }
-      )
-    })
-
-    if ((await navigatorResult) === true) {
+    // if no lat/lng in query params, use collected geolocation
+    const c = await coords;
+    if (c) {
+      map.setCenter([c.lng, c.lat]);
       setCenterLoaded(true);
-      return;
     }
-
-    // if geolocation fails, use IP-based geolocation
-    fetch('https://ipapi.co/8.8.8.8/json/')
-      .then(response => response.json())
-      .then(data => {
-        const { latitude, longitude } = data;
-        map.setCenter([longitude, latitude]);
-      });
-  }, [map, searchParams]);
+  }, [map, searchParams, coords]);
 
   // -------------------------
   // |   Map event handlers  |

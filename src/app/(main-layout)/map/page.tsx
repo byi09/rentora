@@ -1,4 +1,4 @@
-import { MapContextProvider } from "@/src/components/map/map-context";
+import { MapContextProvider } from "@/src/contexts/MapContext";
 import DefaultMap from "@/src/components/map/MapAndListings";
 import MapCatalog from "@/src/components/map/MapCatalog";
 import MapControls from "@/src/components/map/MapControls";
