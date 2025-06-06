@@ -47,6 +47,21 @@ export function SearchInput({
   )
 }
 
+export function TextInput({
+  className,
+  placeholder,
+  ...props
+}: React.InputHTMLAttributes<HTMLInputElement>) {
+  return (
+    <input
+      type="text"
+      placeholder={placeholder}
+      className={clsx("w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900", className)}
+      {...props}
+    />
+  )
+}
+
 //
 // select inputs
 // 
