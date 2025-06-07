@@ -1,4 +1,5 @@
 import { HiCloudUpload, HiCurrencyDollar, HiPhotograph, HiUserGroup } from 'react-icons/hi';
+import Link from 'next/link';
 
 export default function SellPage() {
   return (
@@ -85,112 +86,19 @@ export default function SellPage() {
         </div>
       </section>
 
-      {/* Form Section */}
+      {/* CTA Section */}
       <section className="py-16 bg-white">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-white rounded-2xl shadow-xl p-8">
-            <h2 className="text-3xl font-bold text-gray-900 mb-8 text-center">
-              Get Started Now
+          <div className="text-center">
+            <h2 className="text-3xl font-bold text-gray-900 mb-8">
+              Ready to List Your Property?
             </h2>
-
-            <form className="space-y-6">
-              {/* Property Details */}
-              <div className="space-y-4">
-                <div>
-                  <label htmlFor="address" className="block text-sm font-medium text-gray-700">
-                    Property Address
-                  </label>
-                  <input
-                    type="text"
-                    id="address"
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                    placeholder="Enter your property address"
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label htmlFor="propertyType" className="block text-sm font-medium text-gray-700">
-                      Property Type
-                    </label>
-                    <select
-                      id="propertyType"
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                    >
-                      <option>Apartment</option>
-                      <option>House</option>
-                      <option>Condo</option>
-                      <option>Townhouse</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label htmlFor="price" className="block text-sm font-medium text-gray-700">
-                      Monthly Rent
-                    </label>
-                    <input
-                      type="number"
-                      id="price"
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                      placeholder="Enter monthly rent"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label htmlFor="beds" className="block text-sm font-medium text-gray-700">
-                      Bedrooms
-                    </label>
-                    <input
-                      type="number"
-                      id="beds"
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="baths" className="block text-sm font-medium text-gray-700">
-                      Bathrooms
-                    </label>
-                    <input
-                      type="number"
-                      id="baths"
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="sqft" className="block text-sm font-medium text-gray-700">
-                      Square Feet
-                    </label>
-                    <input
-                      type="number"
-                      id="sqft"
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <label htmlFor="description" className="block text-sm font-medium text-gray-700">
-                  Property Description
-                </label>
-                <textarea
-                  id="description"
-                  rows={4}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  placeholder="Describe your property..."
-                />
-              </div>
-
-              <div>
-                <button
-                  type="submit"
-                  className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                >
-                  List My Property
-                </button>
-              </div>
-            </form>
+            <Link 
+              href="/sell/create"
+              className="inline-flex justify-center py-3 px-8 border border-transparent rounded-md shadow-sm text-lg font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
+            >
+              List My Property
+            </Link>
           </div>
         </div>
       </section>
