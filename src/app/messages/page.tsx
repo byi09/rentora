@@ -258,20 +258,13 @@ export default function MessagesPage() {
   };
 
   const handleSearchUsers = async (query: string) => {
+    if (!query) return [];
     try {
-      // Mock API call - replace with actual implementation
-      const mockUsers = [
-        { id: '1', username: 'sarah_landlord', firstName: 'Sarah', lastName: 'Johnson', role: 'landlord' as const, businessName: 'Johnson Properties' },
-        { id: '2', username: 'mike_owner', firstName: 'Mike', lastName: 'Chen', role: 'landlord' as const, businessName: 'Chen Properties' },
-        { id: '3', username: 'emma_agent', firstName: 'Emma', lastName: 'Davis', role: 'agent' as const },
-        { id: '4', username: 'john_renter', firstName: 'John', lastName: 'Smith', role: 'renter' as const }
-      ];
-      
-      return mockUsers.filter(user => 
-        user.firstName.toLowerCase().includes(query.toLowerCase()) ||
-        user.lastName.toLowerCase().includes(query.toLowerCase()) ||
-        user.username.toLowerCase().includes(query.toLowerCase())
-      );
+      const response = await fetch(`/api/users/search?q=${encodeURIComponent(query)}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch users');
+      }
+      return response.json();
     } catch (error) {
       console.error('Error searching users:', error);
       return [];
@@ -279,18 +272,13 @@ export default function MessagesPage() {
   };
 
   const handleSearchProperties = async (query: string) => {
+    if (!query) return [];
     try {
-      // Mock API call - replace with actual implementation
-      const mockProperties = [
-        { id: '1', addressLine1: '123 Main St', addressLine2: 'Apt 4B', city: 'San Francisco', state: 'CA', zipCode: '94102' },
-        { id: '2', addressLine1: '456 Oak Ave', addressLine2: 'Unit 2', city: 'Oakland', state: 'CA', zipCode: '94601' },
-        { id: '3', addressLine1: '789 Pine St', addressLine2: 'Studio', city: 'Berkeley', state: 'CA', zipCode: '94704' }
-      ];
-      
-      return mockProperties.filter(property => 
-        property.addressLine1.toLowerCase().includes(query.toLowerCase()) ||
-        property.city.toLowerCase().includes(query.toLowerCase())
-      );
+      const response = await fetch(`/api/properties/search?q=${encodeURIComponent(query)}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch properties');
+      }
+      return response.json();
     } catch (error) {
       console.error('Error searching properties:', error);
       return [];
