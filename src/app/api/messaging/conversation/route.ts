@@ -3,7 +3,7 @@ import { getUserConversationsComplete } from '@/src/db/queries';
 import { createClient } from '@/utils/supabase/server';
 import { db } from '@/src/db';
 import { conversations, conversationParticipants, users } from '@/src/db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, inArray } from 'drizzle-orm';
 
 export async function GET(request: NextRequest) {
     try {
@@ -49,7 +49,16 @@ export async function POST(request: NextRequest) {
             title 
         } = body;
 
-        // Validation based on conversation type
+        // --- Start of Validation ---
+        // 1. Validate that all participant_ids are valid users
+        if (participant_ids.length > 0) {
+            const usersExist = await db.select({ id: users.id }).from(users).where(inArray(users.id, participant_ids));
+            if (usersExist.length !== participant_ids.length) {
+                return NextResponse.json({ error: 'One or more participant IDs are invalid.' }, { status: 400 });
+            }
+        }
+
+        // 2. Validation based on conversation type
         if (conversation_type === 'direct') {
             if (participant_ids.length !== 1) {
                 return NextResponse.json({ 

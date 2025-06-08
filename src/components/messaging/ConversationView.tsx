@@ -140,20 +140,27 @@ export default function ConversationView({
   const propertyAddress = getPropertyAddress();
 
   return (
-    <div className="flex flex-col h-full bg-white">
+    <div className="flex flex-col h-screen bg-white relative">
+      {/* Loading Overlay */}
+      {isLoading && (
+        <div className="absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center z-20">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        </div>
+      )}
+
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-gray-200">
-        <div className="flex items-center space-x-3">
+      <div className="flex items-center p-4 border-b border-gray-200 z-10">
+        <div className="relative flex items-center justify-center w-10 h-10 bg-gray-200 rounded-full mr-3">
           <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center text-white font-medium text-sm">
             {getInitials(title)}
           </div>
-          <div>
-            <h2 className="font-semibold text-gray-900">{title}</h2>
-            <p className="text-sm text-blue-600">{subtitle}</p>
-            {propertyAddress && (
-              <p className="text-sm text-gray-500">{propertyAddress}</p>
-            )}
-          </div>
+        </div>
+        <div>
+          <h2 className="font-semibold text-gray-900">{title}</h2>
+          <p className="text-sm text-blue-600">{subtitle}</p>
+          {propertyAddress && (
+            <p className="text-sm text-gray-500">{propertyAddress}</p>
+          )}
         </div>
         
         <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-lg">
@@ -169,33 +176,50 @@ export default function ConversationView({
           </div>
         )}
         
-        {messages.map((message) => {
+        {messages.map((message, index) => {
           const isOwnMessage = message.senderId === currentUserId;
           const sender = conversation.participants.find(p => p.user.id === message.senderId);
+
+          const prevMessage = messages[index - 1];
+          const nextMessage = messages[index + 1];
+
+          const isGrouped =
+            prevMessage &&
+            prevMessage.senderId === message.senderId &&
+            new Date(message.createdAt).getTime() - new Date(prevMessage.createdAt).getTime() < 5 * 60 * 1000;
           
+          const showTimestamp = 
+            !nextMessage || 
+            nextMessage.senderId !== message.senderId ||
+            new Date(nextMessage.createdAt).getTime() - new Date(message.createdAt).getTime() > 5 * 60 * 1000;
+
           return (
             <div
               key={message.id}
-              className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'}`}
+              className={`flex items-end ${isOwnMessage ? 'justify-end' : 'justify-start'} ${isGrouped ? '' : 'mt-4'}`}
             >
-              <div className={`max-w-xs lg:max-w-md xl:max-w-lg ${isOwnMessage ? 'order-1' : 'order-2'}`}>
-                {!isOwnMessage && (
-                  <div className="flex items-center space-x-2 mb-1">
-                    <div className="w-6 h-6 bg-gray-400 rounded-full flex items-center justify-center text-white text-xs">
-                      {sender ? getInitials(`${sender.user.firstName} ${sender.user.lastName}`) : '?'}
+              {!isOwnMessage && (
+                <div className="w-8 h-8 rounded-full mr-2 flex-shrink-0">
+                  {!isGrouped && sender && (
+                    <div className="w-full h-full bg-gray-300 rounded-full flex items-center justify-center text-white text-xs font-bold">
+                       {sender ? getInitials(`${sender.user.firstName} ${sender.user.lastName}`) : '?'}
                     </div>
-                    <span className="text-xs text-gray-500">
-                      {sender ? `${sender.user.firstName} ${sender.user.lastName}` : 'Unknown'}
-                    </span>
-                  </div>
+                  )}
+                </div>
+              )}
+              <div className={`max-w-xs lg:max-w-md xl:max-w-lg ${isOwnMessage ? 'order-1' : 'order-2'}`}>
+                {!isOwnMessage && !isGrouped && (
+                  <span className="text-xs text-gray-500 mb-1 ml-2">
+                    {sender ? `${sender.user.firstName} ${sender.user.lastName}` : 'Unknown'}
+                  </span>
                 )}
                 
                 <div
                   className={`px-4 py-2 rounded-2xl ${
                     isOwnMessage
-                      ? 'bg-blue-600 text-white rounded-br-sm'
-                      : 'bg-gray-100 text-gray-900 rounded-bl-sm'
-                  }`}
+                      ? 'bg-blue-600 text-white rounded-br-lg'
+                      : 'bg-gray-100 text-gray-900 rounded-bl-lg'
+                  } ${isGrouped ? (isOwnMessage ? 'rounded-tr-lg' : 'rounded-tl-lg') : ''}`}
                 >
                   <p className="text-sm whitespace-pre-wrap">{message.content}</p>
                   {message.isEdited && (
@@ -205,9 +229,11 @@ export default function ConversationView({
                   )}
                 </div>
                 
-                <div className={`text-xs text-gray-500 mt-1 ${isOwnMessage ? 'text-right' : 'text-left'}`}>
-                  {formatMessageTime(message.createdAt)}
-                </div>
+                {showTimestamp && (
+                  <div className={`text-xs text-gray-500 mt-1 ${isOwnMessage ? 'text-right' : 'text-left'}`}>
+                    {formatMessageTime(message.createdAt)}
+                  </div>
+                )}
               </div>
             </div>
           );

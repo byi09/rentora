@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { pusherClient } from '@/src/lib/pusher';
 import ConversationList from '@/src/components/messaging/ConversationList';
 import ConversationView from '@/src/components/messaging/ConversationView';
 import CreateConversationModal from '@/src/components/messaging/CreateConversationModal';
@@ -15,6 +16,7 @@ interface Message {
   messageType: 'text' | 'image' | 'file' | 'system';
   isEdited?: boolean;
   replyToId?: string;
+  sender?: User; // Optional sender info for real-time messages
 }
 
 interface User {
@@ -55,132 +57,161 @@ export default function MessagesPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isMessagesLoading, setIsMessagesLoading] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
+  // --- 1. Authentication and Initial Load ---
   useEffect(() => {
     const getCurrentUser = async () => {
       try {
-        // This endpoint needs to exist to get the currently logged-in user
         const response = await fetch('/api/auth/user'); 
         if (response.ok) {
           const userData = await response.json();
           setCurrentUserId(userData.id);
         } else {
           router.push('/sign-in');
-          console.log('Not logged in'); // Redirect if not logged in
         }
       } catch (error) {
         console.error('Error fetching user', error);
         router.push('/sign-in');
-        console.log('error fetching user');
       }
     };
     getCurrentUser();
   }, [router]);
 
+  const loadConversations = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch('/api/messaging/conversation');
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      const conversationsData = await response.json();
+      setConversations(conversationsData);
+    } catch (error) {
+      console.error('Error loading conversations:', error);
+      setConversations([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (currentUserId) {
       loadConversations();
     }
-  }, [currentUserId]);
+  }, [currentUserId, loadConversations]);
+
+  const loadMessages = useCallback(async (conversationId: string) => {
+    setIsMessagesLoading(true);
+    try {
+      const response = await fetch(`/api/messaging/message?conversationId=${conversationId}`);
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      const messagesData = await response.json();
+      setMessages(messagesData.reverse());
+    } catch (error) {
+      console.error('Error loading messages:', error);
+      setMessages([]);
+    } finally {
+      setIsMessagesLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     if (selectedConversationId) {
       loadMessages(selectedConversationId);
     }
+  }, [selectedConversationId, loadMessages]);
+
+
+  // --- 2. Real-time Subscriptions ---
+
+  // Effect for handling real-time updates to the conversation list
+  useEffect(() => {
+    if (!currentUserId) return;
+
+    const userChannel = pusherClient.subscribe(`private-user-${currentUserId}`);
+
+    const handleConversationUpdate = (data: { conversationId: string; lastMessage: Message }) => {
+      setConversations(prev => {
+        const conversationExists = prev.some(c => c.id === data.conversationId);
+        if (!conversationExists) return prev; // Or fetch the new conversation info
+
+        return prev.map(c => 
+          c.id === data.conversationId 
+            ? { ...c, lastMessage: data.lastMessage }
+            : c
+        ).sort((a, b) => new Date(b.lastMessage!.createdAt).getTime() - new Date(a.lastMessage!.createdAt).getTime());
+      });
+    };
+
+    userChannel.bind('conversation-update', handleConversationUpdate);
+
+    return () => {
+      userChannel.unbind('conversation-update', handleConversationUpdate);
+      pusherClient.unsubscribe(`private-user-${currentUserId}`);
+    };
+  }, [currentUserId]);
+
+  // Effect for handling new messages in the currently selected conversation
+  useEffect(() => {
+    if (!selectedConversationId) return;
+
+    const conversationChannel = pusherClient.subscribe(`private-conversation-${selectedConversationId}`);
+    
+    const handleNewMessage = (payload: Message & { clientId?: string }) => {
+      setMessages(prev => {
+        // If a clientId is present in the payload, find the optimistic message and replace it
+        if (payload.clientId && prev.some(msg => msg.id === payload.clientId)) {
+          return prev.map(msg => msg.id === payload.clientId ? payload : msg);
+        }
+        
+        // If it's a message from another user (no clientId) or we can't find the optimistic one, just add it
+        if (!prev.some(msg => msg.id === payload.id)) {
+          return [...prev, payload];
+        }
+
+        return prev;
+      });
+    };
+
+    conversationChannel.bind('new-message', handleNewMessage);
+    
+    return () => {
+      conversationChannel.unbind('new-message', handleNewMessage);
+      pusherClient.unsubscribe(`private-conversation-${selectedConversationId}`);
+    };
   }, [selectedConversationId]);
 
-  const loadConversations = async () => {
-    setIsLoading(true);
-    try {
-      // Real API call to get user's conversations
-      const response = await fetch('/api/messaging/conversation', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const conversationsData = await response.json();
-      
-      // Transform API data to match our component's expected format
-      const transformedConversations: Conversation[] = conversationsData.map((conv: any) => ({
-        id: conv.id,
-        conversationType: conv.conversationType,
-        title: conv.title,
-        property: conv.property,
-        participants: conv.participants || [],
-        lastMessage: conv.lastMessage,
-        unreadCount: conv.unreadCount || 0
-      }));
-      
-      setConversations(transformedConversations);
-    } catch (error) {
-      console.error('Error loading conversations:', error);
-      // On error, set empty array to show no conversations state
-      setConversations([]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const loadMessages = async (conversationId: string) => {
-    try {
-      const response = await fetch(`/api/messaging/message?conversationId=${conversationId}`);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const messagesData = await response.json();
-      setMessages(messagesData.reverse()); // reverse to show oldest first
-    } catch (error) {
-      console.error('Error loading messages:', error);
-      setMessages([]); // Clear messages on error
-    }
-  };
-
-  const handleSelectConversation = (conversationId: string) => {
-    setSelectedConversationId(conversationId);
-    
-    // Mark conversation as read (update unread count)
-    setConversations(prev => prev.map(conv => 
-      conv.id === conversationId 
-        ? { ...conv, unreadCount: 0 }
-        : conv
-    ));
-  };
-
+  // --- 3. User Actions ---
   const handleSendMessage = async (content: string) => {
     if (!selectedConversationId || !currentUserId) return;
 
-    const newMessage: Message = {
-      id: `msg_${Date.now()}`,
+    const clientId = crypto.randomUUID();
+    const optimisticMessage: Message = {
+      id: clientId, // Use the client-generated ID for the optimistic message
       content,
       createdAt: new Date().toISOString(),
       senderId: currentUserId,
-      messageType: 'text'
+      messageType: 'text',
     };
-
-    // Optimistically add message
-    setMessages(prev => [...prev, newMessage]);
-
-    // Update conversation's last message
-    setConversations(prev => prev.map(conv => 
-      conv.id === selectedConversationId 
-        ? { ...conv, lastMessage: newMessage }
-        : conv
+    setMessages(prev => [...prev, optimisticMessage]);
+    setConversations(prev => prev.map(conv =>
+      conv.id === selectedConversationId ? { ...conv, lastMessage: optimisticMessage } : conv
     ));
 
     try {
-      // TODO: Send message to API
-      console.log('Sending message:', newMessage);
+      await fetch('/api/messaging/message', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          conversationId: selectedConversationId,
+          content: content,
+          clientId: clientId, // Send the clientId to the backend
+        }),
+      });
     } catch (error) {
       console.error('Error sending message:', error);
-      // Remove message on error
-      setMessages(prev => prev.filter(msg => msg.id !== newMessage.id));
+      setMessages(prev => prev.filter(msg => msg.id !== clientId));
     }
   };
 
@@ -191,13 +222,38 @@ export default function MessagesPage() {
     title?: string;
   }) => {
     try {
-      // TODO: Create conversation via API
-      console.log('Creating conversation:', data);
-      
-      // For now, just reload conversations
+      // Call the actual API endpoint to create the conversation
+      const response = await fetch('/api/messaging/conversation', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          participant_ids: data.participantIds,
+          property_id: data.propertyId,
+          conversation_type: data.conversationType,
+          title: data.title,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      // Instead of just reloading, we can get the new conversation from the response
+      const newConversation = await response.json();
+
+      // For a truly real-time feel, you wouldn't even need the next line,
+      // as Pusher would handle it. But for now, this adds it to the list.
       await loadConversations();
+      
+      // Close the modal and select the new conversation
+      setIsCreateModalOpen(false);
+      setSelectedConversationId(newConversation.conversation.id);
+
     } catch (error) {
       console.error('Error creating conversation:', error);
+      // You could add user-facing error handling here, e.g., a toast notification
     }
   };
 
@@ -273,7 +329,7 @@ export default function MessagesPage() {
         conversations={filteredConversations}
         selectedConversationId={selectedConversationId}
         currentUserId={currentUserId!}
-        onSelectConversation={handleSelectConversation}
+        onSelectConversation={setSelectedConversationId}
         onCreateConversation={() => setIsCreateModalOpen(true)}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
@@ -287,6 +343,7 @@ export default function MessagesPage() {
             messages={messages}
             currentUserId={currentUserId}
             onSendMessage={handleSendMessage}
+            isLoading={isMessagesLoading}
           />
         ) : conversations.length === 0 ? (
           <div className="flex items-center justify-center h-full text-gray-500">

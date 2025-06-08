@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/utils/supabase/server';
 import { pusherServer } from '@/src/lib/pusher';
+import { createClient } from '@/utils/supabase/server';
 import { userHasConversationAccess } from '@/src/db/queries';
 
 export async function POST(request: NextRequest) {
@@ -8,44 +8,39 @@ export async function POST(request: NextRequest) {
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-    if (authError || !user) {
+    if (!user || authError) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = await request.formData();
-    const socketId = body.get('socket_id') as string;
-    const channel = body.get('channel_name') as string;
+    const data = await request.formData();
+    const socketId = data.get('socket_id') as string;
+    const channel = data.get('channel_name') as string;
 
     if (!socketId || !channel) {
-      return NextResponse.json({ error: 'socket_id and channel_name are required' }, { status: 400 });
+      return NextResponse.json({ error: 'Missing socket_id or channel_name' }, { status: 400 });
     }
 
-    const conversationId = channel.replace('private-conversation-', '');
-
-    // For presence channels, the channel name is 'presence-conversation-{id}'
-    const presenceConversationId = channel.replace('presence-conversation-', '');
-
-    if (conversationId === channel && presenceConversationId === channel) {
-        return NextResponse.json({ error: 'Invalid channel name' }, { status: 400 });
-    }
-
-    const finalConversationId = conversationId !== channel ? conversationId : presenceConversationId;
-
-    const hasAccess = await userHasConversationAccess(user.id, finalConversationId);
-
-    if (!hasAccess) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
-
-    const userData = {
-      user_id: user.id,
-      user_info: {
-        email: user.email,
-      },
-    };
-
-    const authResponse = pusherServer.authorizeChannel(socketId, channel, userData);
+    // --- Authorization Logic ---
+    let isAuthorized = false;
     
+    if (channel.startsWith('private-user-')) {
+        const channelUserId = channel.replace('private-user-', '');
+        // Users can only subscribe to their own private channel
+        if(channelUserId === user.id) {
+            isAuthorized = true;
+        }
+    } else if (channel.startsWith('private-conversation-')) {
+        const conversationId = channel.replace('private-conversation-', '');
+        // Users can only subscribe if they are a participant in the conversation
+        isAuthorized = await userHasConversationAccess(user.id, conversationId);
+    }
+    
+    if (!isAuthorized) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+    
+    const authResponse = pusherServer.authorizeChannel(socketId, channel);
+
     return NextResponse.json(authResponse);
 
   } catch (error) {
