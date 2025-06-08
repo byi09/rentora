@@ -248,18 +248,21 @@ export const userHasConversationAccess = async (userId: string, conversationId: 
   return participation.length > 0;
 };
 
-export const getMessagesByConversationId = async (conversationId: string) => {
+export const getMessagesByConversationId = async (
+  conversationId: string,
+) => {
   try {
-    const messageTotal = await db
-    .select()
-    .from(messages)
-    .where(eq(messages.conversationId, conversationId));
-  return messages;
-} catch (error) {
+    const conversationMessages = await db
+      .select()
+      .from(messages)
+      .where(eq(messages.conversationId, conversationId));
+
+    return conversationMessages;
+  } catch (error) {
     console.error('Error getting messages by conversation id:', error);
-    return [];  
+    return [];
   }
-}
+};
   
 
 
