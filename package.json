@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "db:seed": "tsx src/scripts/seed.ts"
+    "db:seed": "tsx src/db/seed.ts"
   },
   "dependencies": {
     "@react-google-maps/api": "^2.20.6",
@@ -18,10 +18,13 @@
     "clsx": "^2.1.1",
     "dotenv": "^16.5.0",
     "drizzle-orm": "^0.43.1",
+    "lucide-react": "^0.513.0",
     "mapbox-gl": "^3.12.0",
     "next": "15.3.1",
     "postgres": "^3.4.7",
     "psql": "^0.0.1",
+    "pusher": "^5.2.0",
+    "pusher-js": "^8.4.0",
     "radix-ui": "^1.4.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

@@ -2,6 +2,7 @@ import { drizzle } from 'drizzle-orm/postgres-js';
 import { migrate } from 'drizzle-orm/postgres-js/migrator';
 import postgres from 'postgres';
 import * as schema from './schema';
+import { eq } from 'drizzle-orm';
 
 // Use the direct connection string
 const DATABASE_URL = 'postgresql://postgres:Home135!a38xQ6@db.fzkkrztvbflpbnayrfne.supabase.co:5432/postgres';
@@ -17,6 +18,13 @@ async function cleanupDatabase(db: any) {
   console.log('🧹 Cleaning up existing data...');
   
   // Delete in reverse order of dependencies
+  // Messaging data
+  await db.delete(schema.groupInvitations);
+  await db.delete(schema.messages);
+  await db.delete(schema.conversationParticipants);
+  await db.delete(schema.conversations);
+  
+  // Property and rental data
   await db.delete(schema.propertyFeatures);
   await db.delete(schema.propertyListings);
   await db.delete(schema.properties);
@@ -47,27 +55,39 @@ async function main() {
     // 1. Create sample users
     const sampleUsers = await db.insert(schema.users).values([
       {
+        id: 'e7393998-e2e6-4e45-b13e-5c522a474ef8', // Specified user UUID
+        email: 'test.user@example.com',
+        username: 'test_user',
+        emailVerified: true,
+        accountStatus: 'active',
+      },
+      {
         email: 'john.renter@example.com',
+        username: 'john_renter',
         emailVerified: true,
         accountStatus: 'active',
       },
       {
         email: 'sarah.landlord@example.com',
+        username: 'sarah_landlord',
         emailVerified: true,
         accountStatus: 'active',
       },
       {
         email: 'mike.owner@example.com',
+        username: 'mike_owner',
         emailVerified: true,
         accountStatus: 'active',
       },
       {
         email: 'emma.renter@example.com',
+        username: 'emma_renter',
         emailVerified: true,
         accountStatus: 'active',
       },
       {
         email: 'david.landlord@example.com',
+        username: 'david_landlord',
         emailVerified: true,
         accountStatus: 'active',
       }
@@ -78,7 +98,16 @@ async function main() {
     // 2. Create customer profiles
     const sampleCustomers = await db.insert(schema.customers).values([
       {
-        userId: sampleUsers[0].id,
+        userId: sampleUsers[0].id, // test_user (e7393998-e2e6-4e45-b13e-5c522a474ef8)
+        firstName: 'Test',
+        lastName: 'User',
+        phoneNumber: '+1-555-0100',
+        currentCity: 'San Francisco',
+        currentState: 'CA',
+        currentZipCode: '94105'
+      },
+      {
+        userId: sampleUsers[1].id,
         firstName: 'John',
         lastName: 'Smith',
         phoneNumber: '+1-555-0101',
@@ -87,7 +116,7 @@ async function main() {
         currentZipCode: '94102'
       },
       {
-        userId: sampleUsers[1].id,
+        userId: sampleUsers[2].id,
         firstName: 'Sarah',
         lastName: 'Johnson',
         phoneNumber: '+1-555-0102',
@@ -96,7 +125,7 @@ async function main() {
         currentZipCode: '94103'
       },
       {
-        userId: sampleUsers[2].id,
+        userId: sampleUsers[3].id,
         firstName: 'Mike',
         lastName: 'Davis',
         phoneNumber: '+1-555-0103',
@@ -105,7 +134,7 @@ async function main() {
         currentZipCode: '94601'
       },
       {
-        userId: sampleUsers[3].id,
+        userId: sampleUsers[4].id,
         firstName: 'Emma',
         lastName: 'Wilson',
         phoneNumber: '+1-555-0104',
@@ -114,7 +143,7 @@ async function main() {
         currentZipCode: '94704'
       },
       {
-        userId: sampleUsers[4].id,
+        userId: sampleUsers[5].id,
         firstName: 'David',
         lastName: 'Chen',
         phoneNumber: '+1-555-0105',
@@ -129,7 +158,7 @@ async function main() {
     // 3. Create landlords
     const sampleLandlords = await db.insert(schema.landlords).values([
       {
-        customerId: sampleCustomers[1].id,
+        customerId: sampleCustomers[2].id, // Sarah
         businessName: 'Johnson Properties LLC',
         acceptsPets: true,
         allowsSmoking: false,
@@ -139,7 +168,7 @@ async function main() {
         identityVerified: true
       },
       {
-        customerId: sampleCustomers[2].id,
+        customerId: sampleCustomers[3].id, // Mike
         businessName: 'Oakland Rentals',
         acceptsPets: true,
         allowsSmoking: false,
@@ -149,7 +178,7 @@ async function main() {
         identityVerified: true
       },
       {
-        customerId: sampleCustomers[4].id,
+        customerId: sampleCustomers[5].id, // David
         businessName: 'Peninsula Properties',
         acceptsPets: false,
         allowsSmoking: false,
@@ -165,7 +194,19 @@ async function main() {
     // 4. Create renters
     const sampleRenters = await db.insert(schema.renters).values([
       {
-        customerId: sampleCustomers[0].id,
+        customerId: sampleCustomers[0].id, // Test User
+        monthlyBudget: '4000.00',
+        moveInTimeline: '1_month',
+        currentRent: '3200.00',
+        reasonForMoving: 'Looking for a better place',
+        petsCount: 0,
+        employmentStatus: 'employed',
+        monthlyIncome: '10000.00',
+        employer: 'Tech Startup',
+        hasRentalHistory: true
+      },
+      {
+        customerId: sampleCustomers[1].id, // John
         monthlyBudget: '3500.00',
         moveInTimeline: '2_months',
         currentRent: '2800.00',
@@ -178,7 +219,7 @@ async function main() {
         hasRentalHistory: true
       },
       {
-        customerId: sampleCustomers[3].id,
+        customerId: sampleCustomers[4].id, // Emma
         monthlyBudget: '2800.00',
         moveInTimeline: '1_month',
         currentRent: '2200.00',
@@ -679,6 +720,274 @@ async function main() {
     ]).returning();
 
     console.log(`✅ Created ${sampleFeatures.length} property features`);
+
+    // Add sample conversations and messages
+    const sampleConversations = await db.insert(schema.conversations).values([
+      {
+        conversationType: 'direct',
+        propertyId: sampleProperties[0].id,
+      },
+      {
+        conversationType: 'direct', 
+        propertyId: sampleProperties[1].id,
+      },
+      {
+        conversationType: 'group',
+        title: 'Property Tour Group',
+        description: 'Discussion about the downtown property tour',
+        propertyId: sampleProperties[2].id,
+      },
+      // New conversations with test user
+      {
+        conversationType: 'direct',
+        propertyId: sampleProperties[3].id,
+      },
+      {
+        conversationType: 'direct',
+        propertyId: sampleProperties[4].id,
+      },
+      {
+        conversationType: 'group',
+        title: 'Bay Area Renters Group',
+        description: 'Discussion for potential renters in the Bay Area',
+        propertyId: null,
+      }
+    ]).returning();
+
+    console.log(`✅ Created ${sampleConversations.length} conversations`);
+
+    // Add conversation participants
+    const sampleParticipants = await db.insert(schema.conversationParticipants).values([
+      // Conversation 1: Renter and Landlord about Property 0
+      {
+        conversationId: sampleConversations[0].id,
+        userId: sampleUsers[1].id, // john_renter
+        role: 'member',
+      },
+      {
+        conversationId: sampleConversations[0].id,
+        userId: sampleUsers[2].id, // sarah_landlord
+        role: 'member',
+      },
+      // Conversation 2: Another renter and landlord
+      {
+        conversationId: sampleConversations[1].id,
+        userId: sampleUsers[4].id, // emma_renter
+        role: 'member',
+      },
+      {
+        conversationId: sampleConversations[1].id,
+        userId: sampleUsers[5].id, // david_landlord
+        role: 'member',
+      },
+      // Conversation 3: Group chat
+      {
+        conversationId: sampleConversations[2].id,
+        userId: sampleUsers[1].id, // john_renter
+        role: 'member',
+      },
+      {
+        conversationId: sampleConversations[2].id,
+        userId: sampleUsers[3].id, // mike_owner
+        role: 'admin',
+        canAddMembers: true,
+      },
+      {
+        conversationId: sampleConversations[2].id,
+        userId: sampleUsers[4].id, // emma_renter
+        role: 'member',
+      },
+      // NEW: Conversation 4: Test user with Sarah (landlord)
+      {
+        conversationId: sampleConversations[3].id,
+        userId: sampleUsers[0].id, // test_user (e7393998-e2e6-4e45-b13e-5c522a474ef8)
+        role: 'member',
+      },
+      {
+        conversationId: sampleConversations[3].id,
+        userId: sampleUsers[2].id, // sarah_landlord
+        role: 'member',
+      },
+      // NEW: Conversation 5: Test user with David (landlord)
+      {
+        conversationId: sampleConversations[4].id,
+        userId: sampleUsers[0].id, // test_user (e7393998-e2e6-4e45-b13e-5c522a474ef8)
+        role: 'member',
+      },
+      {
+        conversationId: sampleConversations[4].id,
+        userId: sampleUsers[5].id, // david_landlord
+        role: 'member',
+      },
+      // NEW: Conversation 6: Bay Area Renters Group with test user
+      {
+        conversationId: sampleConversations[5].id,
+        userId: sampleUsers[0].id, // test_user (e7393998-e2e6-4e45-b13e-5c522a474ef8)
+        role: 'admin',
+        canAddMembers: true,
+      },
+      {
+        conversationId: sampleConversations[5].id,
+        userId: sampleUsers[1].id, // john_renter
+        role: 'member',
+      },
+      {
+        conversationId: sampleConversations[5].id,
+        userId: sampleUsers[4].id, // emma_renter
+        role: 'member',
+      }
+    ]).returning();
+
+    console.log(`✅ Created ${sampleParticipants.length} conversation participants`);
+
+    // Add sample messages
+    const sampleMessages = await db.insert(schema.messages).values([
+      // Messages in conversation 1
+      {
+        conversationId: sampleConversations[0].id,
+        senderId: sampleUsers[1].id, // john_renter
+        content: 'Hi! I\'m interested in viewing the Mission District apartment. When would be a good time?',
+        messageType: 'text',
+      },
+      {
+        conversationId: sampleConversations[0].id,
+        senderId: sampleUsers[2].id, // sarah_landlord
+        content: 'Hello John! I\'d be happy to show you the apartment. Are you available this weekend?',
+        messageType: 'text',
+      },
+      {
+        conversationId: sampleConversations[0].id,
+        senderId: sampleUsers[1].id, // john_renter
+        content: 'Yes, Saturday afternoon works great for me. What time?',
+        messageType: 'text',
+      },
+      
+      // Messages in conversation 2
+      {
+        conversationId: sampleConversations[1].id,
+        senderId: sampleUsers[4].id, // emma_renter
+        content: 'Hello! I saw your SOMA condo listing and I\'m very interested. Could you tell me more about the building amenities?',
+        messageType: 'text',
+      },
+      {
+        conversationId: sampleConversations[1].id,
+        senderId: sampleUsers[5].id, // david_landlord
+        content: 'Hi Emma! The building has a rooftop deck, fitness center, and concierge service. Would you like to schedule a tour?',
+        messageType: 'text',
+      },
+      
+      // Messages in group conversation
+      {
+        conversationId: sampleConversations[2].id,
+        senderId: sampleUsers[3].id, // mike_owner
+        content: 'Welcome to the property tour group! We\'ll be touring the Temescal house this Sunday at 2 PM.',
+        messageType: 'text',
+      },
+      {
+        conversationId: sampleConversations[2].id,
+        senderId: sampleUsers[1].id, // john_renter
+        content: 'Great! I\'ll be there. Should I bring anything specific?',
+        messageType: 'text',
+      },
+      {
+        conversationId: sampleConversations[2].id,
+        senderId: sampleUsers[4].id, // emma_renter
+        content: 'Looking forward to it! What\'s the exact address?',
+        messageType: 'text',
+      },
+
+      // NEW: Messages in conversation 4 - Test user with Sarah
+      {
+        conversationId: sampleConversations[3].id,
+        senderId: sampleUsers[0].id, // test_user (e7393998-e2e6-4e45-b13e-5c522a474ef8)
+        content: 'Hi Sarah! I saw your Lake Merritt studio listing and I\'m very interested. The location looks perfect for my commute.',
+        messageType: 'text',
+      },
+      {
+        conversationId: sampleConversations[3].id,
+        senderId: sampleUsers[2].id, // sarah_landlord
+        content: 'Hello! Thank you for your interest. The studio has beautiful lake views and vintage charm. Would you like to schedule a viewing?',
+        messageType: 'text',
+      },
+      {
+        conversationId: sampleConversations[3].id,
+        senderId: sampleUsers[0].id, // test_user
+        content: 'That sounds wonderful! I\'m available this week. What times work best for you?',
+        messageType: 'text',
+      },
+      {
+        conversationId: sampleConversations[3].id,
+        senderId: sampleUsers[2].id, // sarah_landlord
+        content: 'I have openings Tuesday at 3 PM or Thursday at 6 PM. Which works better for you?',
+        messageType: 'text',
+      },
+
+      // NEW: Messages in conversation 5 - Test user with David
+      {
+        conversationId: sampleConversations[4].id,
+        senderId: sampleUsers[0].id, // test_user (e7393998-e2e6-4e45-b13e-5c522a474ef8)
+        content: 'Hi David! I\'m interested in your Palo Alto townhouse. Could you tell me more about the neighborhood and amenities?',
+        messageType: 'text',
+      },
+      {
+        conversationId: sampleConversations[4].id,
+        senderId: sampleUsers[5].id, // david_landlord
+        content: 'Hello! The townhouse is in a quiet residential area with excellent schools nearby. It has a private patio, attached garage, and modern smart home features.',
+        messageType: 'text',
+      },
+      {
+        conversationId: sampleConversations[4].id,
+        senderId: sampleUsers[0].id, // test_user
+        content: 'That sounds exactly what I\'m looking for! Is it pet-friendly? And when might I be able to view it?',
+        messageType: 'text',
+      },
+
+      // NEW: Messages in group conversation 6 - Bay Area Renters Group
+      {
+        conversationId: sampleConversations[5].id,
+        senderId: sampleUsers[0].id, // test_user (e7393998-e2e6-4e45-b13e-5c522a474ef8)
+        content: 'Welcome everyone to the Bay Area Renters Group! This is a space to share tips, experiences, and help each other find great places to live.',
+        messageType: 'text',
+      },
+      {
+        conversationId: sampleConversations[5].id,
+        senderId: sampleUsers[1].id, // john_renter
+        content: 'Thanks for creating this group! I\'ve been searching for months and could use all the help I can get.',
+        messageType: 'text',
+      },
+      {
+        conversationId: sampleConversations[5].id,
+        senderId: sampleUsers[4].id, // emma_renter
+        content: 'This is great! Has anyone had experience with landlords in the Mission District?',
+        messageType: 'text',
+      },
+      {
+        conversationId: sampleConversations[5].id,
+        senderId: sampleUsers[0].id, // test_user
+        content: 'I\'ve been looking at a few places there. Happy to share what I\'ve learned so far!',
+        messageType: 'text',
+      }
+    ]).returning();
+
+    console.log(`✅ Created ${sampleMessages.length} messages`);
+
+    // Add sample group invitations
+    const sampleInvitations = await db.insert(schema.groupInvitations).values([
+      {
+        conversationId: sampleConversations[5].id, // Bay Area Renters Group
+        invitedUsername: 'alex_newrenter',
+        invitedBy: sampleUsers[0].id, // test_user (e7393998-e2e6-4e45-b13e-5c522a474ef8)
+        status: 'pending',
+      },
+      {
+        conversationId: sampleConversations[2].id, // Property Tour Group
+        invitedUsername: 'test_user',
+        invitedBy: sampleUsers[3].id, // mike_owner
+        status: 'accepted',
+      }
+    ]).returning();
+
+    console.log(`✅ Created ${sampleInvitations.length} group invitations`);
 
     console.log('🎉 Database seeding completed successfully!');
     

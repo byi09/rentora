@@ -8,6 +8,27 @@
       "when": 1748473111394,
       "tag": "0000_cuddly_crystal",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1749400298334,
+      "tag": "0001_colossal_whiplash",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1749400653665,
+      "tag": "0002_old_the_fury",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1749401785003,
+      "tag": "0003_bumpy_mojo",
+      "breakpoints": true
     }
   ]
 }
