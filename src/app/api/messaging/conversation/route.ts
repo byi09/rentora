@@ -16,11 +16,11 @@ export async function GET(request: NextRequest) {
 
         console.log('Loading conversations for user:', user.id);
 
-        const conversations = await getUserConversationsComplete(user.id);
-        
-        console.log(`Found ${conversations.length} conversations for user`);
+        const userConversations = await getUserConversationsComplete(user.id);
 
-        return NextResponse.json(conversations);
+        console.log(`Found ${userConversations.length} conversations for user`);
+
+        return NextResponse.json(userConversations);
 
     } catch (error) {
         console.error('Error in GET /api/messaging/conversation:', error);
