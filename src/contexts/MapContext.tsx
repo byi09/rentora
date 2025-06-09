@@ -1,8 +1,14 @@
-'use client'
+"use client";
 
 import type { FilterOptions, PropertyListing, SortOption } from "@/lib/types";
 import { searchPropertiesWithFilter } from "@/src/db/queries";
-import { createContext, useContext, useEffect, useState, useTransition } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useTransition
+} from "react";
 
 interface MapContextProps {
   filterOptions: FilterOptions;
@@ -22,9 +28,13 @@ export const useMapContext = () => {
     throw new Error("useMapContext must be used within a MapContextProvider");
   }
   return context;
-}
+};
 
-export const MapContextProvider = ({ children }: { children: React.ReactNode }) => {
+export const MapContextProvider = ({
+  children
+}: {
+  children: React.ReactNode;
+}) => {
   const [fetchingListings, startFetchingListings] = useTransition();
   const [ready, setReady] = useState(false);
   const [filterOptions, setFilterOptions] = useState<FilterOptions>({
@@ -39,28 +49,37 @@ export const MapContextProvider = ({ children }: { children: React.ReactNode }) 
     furnished: false,
     utilitiesIncluded: false,
     parking: false,
-    leaseType: 'rent',
+    leaseType: "rent"
   });
-  const [sortOption, setSortOption] = useState<SortOption>('priceAsc');
+  const [sortOption, setSortOption] = useState<SortOption>("priceAsc");
 
   const [catalog, setCatalog] = useState<PropertyListing[]>([]);
 
   // update catalog based on filter options
-  useEffect(() => {
-    if (!ready) return;
-    startFetchingListings(async () => {
-      // JSON stringify + parse to avoid mutating the original filterOptions object
-      // and pass deep objects to server-side function
-      const optionsBundle = JSON.parse(JSON.stringify(filterOptions));
-      const properties = await searchPropertiesWithFilter(optionsBundle, sortOption);
-      setCatalog(properties);
-    });
-  }, [filterOptions, ready, sortOption]);
+  // useEffect(() => {
+  //   if (!ready) return;
+  //   startFetchingListings(async () => {
+  //     // JSON stringify + parse to avoid mutating the original filterOptions object
+  //     // and pass deep objects to server-side function
+  //     const optionsBundle = JSON.parse(JSON.stringify(filterOptions));
+  //     const properties = await searchPropertiesWithFilter(optionsBundle, sortOption);
+  //     setCatalog(properties);
+  //   });
+  // }, [filterOptions, ready, sortOption]);
 
   return (
-    <MapContext.Provider value={{ filterOptions, setFilterOptions, fetchingListings, setReady, catalog, sortOption, setSortOption }}>
+    <MapContext.Provider
+      value={{
+        filterOptions,
+        setFilterOptions,
+        fetchingListings,
+        setReady,
+        catalog,
+        sortOption,
+        setSortOption
+      }}
+    >
       {children}
     </MapContext.Provider>
   );
-}
-
+};

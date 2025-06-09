@@ -2,10 +2,10 @@
 
 import { SortOption } from "@/lib/types";
 import Dropdown, { DropdownItem } from "../ui/Dropdown";
-import Spinner from "../ui/Spinner";
 import { useMapContext } from "../../contexts/MapContext";
-import MapCatalogItem from "./MapCatalogItem";
+import PropertyCard from "../MapCatalogItem";
 import { listToMap } from "@/utils/converters";
+import clsx from "clsx";
 
 const sortOptions: { value: SortOption; label: string }[] = [
   { value: "newest", label: "Newest" },
@@ -23,13 +23,12 @@ export default function MapCatalog() {
     useMapContext();
 
   return (
-    <div className="flex flex-col px-6 py-4 gap-4 shadow-xl z-10 w-[400px] xl:w-[760px] h-full min-h-0 overflow-y-auto relative">
-      {fetchingListings && (
-        <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-75 z-20">
-          <Spinner size="lg" />
-        </div>
+    <div
+      className={clsx(
+        "flex flex-col px-6 py-4 gap-4 shadow-xl z-10 w-[400px] xl:w-[760px] h-full min-h-0 overflow-y-auto relative",
+        fetchingListings && "pointer-events-none opacity-50"
       )}
-
+    >
       <header>
         <h1 className="text-2xl font-bold text-blue-900">Rental Listings</h1>
         <div className="flex justify-between items-center">
@@ -58,7 +57,7 @@ export default function MapCatalog() {
       {/* listings */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
         {catalog.map((item) => (
-          <MapCatalogItem key={item.properties.id} item={item} />
+          <PropertyCard key={item.properties.id} item={item} />
         ))}
       </div>
     </div>

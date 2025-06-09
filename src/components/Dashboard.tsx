@@ -1,6 +1,13 @@
-import { HiCalendarDays, HiMapPin, HiCalculator, HiChatBubbleLeftRight, HiCreditCard, HiDocumentText } from 'react-icons/hi2';
-import PropertySearch from './PropertySearch';
-import Catalog from './home/Catalog';
+import {
+  HiCalendarDays,
+  HiMapPin,
+  HiCalculator,
+  HiChatBubbleLeftRight,
+  HiCreditCard,
+  HiDocumentText
+} from "react-icons/hi2";
+import PropertySearch from "./PropertySearch";
+import Catalog from "./home/Catalog";
 
 export default function Dashboard() {
   return (
@@ -13,7 +20,8 @@ export default function Dashboard() {
               Find Your Perfect Rental
             </h1>
             <p className="text-xl md:text-2xl text-blue-100 max-w-3xl mx-auto">
-              Discover amazing properties in your ideal location with our comprehensive search tools
+              Discover amazing properties in your ideal location with our
+              comprehensive search tools
             </p>
           </div>
 
@@ -23,94 +31,6 @@ export default function Dashboard() {
       </section>
 
       <Catalog />
-
-      {/* Popular Neighborhoods */}
-      <section className="py-16 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Popular Neighborhoods
-            </h2>
-            <p className="text-xl text-gray-600">
-              Explore trending areas with the best rental opportunities
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
-            {/* Neighborhood 1 */}
-            <div className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
-              <div className="w-full h-48 bg-gradient-to-br from-blue-400 to-purple-600"></div>
-              <div className="p-6">
-                <h3 className="text-xl font-bold text-gray-900 mb-2">West Hollywood</h3>
-                <div className="flex justify-between items-center mb-4">
-                  <div>
-                    <p className="text-2xl font-bold text-gray-900">$3,600</p>
-                    <p className="text-gray-600">Avg. rent</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-green-600 font-semibold">+4.7%</p>
-                    <p className="text-gray-600">156 properties</p>
-                  </div>
-                </div>
-                <button className="text-blue-600 font-medium hover:text-blue-800 flex items-center">
-                  <HiMapPin className="w-4 h-4 mr-1" />
-                  View available rentals
-                </button>
-              </div>
-            </div>
-
-            {/* Neighborhood 2 */}
-            <div className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
-              <div className="w-full h-48 bg-gradient-to-br from-green-400 to-blue-600"></div>
-              <div className="p-6">
-                <h3 className="text-xl font-bold text-gray-900 mb-2">Culver City</h3>
-                <div className="flex justify-between items-center mb-4">
-                  <div>
-                    <p className="text-2xl font-bold text-gray-900">$2,900</p>
-                    <p className="text-gray-600">Avg. rent</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-green-600 font-semibold">+6.3%</p>
-                    <p className="text-gray-600">134 properties</p>
-                  </div>
-                </div>
-                <button className="text-blue-600 font-medium hover:text-blue-800 flex items-center">
-                  <HiMapPin className="w-4 h-4 mr-1" />
-                  View available rentals
-                </button>
-              </div>
-            </div>
-
-            {/* Neighborhood 3 */}
-            <div className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
-              <div className="w-full h-48 bg-gradient-to-br from-orange-400 to-pink-600"></div>
-              <div className="p-6">
-                <h3 className="text-xl font-bold text-gray-900 mb-2">Manhattan Beach</h3>
-                <div className="flex justify-between items-center mb-4">
-                  <div>
-                    <p className="text-2xl font-bold text-gray-900">$4,200</p>
-                    <p className="text-gray-600">Avg. rent</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-green-600 font-semibold">+1.9%</p>
-                    <p className="text-gray-600">78 properties</p>
-                  </div>
-                </div>
-                <button className="text-blue-600 font-medium hover:text-blue-800 flex items-center">
-                  <HiMapPin className="w-4 h-4 mr-1" />
-                  View available rentals
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div className="text-center">
-            <button className="bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors">
-              Explore All Neighborhoods
-            </button>
-          </div>
-        </div>
-      </section>
 
       {/* Quick Actions */}
       <section className="py-16 bg-gray-50">
@@ -130,7 +50,9 @@ export default function Dashboard() {
               <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <HiCalculator className="w-8 h-8 text-blue-600" />
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">Rent Calculator</h3>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">
+                Rent Calculator
+              </h3>
               <p className="text-gray-600 mb-4">Calculate affordability</p>
               <button className="text-blue-600 font-medium hover:text-blue-800">
                 Get Started
@@ -142,7 +64,9 @@ export default function Dashboard() {
               <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <HiMapPin className="w-8 h-8 text-green-600" />
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">Neighborhood Guide</h3>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">
+                Neighborhood Guide
+              </h3>
               <p className="text-gray-600 mb-4">Explore local areas</p>
               <button className="text-blue-600 font-medium hover:text-blue-800">
                 Get Started
@@ -154,7 +78,9 @@ export default function Dashboard() {
               <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <HiDocumentText className="w-8 h-8 text-purple-600" />
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">Rental Application</h3>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">
+                Rental Application
+              </h3>
               <p className="text-gray-600 mb-4">Apply for properties</p>
               <button className="text-blue-600 font-medium hover:text-blue-800">
                 Get Started
@@ -166,7 +92,9 @@ export default function Dashboard() {
               <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <HiChatBubbleLeftRight className="w-8 h-8 text-orange-600" />
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">Contact Landlord</h3>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">
+                Contact Landlord
+              </h3>
               <p className="text-gray-600 mb-4">Get in touch quickly</p>
               <button className="text-blue-600 font-medium hover:text-blue-800">
                 Get Started
@@ -178,7 +106,9 @@ export default function Dashboard() {
               <div className="w-16 h-16 bg-pink-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <HiCalendarDays className="w-8 h-8 text-pink-600" />
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">Schedule Tour</h3>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">
+                Schedule Tour
+              </h3>
               <p className="text-gray-600 mb-4">Book a viewing</p>
               <button className="text-blue-600 font-medium hover:text-blue-800">
                 Get Started
@@ -201,4 +131,4 @@ export default function Dashboard() {
       </section>
     </main>
   );
-} 
+}
