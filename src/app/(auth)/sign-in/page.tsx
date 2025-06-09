@@ -1,24 +1,49 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
-import OneTapComponent from '@/src/components/googleOneTap';
 
 export default function SignIn() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [showPopup, setShowPopup] = useState(false);
-  const [errorPopup, setErrorPopup] = useState<{show: boolean, type: string, message: string}>({
-    show: false,
-    type: '',
-    message: ''
-  });
+  const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [checking, setChecking] = useState(true);
   const router = useRouter();
+
+  // Check if user is already authenticated and onboarded
+  useEffect(() => {
+    const checkAuth = async () => {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (user) {
+        // Check onboarding status
+        try {
+          const res = await fetch('/api/onboarding/status');
+          if (res.ok) {
+            const { onboarded } = await res.json();
+            if (onboarded) {
+              router.push('/messages');
+              return;
+            }
+          }
+        } catch (error) {
+          console.error('Error checking onboarding status:', error);
+        }
+      }
+      setChecking(false);
+    };
+
+    checkAuth();
+  }, [router]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setLoading(true);
+    setErrorMessage('');
     
     const supabase = createClient();
     const { data, error } = await supabase.auth.signInWithPassword({
@@ -27,40 +52,16 @@ export default function SignIn() {
     });
     
     if (error) {
-      // Show different error popups based on error type
-      if (error.message === 'Email not confirmed') {
-        setErrorPopup({
-          show: true,
-          type: 'email_not_confirmed',
-          message: 'Please check your email and click the confirmation link before signing in.'
-        });
-      } else if (error.message === 'Invalid login credentials') {
-        setErrorPopup({
-          show: true,
-          type: 'invalid_credentials',
-          message: 'The email or password you entered is incorrect.'
-        });
-      } else {
-        setErrorPopup({
-          show: true,
-          type: 'unknown',
-          message: 'An unexpected error occurred. Please try again.'
-        });
-      }
-      
-      // Hide error popup after 5 seconds
-      setTimeout(() => {
-        setErrorPopup({show: false, type: '', message: ''});
-      }, 5000);
+      setLoading(false);
+      setErrorMessage(error.message);
     } else {
-      // Success
-      setShowPopup(true);
-      setTimeout(() => setShowPopup(false), 2000);
+      // Success - redirect to home page for onboarding check
       router.push('/');
     }
   }
 
   const handleGoogleSignIn = async () => {
+    setLoading(true);
     const supabase = createClient();
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
@@ -70,36 +71,21 @@ export default function SignIn() {
     });
     
     if (error) {
-      console.error('Error signing in with Google:', error);
+      setLoading(false);
+      setErrorMessage(error.message);
     }
   };
 
-  const handleResendConfirmation = async () => {
-    const supabase = createClient();
-    const { error } = await supabase.auth.resend({
-      type: 'signup',
-      email,
-      options: {
-        emailRedirectTo: `${window.location.origin}/callback`
-      }
-    });
-    
-    if (!error) {
-      setErrorPopup({
-        show: true,
-        type: 'success',
-        message: 'Confirmation email sent! Check your inbox.'
-      });
-      setTimeout(() => {
-        setErrorPopup({show: false, type: '', message: ''});
-      }, 3000);
-    }
-  };
+  if (checking) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen relative">
-      <OneTapComponent />
-      
       {/* Back button - positioned at the top left */}
       <button 
         onClick={() => router.push('/')}
@@ -130,6 +116,12 @@ export default function SignIn() {
 
           <h1 className="text-2xl font-bold text-gray-900 mb-6">Sign in</h1>
 
+          {errorMessage && (
+            <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+              {errorMessage}
+            </div>
+          )}
+
           <form className="space-y-5" onSubmit={handleSubmit}>
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
@@ -145,6 +137,7 @@ export default function SignIn() {
                 onChange={(e) => setEmail(e.target.value)}
                 className="block w-full px-4 py-3 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
                 placeholder="Enter your email"
+                disabled={loading}
               />
             </div>
             <div>
@@ -161,22 +154,18 @@ export default function SignIn() {
                 onChange={(e) => setPassword(e.target.value)}
                 className="block w-full px-4 py-3 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
                 placeholder="Enter your password"
+                disabled={loading}
               />
             </div>
 
             <button
               type="submit"
-              className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              disabled={loading}
+              className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Sign in
+              {loading ? 'Signing in...' : 'Sign in'}
             </button>
           </form>
-
-          {showPopup && (
-            <div className="fixed top-8 left-1/2 transform -translate-x-1/2 bg-green-500 text-white px-6 py-3 rounded shadow-lg z-50 transition-all">
-              Login successful!
-            </div>
-          )}
 
           <div className="mt-5">
             <p className="text-sm text-gray-600 mb-4">New to Rentora? <Link href="/sign-up" className="text-blue-600 hover:text-blue-800 font-medium">Create account</Link></p>
@@ -190,10 +179,11 @@ export default function SignIn() {
               </div>
             </div>
 
-            <div className="mt-4 space-y-3">
+            <div className="mt-4">
               <button 
                 onClick={handleGoogleSignIn}
-                className="w-full inline-flex items-center justify-center py-2.5 px-4 border border-gray-300 rounded-md bg-white text-sm font-medium text-gray-700 hover:bg-gray-50"
+                disabled={loading}
+                className="w-full inline-flex items-center justify-center py-2.5 px-4 border border-gray-300 rounded-md bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
               >
                 <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
@@ -202,20 +192,6 @@ export default function SignIn() {
                   <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
                 </svg>
                 Continue with Google
-              </button>
-              
-              <button className="w-full inline-flex items-center justify-center py-2.5 px-4 border border-gray-300 rounded-md bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
-                <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M16.365 1.43c0 1.14-.493 2.27-1.177 3.08-.744.9-1.99 1.57-2.987 1.57-.12 0-.23-.02-.3-.03-.01-.06-.04-.22-.04-.39 0-1.15.572-2.27 1.206-2.98.804-.94 2.142-1.64 3.248-1.68.03.13.05.28.05.43zm4.565 15.71c-.03.07-.463 1.58-1.518 3.12-.945 1.34-1.94 2.71-3.43 2.71-1.517 0-1.9-.88-3.63-.88-1.698 0-2.302.91-3.67.91-1.377 0-2.332-1.26-3.428-2.8-1.287-1.82-2.323-4.63-2.323-7.28 0-4.28 2.797-6.55 5.552-6.55 1.448 0 2.675.95 3.6.95.865 0 2.222-1.01 3.902-1.01.613 0 2.886.06 4.374 2.19-3.477 1.78-2.96 6.17.572 8.64z"/>
-                </svg>
-                Continue with Apple
-              </button>
-              
-              <button className="w-full inline-flex items-center justify-center py-2.5 px-4 border border-gray-300 rounded-md bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
-                <svg className="w-5 h-5 mr-2" fill="#1877F2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M24 12.073c0-5.8-4.2-10.6-9.998-11.695v8.713h4.52l.86 4.866h-5.38v3.133c0 1.66.813 3.23 3.437 3.23h2.663v4.14s-2.413.413-4.716.413c-4.797 0-7.967-2.9-7.967-8.153v-2.77h-5.46V10.37h5.46V.378C4.2 1.473 0 6.273 0 12.073c0 6.627 5.373 12 12 12s12-5.373 12-12z"/>
-                </svg>
-                Continue with Facebook
               </button>
             </div>
           </div>
@@ -240,38 +216,6 @@ export default function SignIn() {
           />
         </div>
       </div>
-
-      {/* Error Popup */}
-      {errorPopup.show && (
-        <div className={`fixed top-8 left-1/2 transform -translate-x-1/2 px-6 py-4 rounded shadow-lg z-50 transition-all max-w-md ${
-          errorPopup.type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
-        }`}>
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              <p className="font-medium mb-1">
-                {errorPopup.type === 'email_not_confirmed' ? 'Email Not Verified' :
-                 errorPopup.type === 'invalid_credentials' ? 'Invalid Credentials' :
-                 errorPopup.type === 'success' ? 'Success' : 'Error'}
-              </p>
-              <p className="text-sm">{errorPopup.message}</p>
-              {errorPopup.type === 'email_not_confirmed' && (
-                <button 
-                  onClick={handleResendConfirmation}
-                  className="mt-2 text-sm underline hover:no-underline"
-                >
-                  Resend confirmation email
-                </button>
-              )}
-            </div>
-            <button 
-              onClick={() => setErrorPopup({show: false, type: '', message: ''})}
-              className="ml-4 text-white hover:text-gray-200"
-            >
-              ×
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 } 

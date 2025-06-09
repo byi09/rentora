@@ -44,13 +44,13 @@ export async function middleware(request: NextRequest) {
   })
   const onboarded = !!userRow && !!customerRow
 
+  // Non-onboarded users should go to home page for onboarding
   if (!onboarded && pathname !== '/') {
     return NextResponse.redirect(new URL('/', request.url))
   }
 
-  if (onboarded && ['/sign-in', '/sign-up'].includes(pathname)) {
-    return NextResponse.redirect(new URL('/', request.url))
-  }
+  // Onboarded users can access auth pages (they'll be redirected by the page logic if needed)
+  // Remove the redirect logic that was forcing them to home page
 
   return response
 }
@@ -62,8 +62,10 @@ export const config = {
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
+     * - api/ (API routes)
+     * - (auth)/ (route group auth pages)
      * Feel free to modify this pattern to include more paths.
      */
-    '/((?!_next/static|_next/image|favicon.ico|api|auth|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|api/|\\(auth\\)/|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }
