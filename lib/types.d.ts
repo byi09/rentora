@@ -1,14 +1,13 @@
 import { searchPropertiesWithFilter } from "@/src/db/queries";
 
+interface GeoCoordinates {
+  lng: number;
+  lat: number;
+}
+
 interface FilterOptions {
-  swBounds?: {
-    lat: number;
-    lng: number;
-  };
-  neBounds?: {
-    lat: number;
-    lng: number;
-  };
+  swBounds?: GeoCoordinates;
+  neBounds?: GeoCoordinates;
   leaseType?: string;
   propertyTypes: {
     apartment?: boolean;
@@ -56,4 +55,17 @@ interface ClientLocation {
   country: AddressComponent | null;
   postal_code: AddressComponent | null;
   county: AddressComponent | null;
+}
+
+interface Geometry {
+  bounds: {
+    northeast: GeoCoordinates;
+    southwest: GeoCoordinates;
+  };
+  location: GeoCoordinates;
+  viewport: {
+    northeast: GeoCoordinates;
+    southwest: GeoCoordinates;
+  };
+  location_type: string;
 }

@@ -2,6 +2,7 @@
 
 import type { FilterOptions, PropertyListing, SortOption } from "@/lib/types";
 import { searchPropertiesWithFilter } from "@/src/db/queries";
+import { useSearchParams } from "next/navigation";
 import {
   createContext,
   useContext,
@@ -52,8 +53,9 @@ export const MapContextProvider = ({
     leaseType: "rent"
   });
   const [sortOption, setSortOption] = useState<SortOption>("priceAsc");
-
   const [catalog, setCatalog] = useState<PropertyListing[]>([]);
+  const [paramsLoaded, setParamsLoaded] = useState(false);
+  const searchParams = useSearchParams();
 
   // update catalog based on filter options
   // useEffect(() => {
@@ -66,6 +68,40 @@ export const MapContextProvider = ({
   //     setCatalog(properties);
   //   });
   // }, [filterOptions, ready, sortOption]);
+
+  useEffect(() => {
+    // prevent running this effect multiple times from
+    // search parameter changes as user interacts with filters and maps
+    if (paramsLoaded) return;
+
+    const params = Object.fromEntries(searchParams.entries());
+
+    const beds = parseInt(params.beds || "0", 10);
+    const baths = parseInt(params.baths || "0", 10);
+
+    const newFilterOptions: FilterOptions = {
+      propertyTypes: {
+        apartment: params.propertyType === "apartment",
+        house: params.propertyType === "house",
+        condo: beds === -1 || params.propertyType === "condo",
+        townhouse: params.propertyType === "townhouse"
+      },
+      priceRange: {
+        min: parseInt(params.minPrice || "0", 10),
+        max: parseInt(params.maxPrice || "0", 10)
+      },
+      bedrooms: beds > 0 ? beds : 0,
+      bathrooms: baths > 0 ? baths : 0,
+      petsAllowed: params.petFriendly === "true",
+      furnished: params.furnished === "true",
+      utilitiesIncluded: params.utilitiesIncluded === "true",
+      parking: params.parking === "true",
+      leaseType: params.leaseType || "rent"
+    };
+
+    setFilterOptions(newFilterOptions);
+    setParamsLoaded(true);
+  }, [searchParams, paramsLoaded]);
 
   return (
     <MapContext.Provider
