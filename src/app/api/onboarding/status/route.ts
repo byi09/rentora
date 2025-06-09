@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import { db } from '@/src/db';
-import { customers } from '@/src/db/schema';
+import { users, customers } from '@/src/db/schema';
 import { eq } from 'drizzle-orm';
 
 export async function GET(request: NextRequest) {
@@ -13,8 +13,17 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const onboarded = (await db.query.customers.findFirst({ where: eq(customers.userId, user.id) })) !== undefined;
-    return NextResponse.json({ onboarded });
+    const userRow = await db.query.users.findFirst({
+      where: eq(users.id, user.id),
+      columns: { id: true }
+    })
+    const customerRow = await db.query.customers.findFirst({
+      where: eq(customers.userId, user.id),
+      columns: { id: true }
+    })
+
+    const onboarded = !!userRow && !!customerRow
+    return NextResponse.json({ onboarded })
   } catch (err) {
     console.error('Onboarding status error:', err);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
