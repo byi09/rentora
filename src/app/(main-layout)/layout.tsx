@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import ClientLayout from "@/src/components/ClientLayout";
+import ClientWrapper from "@/src/components/ClientWrapper";
 import type { User } from '@supabase/supabase-js';
 
 export default function MainLayout({
@@ -41,5 +42,11 @@ export default function MainLayout({
     );
   }
 
-  return <ClientLayout user={user}>{children}</ClientLayout>;
+  return (
+    <ClientLayout>
+      <ClientWrapper>
+        {children}
+      </ClientWrapper>
+    </ClientLayout>
+  );
 } 
