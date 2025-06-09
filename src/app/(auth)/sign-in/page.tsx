@@ -20,7 +20,6 @@ export default function SignIn() {
       const { data: { user } } = await supabase.auth.getUser();
       
       if (user) {
-        // Check onboarding status
         try {
           const res = await fetch('/api/onboarding/status');
           if (res.ok) {
@@ -29,6 +28,9 @@ export default function SignIn() {
               router.push('/messages');
               return;
             }
+            // Logged in but not onboarded -> go to landing for onboarding flow
+            router.push('/');
+            return;
           }
         } catch (error) {
           console.error('Error checking onboarding status:', error);
