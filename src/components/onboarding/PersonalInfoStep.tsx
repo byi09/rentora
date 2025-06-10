@@ -8,6 +8,7 @@ import { CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { StepProps } from '@/src/types/onboarding';
+import Spinner from '@/src/components/ui/Spinner';
 
 const PersonalInfoStep: React.FC<StepProps> = ({ data, onUpdate, onNext }) => {
   const [formData, setFormData] = useState({
@@ -20,6 +21,7 @@ const PersonalInfoStep: React.FC<StepProps> = ({ data, onUpdate, onNext }) => {
     data.dateOfBirth ? new Date(data.dateOfBirth) : undefined
   );
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [checkingUsername, setCheckingUsername] = useState(false);
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -33,14 +35,33 @@ const PersonalInfoStep: React.FC<StepProps> = ({ data, onUpdate, onNext }) => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleNext = () => {
-    if (validateForm()) {
-      onUpdate({
-        ...formData,
-        dateOfBirth: selectedDate ? selectedDate.toISOString().split('T')[0] : ''
-      });
-      onNext?.();
+  const handleNext = async () => {
+    if (!validateForm()) return;
+
+    // Check username uniqueness
+    setCheckingUsername(true);
+    try {
+      const res = await fetch(`/api/users/search?q=${encodeURIComponent(formData.username)}`);
+      if (res.ok) {
+        const users = await res.json();
+        if (users && users.length > 0) {
+          setErrors(prev => ({ ...prev, username: 'Username already taken' }));
+          setCheckingUsername(false);
+          return;
+        }
+      }
+    } catch (err) {
+      console.error('Username check failed', err);
+      // proceed anyway if API failed
     }
+
+    setCheckingUsername(false);
+
+    onUpdate({
+      ...formData,
+      dateOfBirth: selectedDate ? selectedDate.toISOString().split('T')[0] : ''
+    });
+    onNext?.();
   };
 
   const handleInputChange = (field: string, value: string) => {
@@ -58,7 +79,7 @@ const PersonalInfoStep: React.FC<StepProps> = ({ data, onUpdate, onNext }) => {
       </div>
 
       <div className="space-y-4">
-        <div>
+        <div className="relative">
           <Label htmlFor="username">Username *</Label>
           <Input
             id="username"
@@ -67,6 +88,9 @@ const PersonalInfoStep: React.FC<StepProps> = ({ data, onUpdate, onNext }) => {
             placeholder="Choose a unique username"
             className={errors.username ? 'border-red-500' : ''}
           />
+          {checkingUsername && (
+            <div className="absolute right-2 top-9"><Spinner size="sm" /></div>
+          )}
           {errors.username && <p className="text-sm text-red-500 mt-1">{errors.username}</p>}
         </div>
 

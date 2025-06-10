@@ -39,13 +39,12 @@ export async function POST(request: NextRequest) {
     // create role row
     const customer = await db.query.customers.findFirst({ where: eq(customers.userId, user.id) });
     if (customer) {
-      if (payload.userType === 'renter') {
-        const rentRow = await db.query.renters.findFirst({ where: eq(renters.customerId, customer.id) });
-        if (!rentRow) await db.insert(renters).values({ customerId: customer.id });
-      } else if (payload.userType === 'landlord') {
-        const landRow = await db.query.landlords.findFirst({ where: eq(landlords.customerId, customer.id) });
-        if (!landRow) await db.insert(landlords).values({ customerId: customer.id });
-      }
+
+      const rentRow = await db.query.renters.findFirst({ where: eq(renters.customerId, customer.id) });
+      if (!rentRow) await db.insert(renters).values({ customerId: customer.id });
+      const landRow = await db.query.landlords.findFirst({ where: eq(landlords.customerId, customer.id) });
+      if (!landRow) await db.insert(landlords).values({ customerId: customer.id });
+    
     }
 
     return NextResponse.json({ success: true });

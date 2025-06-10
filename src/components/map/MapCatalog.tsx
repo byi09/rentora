@@ -2,6 +2,7 @@
 
 import { SortOption } from "@/lib/types";
 import Dropdown, { DropdownItem } from "../ui/Dropdown";
+import Spinner from "../ui/Spinner";
 import { useMapContext } from "./map-context"
 import MapCatalogItem from "./MapCatalogItem";
 import { listToMap } from "@/utils/converters";
@@ -24,7 +25,7 @@ export default function MapCatalog() {
     <div className="flex flex-col px-6 py-4 gap-4 shadow-xl z-10 w-[400px] xl:w-[760px] h-full min-h-0 overflow-y-auto relative">
       {fetchingListings && (
         <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-75 z-20">
-          <div className="loader"></div>
+          <Spinner size="lg" />
         </div>
       )}
 
