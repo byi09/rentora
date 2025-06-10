@@ -89,3 +89,47 @@ export async function signInWithEmail(formData: FormData) {
   // Success - redirect to home
   redirect('/')
 }
+
+export async function createProperty(formData: FormData) {
+  const supabase = await createClient()
+  
+  try {
+    // Extract form data
+    const propertyData = {
+      // Using existing landlord_id - you'll need to replace this with actual user's landlord_id
+      landlord_id: 'b7ee8ae5-686c-48a7-9a45-df7fb9b2ab3f', // TODO: Get from current user
+      address_line_1: formData.get('address_line_1') as string,
+      address_line_2: formData.get('address_line_2') as string || null,
+      city: formData.get('city') as string,
+      state: formData.get('state') as string,
+      zip_code: formData.get('zip_code') as string,
+      property_type: formData.get('property_type') as string || 'apartment',
+      bedrooms: parseInt(formData.get('bedrooms') as string),
+      bathrooms: parseFloat(formData.get('bathrooms') as string),
+      square_footage: parseInt(formData.get('square_footage') as string),
+      description: formData.get('description') as string || null,
+      year_built: formData.get('year_built') ? parseInt(formData.get('year_built') as string) : null,
+    }
+
+    // Insert the property
+    const { data, error } = await supabase
+      .from('properties')
+      .insert([propertyData])
+      .select()
+
+    if (error) {
+      console.error('Error creating property:', error)
+      redirect('/error?type=unknown')
+    }
+
+    console.log('Property created successfully:', data)
+    
+    // Redirect to the next step in the form or to a success page
+    revalidatePath('/sell/create', 'layout')
+    redirect('/sell/create/rent-details')
+    
+  } catch (error) {
+    console.error('Unexpected error:', error)
+    redirect('/error?type=unknown')
+  }
+}
