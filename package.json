@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "db:seed": "tsx src/scripts/seed.ts"
+    "db:seed": "tsx src/db/seed.ts"
   },
   "dependencies": {
     "@react-google-maps/api": "^2.20.6",
@@ -15,20 +15,28 @@
     "@supabase/ssr": "^0.6.1",
     "@supabase/supabase-js": "^2.49.8",
     "@types/mapbox-gl": "^3.4.1",
+    "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "date-fns": "^4.1.0",
     "dotenv": "^16.5.0",
     "drizzle-orm": "^0.43.1",
+    "framer-motion": "^12.16.0",
+    "lucide-react": "^0.513.0",
     "mapbox-gl": "^3.12.0",
     "next": "15.3.1",
     "postgres": "^3.4.7",
     "psql": "^0.0.1",
+    "pusher": "^5.2.0",
+    "pusher-js": "^8.4.0",
     "radix-ui": "^1.4.2",
     "react": "^19.0.0",
+    "react-day-picker": "^8.10.1",
     "react-dom": "^19.0.0",
     "react-hook-form": "^7.56.4",
     "react-icons": "^5.5.0",
     "react-map-gl": "^8.0.4",
-    "react-select": "^5.10.1"
+    "react-select": "^5.10.1",
+    "tailwind-merge": "^3.3.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",

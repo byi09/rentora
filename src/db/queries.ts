@@ -1,8 +1,8 @@
 "use server";
 
-import { asc, desc, eq, gte, inArray, or, SQL, sql } from "drizzle-orm";
+import { asc, desc, eq, gte, inArray, or, SQL, sql, and } from "drizzle-orm";
 import { db } from ".";
-import { properties, propertyFeatures, propertyListings } from "./schema";
+import { conversations, messages, conversationParticipants, users, properties, propertyFeatures, propertyListings, customers } from "./schema";
 import type { FilterOptions, SortOption } from "@/lib/types";
 
 export const searchPropertiesWithFilter = async (
@@ -155,3 +155,166 @@ export const searchPropertiesWithFilter = async (
 
   return await q;
 };
+
+
+
+//--------------------------------
+// Messaging
+//--------------------------------  
+
+// Get all conversations for a user
+export const getUserConversationsComplete = async (userId: string) => {
+  const lastMessageSubquery = db.$with("last_message_subquery").as(
+    db.select({
+      conversationId: messages.conversationId,
+      content: messages.content,
+      senderId: messages.senderId,
+      createdAt: messages.createdAt,
+      rn: sql<number>`row_number() over (partition by ${messages.conversationId} order by ${messages.createdAt} desc)`.as("rn"),
+    }).from(messages)
+  );
+
+  const participantsSubquery = db.$with("participants_subquery").as(
+    db.select({
+      conversationId: conversationParticipants.conversationId,
+      participants: sql<any>`json_agg(json_build_object('user', json_build_object('id', ${users.id}, 'username', ${users.username}, 'firstName', ${customers.firstName}, 'lastName', ${customers.lastName}), 'role', ${conversationParticipants.role}))`.as("participants"),
+    })
+    .from(conversationParticipants)
+    .innerJoin(users, eq(conversationParticipants.userId, users.id))
+    .innerJoin(customers, eq(users.id, customers.userId))
+    .groupBy(conversationParticipants.conversationId)
+  );
+
+  const userConversations = await db
+    .with(lastMessageSubquery, participantsSubquery)
+    .select({
+      id: conversations.id,
+      conversationType: conversations.conversationType,
+      title: conversations.title,
+      isArchived: conversations.isArchived,
+      propertyId: conversations.propertyId,
+      createdAt: conversations.createdAt,
+      updatedAt: conversations.updatedAt,
+      // from user's participation record
+      unreadCount: conversationParticipants.unreadCount,
+      lastReadAt: conversationParticipants.lastReadAt,
+      isMuted: conversationParticipants.isMuted,
+      // from subqueries
+      participants: participantsSubquery.participants,
+      lastMessage: {
+        content: lastMessageSubquery.content,
+        createdAt: lastMessageSubquery.createdAt,
+        senderId: lastMessageSubquery.senderId,
+      },
+      // from join
+      property: {
+        id: properties.id,
+        addressLine1: properties.addressLine1,
+        addressLine2: properties.addressLine2,
+        city: properties.city,
+        state: properties.state,
+        zipCode: properties.zipCode,
+      }
+    })
+    .from(conversationParticipants)
+    .innerJoin(conversations, eq(conversationParticipants.conversationId, conversations.id))
+    .innerJoin(participantsSubquery, eq(conversations.id, participantsSubquery.conversationId))
+    .leftJoin(lastMessageSubquery, and(eq(conversations.id, lastMessageSubquery.conversationId), eq(lastMessageSubquery.rn, 1)))
+    .leftJoin(properties, eq(conversations.propertyId, properties.id))
+    .where(
+      and(
+        eq(conversationParticipants.userId, userId),
+        eq(conversationParticipants.isActive, true)
+      )
+    )
+    .orderBy(desc(conversations.updatedAt));
+
+  return userConversations;
+};
+
+export const userHasConversationAccess = async (userId: string, conversationId: string): Promise<boolean> => {
+  const participation = await db
+    .select({ id: conversationParticipants.id })
+    .from(conversationParticipants)
+    .where(
+      and(
+        eq(conversationParticipants.userId, userId),
+        eq(conversationParticipants.conversationId, conversationId),
+        eq(conversationParticipants.isActive, true)
+      )
+    )
+    .limit(1);
+  
+  return participation.length > 0;
+};
+
+export const getMessagesByConversationId = async (
+  conversationId: string,
+) => {
+  try {
+    const conversationMessages = await db
+      .select()
+      .from(messages)
+      .where(eq(messages.conversationId, conversationId));
+
+    return conversationMessages;
+  } catch (error) {
+    console.error('Error getting messages by conversation id:', error);
+    return [];
+  }
+};
+  
+
+
+
+
+//--------------------------------
+// Onboarding helpers
+//--------------------------------
+
+export const isUserOnboarded = async (userId: string): Promise<boolean> => {
+  const existing = await db.query.customers.findFirst({
+    where: eq(customers.userId, userId),
+  });
+  return !!existing;
+};
+
+export interface OnboardingPayload {
+  username: string;
+  firstName: string;
+  lastName: string;
+  dateOfBirth: string; // yyyy-mm-dd
+}
+
+export const saveUserOnboarding = async (
+  userId: string,
+  { username, firstName, lastName, dateOfBirth }: OnboardingPayload,
+) => {
+  // update username if provided
+  if (username) {
+    await db.update(users).set({ username }).where(eq(users.id, userId));
+  }
+
+  // upsert customer row (simple insert; rely on RLS to allow)
+  const existing = await db.query.customers.findFirst({
+    where: eq(customers.userId, userId),
+  });
+
+  if (existing) {
+    await db
+      .update(customers)
+      .set({ firstName, lastName, dateOfBirth })
+      .where(eq(customers.userId, userId));
+  } else {
+    await db.insert(customers).values({
+      userId,
+      firstName,
+      lastName,
+      dateOfBirth,
+    });
+  }
+};
+  
+
+
+

@@ -24,11 +24,18 @@ export const tourStatusEnum = pgEnum('tour_status', ['scheduled', 'completed', '
 export const viewTypeEnum = pgEnum('view_type', ['listing_view', 'photo_view', 'virtual_tour', 'contact_info']);
 export const alertFrequencyEnum = pgEnum('alert_frequency', ['immediate', 'daily', 'weekly']);
 
+// ==================== MESSAGING ENUMS ====================
+export const conversationTypeEnum = pgEnum('conversation_type', ['direct', 'group', 'support']);
+export const messageTypeEnum = pgEnum('message_type', ['text', 'image', 'file', 'system']);
+export const messageStatusEnum = pgEnum('message_status', ['sent', 'delivered', 'read']);
+export const participantRoleEnum = pgEnum('participant_role', ['member', 'admin', 'owner']);
+
 // ==================== USER & CUSTOMER TABLES ====================
 
 export const users = pgTable('users', {
     id: uuid("id").defaultRandom().primaryKey(),
     email: varchar('email', { length: 255 }).notNull().unique(),
+    username: varchar('username', { length: 50 }).notNull().unique(),
     emailVerified: boolean('email_verified').default(false),
     accountStatus: accountStatusEnum('account_status').default('active'),
     stripeCustomerId: varchar('stripe_customer_id', { length: 255 }),
@@ -390,6 +397,108 @@ export const renterSearchPreferences = pgTable('renter_search_preferences', {
     updatedAt: timestamp('updated_at').defaultNow(),
 });
 
+// ==================== MESSAGING TABLES ====================
+
+// Conversations table - represents a chat conversation between users
+export const conversations = pgTable('conversations', {
+    id: uuid('id').defaultRandom().primaryKey(),
+    
+    // Conversation metadata
+    conversationType: conversationTypeEnum('conversation_type').default('direct'),
+    title: varchar('title', { length: 255 }), // For group chats, null for direct messages
+    description: text('description'), // Optional description for group chats
+    avatarS3Key: varchar('avatar_s3_key', { length: 500 }), // Group avatar
+    
+    // Conversation settings
+    isArchived: boolean('is_archived').default(false),
+    isLocked: boolean('is_locked').default(false), // Prevents new messages
+    
+    
+    // Related to property (if conversation is about a specific property)
+    propertyId: uuid('property_id').references(() => properties.id),
+    rentalApplicationId: uuid('rental_application_id').references(() => rentalApplications.id),
+    
+    createdAt: timestamp('created_at').defaultNow(),
+    updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+// Conversation participants - who is in each conversation
+export const conversationParticipants = pgTable('conversation_participants', {
+    id: uuid('id').defaultRandom().primaryKey(),
+    conversationId: uuid('conversation_id').notNull().references(() => conversations.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    
+    // Participant role and permissions
+    role: participantRoleEnum('role').default('member'),
+    canAddMembers: boolean('can_add_members').default(false),
+    canRemoveMembers: boolean('can_remove_members').default(false),
+    
+    // Participant preferences
+    notificationsEnabled: boolean('notifications_enabled').default(true),
+    isMuted: boolean('is_muted').default(false),
+    mutedUntil: timestamp('muted_until'),
+    
+    // Read tracking
+    unreadCount: integer('unread_count').default(0),
+    lastReadAt: timestamp('last_read_at'),
+    
+    // Status
+    isActive: boolean('is_active').default(true),
+    leftAt: timestamp('left_at'),
+    
+    joinedAt: timestamp('joined_at').defaultNow(),
+    updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+// Messages table - individual messages in conversations
+export const messages = pgTable('messages', {
+    id: uuid('id').defaultRandom().primaryKey(),
+    conversationId: uuid('conversation_id').notNull().references(() => conversations.id, { onDelete: 'cascade' }),
+    senderId: uuid('sender_id').notNull().references(() => users.id),
+    
+    // Message content
+    content: text('content').notNull(),
+    messageType: messageTypeEnum('message_type').default('text'),
+    
+    // File attachments (for image/file messages)
+    attachmentS3Key: varchar('attachment_s3_key', { length: 500 }),
+    attachmentFileName: varchar('attachment_file_name', { length: 255 }),
+    attachmentFileSize: integer('attachment_file_size'), // in bytes
+    attachmentMimeType: varchar('attachment_mime_type', { length: 100 }),
+    
+    // Message threading
+    replyToId: uuid('reply_to_id'), // References another message ID
+    threadId: uuid('thread_id'), // For organizing message threads
+    
+    // Message status
+    isEdited: boolean('is_edited').default(false),
+    editedAt: timestamp('edited_at'),
+    isDeleted: boolean('is_deleted').default(false),
+    deletedAt: timestamp('deleted_at'),
+    
+    // Message metadata
+    metadata: json('metadata'), // For storing additional data like mentions, reactions, etc.
+    
+    createdAt: timestamp('created_at').defaultNow(),
+    updatedAt: timestamp('updated_at').defaultNow(),
+    
+});
+
+// Group invitations - for inviting users to group conversations
+export const groupInvitations = pgTable('group_invitations', {
+    id: uuid('id').defaultRandom().primaryKey(),
+    conversationId: uuid('conversation_id').notNull().references(() => conversations.id, { onDelete: 'cascade' }),
+    invitedUsername: varchar('invited_username', { length: 50 }).notNull(), // Username to invite
+    invitedBy: uuid('invited_by').notNull().references(() => users.id),
+    
+    // Invitation status
+    status: varchar('status', { length: 20 }).default('pending'), // pending, accepted, rejected, expired
+    expiresAt: timestamp('expires_at'),
+    respondedAt: timestamp('responded_at'),
+    
+    createdAt: timestamp('created_at').defaultNow(),
+});
+
 // ==================== RELATIONS ====================
 
 // User relations
@@ -549,5 +658,73 @@ export const renterSearchPreferencesRelations = relations(renterSearchPreference
     renter: one(renters, {
         fields: [renterSearchPreferences.renterId],
         references: [renters.id],
+    }),
+}));
+
+// ==================== MESSAGING RELATIONS ====================
+
+// User relations (updated to include messaging)
+export const usersMessagingRelations = relations(users, ({ many }) => ({
+    sentMessages: many(messages),
+    conversations: many(conversationParticipants),
+    groupInvitationsSent: many(groupInvitations),
+}));
+
+// Conversation relations
+export const conversationsRelations = relations(conversations, ({ one, many }) => ({
+    participants: many(conversationParticipants),
+    messages: many(messages),
+    property: one(properties, {
+        fields: [conversations.propertyId],
+        references: [properties.id],
+    }),
+    rentalApplication: one(rentalApplications, {
+        fields: [conversations.rentalApplicationId],
+        references: [rentalApplications.id],
+    }),
+    invitations: many(groupInvitations),
+}));
+
+// Conversation participants relations
+export const conversationParticipantsRelations = relations(conversationParticipants, ({ one }) => ({
+    conversation: one(conversations, {
+        fields: [conversationParticipants.conversationId],
+        references: [conversations.id],
+    }),
+    user: one(users, {
+        fields: [conversationParticipants.userId],
+        references: [users.id],
+    }),
+}));
+
+// Messages relations
+export const messagesRelations = relations(messages, ({ one, many }) => ({
+    conversation: one(conversations, {
+        fields: [messages.conversationId],
+        references: [conversations.id],
+    }),
+    sender: one(users, {
+        fields: [messages.senderId],
+        references: [users.id],
+    }),
+    replyTo: one(messages, {
+        fields: [messages.replyToId],
+        references: [messages.id],
+        relationName: 'replyTo',
+    }),
+    replies: many(messages, {
+        relationName: 'replyTo',
+    }),
+}));
+
+// Group invitations relations
+export const groupInvitationsRelations = relations(groupInvitations, ({ one }) => ({
+    conversation: one(conversations, {
+        fields: [groupInvitations.conversationId],
+        references: [conversations.id],
+    }),
+    inviter: one(users, {
+        fields: [groupInvitations.invitedBy],
+        references: [users.id],
     }),
 }));
