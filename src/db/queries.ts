@@ -267,3 +267,54 @@ export const getMessagesByConversationId = async (
 
 
 
+
+//--------------------------------
+// Onboarding helpers
+//--------------------------------
+
+export const isUserOnboarded = async (userId: string): Promise<boolean> => {
+  const existing = await db.query.customers.findFirst({
+    where: eq(customers.userId, userId),
+  });
+  return !!existing;
+};
+
+export interface OnboardingPayload {
+  username: string;
+  firstName: string;
+  lastName: string;
+  dateOfBirth: string; // yyyy-mm-dd
+}
+
+export const saveUserOnboarding = async (
+  userId: string,
+  { username, firstName, lastName, dateOfBirth }: OnboardingPayload,
+) => {
+  // update username if provided
+  if (username) {
+    await db.update(users).set({ username }).where(eq(users.id, userId));
+  }
+
+  // upsert customer row (simple insert; rely on RLS to allow)
+  const existing = await db.query.customers.findFirst({
+    where: eq(customers.userId, userId),
+  });
+
+  if (existing) {
+    await db
+      .update(customers)
+      .set({ firstName, lastName, dateOfBirth })
+      .where(eq(customers.userId, userId));
+  } else {
+    await db.insert(customers).values({
+      userId,
+      firstName,
+      lastName,
+      dateOfBirth,
+    });
+  }
+};
+  
+
+
+

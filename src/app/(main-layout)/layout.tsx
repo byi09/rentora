@@ -41,5 +41,9 @@ export default function MainLayout({
     );
   }
 
-  return <ClientLayout user={user}>{children}</ClientLayout>;
+  return (
+    <ClientLayout>
+      {children}
+    </ClientLayout>
+  );
 } 
