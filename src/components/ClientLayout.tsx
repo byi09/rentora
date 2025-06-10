@@ -6,6 +6,7 @@ import Footer from './ui/Footer';
 import Header from './ui/Header';
 import { createClient } from '@/utils/supabase/client';
 import type { User } from '@supabase/supabase-js';
+import Spinner from './ui/Spinner';
 
 interface ClientLayoutProps {
   children: React.ReactNode;
@@ -48,7 +49,7 @@ export default function ClientLayout({ children }: ClientLayoutProps) {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+        <Spinner size="lg" />
       </div>
     );
   }
@@ -56,7 +57,7 @@ export default function ClientLayout({ children }: ClientLayoutProps) {
   return (
     <div className="min-h-screen bg-white">
       {showHeader && <Header user={user} />}
-      <main className={showHeader ? 'pt-16' : ''}>
+      <main>
         {children}
       </main>
       {/* Footer */}

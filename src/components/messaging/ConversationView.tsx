@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, MoreVertical, Paperclip, Smile } from 'lucide-react';
+import Spinner from '../ui/Spinner';
 
 interface Message {
   id: string;
@@ -144,7 +145,7 @@ export default function ConversationView({
       {/* Loading Overlay */}
       {isLoading && (
         <div className="absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center z-20">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <Spinner size="lg" />
         </div>
       )}
 
@@ -172,7 +173,7 @@ export default function ConversationView({
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {isLoading && (
           <div className="text-center py-4">
-            <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+            <Spinner size="md" />
           </div>
         )}
         
