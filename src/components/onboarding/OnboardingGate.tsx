@@ -38,7 +38,9 @@ const OnboardingGate: React.FC<Props> = ({ children }) => {
     }
   }, [showOnboarding]);
 
-  if (loading) return null;
+  if (loading) {
+    return null;
+  }
 
   return (
     <>
