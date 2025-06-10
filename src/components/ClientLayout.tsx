@@ -1,40 +1,66 @@
 'use client';
 
+import React, { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import Footer from './ui/Footer';
 import Header from './ui/Header';
+import { createClient } from '@/utils/supabase/client';
 import type { User } from '@supabase/supabase-js';
-import { AnimatePresence, motion } from 'framer-motion';
 
 interface ClientLayoutProps {
   children: React.ReactNode;
-  user?: User | null;
 }
 
 const excludeFooterPaths = ['/map'];
 
-export default function ClientLayout({ children, user }: ClientLayoutProps) {
+export default function ClientLayout({ children }: ClientLayoutProps) {
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
   const pathname = usePathname();
 
+  useEffect(() => {
+    const supabase = createClient();
+
+    // Get initial user
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+      setLoading(false);
+    };
+
+    getUser();
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setUser(session?.user ?? null);
+        setLoading(false);
+      }
+    );
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // Don't show header on auth pages unless user is authenticated
+  const isAuthPage = pathname?.includes('/sign-') || pathname?.includes('/auth');
+  const showHeader = !isAuthPage || user;
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
   return (
-    <div className="h-[100svh] bg-white overflow-x-hidden">
-      <Header user={user} />
-
-      {/* Page transition wrapper */}
-      <AnimatePresence mode="wait" initial={false}>
-        <motion.main
-          key={pathname}
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -16 }}
-          transition={{ duration: 0.25, ease: 'easeInOut' }}
-        >
-          {children}
-        </motion.main>
-      </AnimatePresence>
-
+    <div className="min-h-screen bg-white">
+      {showHeader && <Header user={user} />}
+      <main className={showHeader ? 'pt-16' : ''}>
+        {children}
+      </main>
       {/* Footer */}
       {!excludeFooterPaths.includes(pathname) && <Footer />}
     </div>
   );
-};
+}

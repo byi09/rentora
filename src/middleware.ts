@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { updateSession } from '@/utils/supabase/middleware'
-import { createClient } from '@supabase/supabase-js'
+import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { db } from '@/src/db'
 import { users, customers } from '@/src/db/schema'
 import { eq } from 'drizzle-orm'
@@ -9,12 +9,23 @@ export async function middleware(request: NextRequest) {
   // keep the Supabase session in sync
   const response = await updateSession(request)
 
-  const supabase = createClient(
+  // Use the same cookie-based auth strategy as updateSession so that
+  // supabase.auth.getUser() correctly identifies the logged-in user.
+  const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
-      global: {
-        headers: { Authorization: request.headers.get('Authorization')! },
+      cookies: {
+        get(name: string) {
+          return request.cookies.get(name)?.value
+        },
+        set(name: string, value: string, options: CookieOptions) {
+          // Forward any cookie updates to the response so they reach the browser
+          response.cookies.set({ name, value, ...options })
+        },
+        remove(name: string, options: CookieOptions) {
+          response.cookies.set({ name, value: '', ...options })
+        },
       },
     }
   )
@@ -33,22 +44,29 @@ export async function middleware(request: NextRequest) {
     return response
   }
 
-  // logged in users - verify onboarding
-  const userRow = await db.query.users.findFirst({
-    where: eq(users.id, user.id),
-    columns: { id: true },
-  })
-  const customerRow = await db.query.customers.findFirst({
-    where: eq(customers.userId, user.id),
-    columns: { id: true },
-  })
-  const onboarded = !!userRow && !!customerRow
+  // logged-in users – check onboarding status by querying Supabase via REST
+  const { data: onboardUserRow } = await supabase
+    .from('users')
+    .select('id')
+    .eq('id', user.id)
+    .single()
 
-  // Non-onboarded users should go to home page for onboarding
-  if (!onboarded && pathname !== '/') {
+  const { data: onboardCustomerRow } = await supabase
+    .from('customers')
+    .select('id')
+    .eq('user_id', user.id)
+    .single()
+
+  const onboarded = !!onboardUserRow && !!onboardCustomerRow
+
+  // Pages that require full onboarding
+  const requiresOnboarding = ['/sell', '/rent', '/profile', '/settings']
+  const requiresOnboardingAccess = requiresOnboarding.some(path => pathname.startsWith(path))
+
+  // Non-onboarded users can't access certain protected pages
+  if (!onboarded && requiresOnboardingAccess) {
     return NextResponse.redirect(new URL('/', request.url))
   }
-
 
   return response
 }

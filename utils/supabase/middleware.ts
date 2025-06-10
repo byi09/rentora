@@ -59,7 +59,7 @@ export async function updateSession(request: NextRequest) {
   // issues with users being randomly logged out.
 
   // IMPORTANT: DO NOT REMOVE auth.getUser()
-  await supabase.auth.getUser();
+  await supabase.auth.getUser()
 
   // IMPORTANT: You *must* return the response object as it is.
   // This is because the response object contains updated cookies that are essential

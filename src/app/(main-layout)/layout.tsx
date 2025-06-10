@@ -12,7 +12,7 @@ export default async function MainLayout({
   } = await supabase.auth.getUser();
 
   return (
-    <ClientLayout user={user}>
+    <ClientLayout>
       {children}
     </ClientLayout>
   );
