@@ -183,20 +183,26 @@ export default function ConversationView({
           const prevMessage = messages[index - 1];
           const nextMessage = messages[index + 1];
 
-          const isGrouped =
+          // Check for exact timestamp matches or close time grouping
+          const hasSameTimestamp = prevMessage && prevMessage.createdAt === message.createdAt;
+          const isTimeGrouped = 
             prevMessage &&
             prevMessage.senderId === message.senderId &&
             new Date(message.createdAt).getTime() - new Date(prevMessage.createdAt).getTime() < 5 * 60 * 1000;
           
+          const isGrouped = hasSameTimestamp || isTimeGrouped;
+          
           const showTimestamp = 
             !nextMessage || 
             nextMessage.senderId !== message.senderId ||
-            new Date(nextMessage.createdAt).getTime() - new Date(message.createdAt).getTime() > 5 * 60 * 1000;
+            (nextMessage.createdAt !== message.createdAt && new Date(nextMessage.createdAt).getTime() - new Date(message.createdAt).getTime() > 5 * 60 * 1000);
 
           return (
             <div
               key={message.id}
-              className={`flex items-end ${isOwnMessage ? 'justify-end' : 'justify-start'} ${isGrouped ? '' : 'mt-4'}`}
+              className={`flex items-end ${isOwnMessage ? 'justify-end' : 'justify-start'} ${
+                isGrouped ? (hasSameTimestamp ? 'mt-1' : '') : 'mt-4'
+              }`}
             >
               {!isOwnMessage && (
                 <div className="w-8 h-8 rounded-full mr-2 flex-shrink-0">
