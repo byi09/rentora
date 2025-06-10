@@ -2,18 +2,12 @@
 
 import { useGeolocationContext } from "@/src/contexts/GeolocationContext";
 import CatalogComingSoon from "./CatalogComingSoon";
+import { FaCogs } from "react-icons/fa";
+import { ENABLE_CATALOG } from "@/lib/config";
+import NearbyProperties from "./NearbyProperties";
 
 export default function Catalog() {
   const { location } = useGeolocationContext();
-  // const [loading, startLoading] = useTransition();
-  // const [nearbyProperties, setNearbyProperties] = useState([]);
-
-  // useEffect(() => {
-  //   startLoading(async () => {
-  //     const c = await coords;
-  //     // TODO: fetch nearby properties
-  //   });
-  // }, [coords]);
 
   return (
     <>
@@ -31,17 +25,22 @@ export default function Catalog() {
             </p>
           </div>
 
-          <CatalogComingSoon>
-            <p className="text-center">
-              We&apos;re crunching the numbers to provide you with the best
-              rental listings in your area. Check back soon to discover the best
-              rental options in your area!
-            </p>
-          </CatalogComingSoon>
+          {ENABLE_CATALOG ? (
+            <NearbyProperties />
+          ) : (
+            <CatalogComingSoon icon={<FaCogs className="text-3xl" />}>
+              <p className="text-center">
+                We&apos;re crunching the numbers to provide you with the best
+                rental listings in your area. Check back soon to discover the
+                best rental options in your area!
+              </p>
+            </CatalogComingSoon>
+          )}
         </div>
       </section>
 
-      <section className="py-16 bg-white">
+      {/* neighborhood section */}
+      {/* <section className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
@@ -52,14 +51,7 @@ export default function Catalog() {
             </p>
           </div>
 
-          <CatalogComingSoon>
-            <p className="text-center">
-              We&apos;re working on bringing you the latest neighborhood data
-              and rental insights. Stay tuned for updates!
-            </p>
-          </CatalogComingSoon>
-
-          {/* <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
             <NeighborhoodCard
               neighborhood={{
                 name: "West Hollywood",
@@ -84,15 +76,15 @@ export default function Catalog() {
                 propertiesCount: 78
               }}
             />
-          </div> */}
+          </div>
 
-          {/* <div className="text-center">
+          <div className="text-center">
             <button className="bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors">
               Explore All Neighborhoods
             </button>
-          </div> */}
+          </div>
         </div>
-      </section>
+      </section> */}
     </>
   );
 }

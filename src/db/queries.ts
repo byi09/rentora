@@ -2,9 +2,25 @@
 
 import { asc, desc, eq, gte, inArray, or, SQL, sql, and } from "drizzle-orm";
 import { db } from ".";
-import { conversations, messages, conversationParticipants, users, properties, propertyFeatures, propertyListings, customers } from "./schema";
-import type { FilterOptions, SortOption } from "@/lib/types";
+import {
+  conversations,
+  messages,
+  conversationParticipants,
+  users,
+  properties,
+  propertyFeatures,
+  propertyListings,
+  customers
+} from "./schema";
+import type { FilterOptions, PropertyListing, SortOption } from "@/lib/types";
 
+/**
+ * Search for properties based on filters and sort options.
+ *
+ * @param options A set of filters to apply to the property search
+ * @param sortOption The sorting option to apply to the results
+ * @returns A list of properties that match the filters and are sorted according to the specified option
+ */
 export const searchPropertiesWithFilter = async (
   options: FilterOptions,
   sortOption: SortOption
@@ -153,36 +169,90 @@ export const searchPropertiesWithFilter = async (
   // uncomment to debug generated SQL
   // console.log(q.toSQL().sql);
 
-  return await q;
+  const results = await q;
+  return results;
 };
 
+/**
+ * Get nearby properties within a specified radius from a given latitude and longitude.
+ * Results are sorted by distance from the specified point.
+ * This function relies on functions from the earthdistance extension.
+ *
+ * @param lat Latitude of the center point
+ * @param lng Longitude of the center point
+ * @param radius Radius in meters to search within (default is 10 km)
+ * @returns A list of property listings within the specified radius
+ */
+export const getNearbyProperties = async (
+  lat: number,
+  lng: number,
+  radius: number = 10000, // default to 10km
+  limit: number = 3
+): Promise<PropertyListing[]> => {
+  const featuresSubquery = db.$with("features_subquery").as(
+    db
+      .select({
+        propertyId: propertyFeatures.propertyId,
+        features: sql`ARRAY_AGG(${propertyFeatures.featureName})`.as("features")
+      })
+      .from(propertyFeatures)
+      .groupBy(propertyFeatures.propertyId)
+  );
 
+  const results = await db
+    .with(featuresSubquery)
+    .select()
+    .from(properties)
+    .innerJoin(propertyListings, eq(properties.id, propertyListings.propertyId))
+    .leftJoin(featuresSubquery, eq(properties.id, featuresSubquery.propertyId))
+    .where(
+      sql`
+      earth_box(ll_to_earth(${lat}, ${lng}), ${radius}) @> ll_to_earth(${properties.latitude}, ${properties.longitude})
+      AND earth_distance(ll_to_earth(${lat}, ${lng}), ll_to_earth(${properties.latitude}, ${properties.longitude})) <= ${radius}`
+    )
+    .orderBy(
+      asc(
+        sql`earth_distance(ll_to_earth(${lat}, ${lng}), ll_to_earth(${properties.latitude}, ${properties.longitude}))`
+      )
+    )
+    .limit(limit);
+
+  return results;
+};
 
 //--------------------------------
 // Messaging
-//--------------------------------  
+//--------------------------------
 
 // Get all conversations for a user
 export const getUserConversationsComplete = async (userId: string) => {
   const lastMessageSubquery = db.$with("last_message_subquery").as(
-    db.select({
-      conversationId: messages.conversationId,
-      content: messages.content,
-      senderId: messages.senderId,
-      createdAt: messages.createdAt,
-      rn: sql<number>`row_number() over (partition by ${messages.conversationId} order by ${messages.createdAt} desc)`.as("rn"),
-    }).from(messages)
+    db
+      .select({
+        conversationId: messages.conversationId,
+        content: messages.content,
+        senderId: messages.senderId,
+        createdAt: messages.createdAt,
+        rn: sql<number>`row_number() over (partition by ${messages.conversationId} order by ${messages.createdAt} desc)`.as(
+          "rn"
+        )
+      })
+      .from(messages)
   );
 
   const participantsSubquery = db.$with("participants_subquery").as(
-    db.select({
-      conversationId: conversationParticipants.conversationId,
-      participants: sql<any>`json_agg(json_build_object('user', json_build_object('id', ${users.id}, 'username', ${users.username}, 'firstName', ${customers.firstName}, 'lastName', ${customers.lastName}), 'role', ${conversationParticipants.role}))`.as("participants"),
-    })
-    .from(conversationParticipants)
-    .innerJoin(users, eq(conversationParticipants.userId, users.id))
-    .innerJoin(customers, eq(users.id, customers.userId))
-    .groupBy(conversationParticipants.conversationId)
+    db
+      .select({
+        conversationId: conversationParticipants.conversationId,
+        participants:
+          sql`json_agg(json_build_object('user', json_build_object('id', ${users.id}, 'username', ${users.username}, 'firstName', ${customers.firstName}, 'lastName', ${customers.lastName}), 'role', ${conversationParticipants.role}))`.as(
+            "participants"
+          )
+      })
+      .from(conversationParticipants)
+      .innerJoin(users, eq(conversationParticipants.userId, users.id))
+      .innerJoin(customers, eq(users.id, customers.userId))
+      .groupBy(conversationParticipants.conversationId)
   );
 
   const userConversations = await db
@@ -204,7 +274,7 @@ export const getUserConversationsComplete = async (userId: string) => {
       lastMessage: {
         content: lastMessageSubquery.content,
         createdAt: lastMessageSubquery.createdAt,
-        senderId: lastMessageSubquery.senderId,
+        senderId: lastMessageSubquery.senderId
       },
       // from join
       property: {
@@ -213,13 +283,25 @@ export const getUserConversationsComplete = async (userId: string) => {
         addressLine2: properties.addressLine2,
         city: properties.city,
         state: properties.state,
-        zipCode: properties.zipCode,
+        zipCode: properties.zipCode
       }
     })
     .from(conversationParticipants)
-    .innerJoin(conversations, eq(conversationParticipants.conversationId, conversations.id))
-    .innerJoin(participantsSubquery, eq(conversations.id, participantsSubquery.conversationId))
-    .leftJoin(lastMessageSubquery, and(eq(conversations.id, lastMessageSubquery.conversationId), eq(lastMessageSubquery.rn, 1)))
+    .innerJoin(
+      conversations,
+      eq(conversationParticipants.conversationId, conversations.id)
+    )
+    .innerJoin(
+      participantsSubquery,
+      eq(conversations.id, participantsSubquery.conversationId)
+    )
+    .leftJoin(
+      lastMessageSubquery,
+      and(
+        eq(conversations.id, lastMessageSubquery.conversationId),
+        eq(lastMessageSubquery.rn, 1)
+      )
+    )
     .leftJoin(properties, eq(conversations.propertyId, properties.id))
     .where(
       and(
@@ -232,7 +314,10 @@ export const getUserConversationsComplete = async (userId: string) => {
   return userConversations;
 };
 
-export const userHasConversationAccess = async (userId: string, conversationId: string): Promise<boolean> => {
+export const userHasConversationAccess = async (
+  userId: string,
+  conversationId: string
+): Promise<boolean> => {
   const participation = await db
     .select({ id: conversationParticipants.id })
     .from(conversationParticipants)
@@ -244,13 +329,11 @@ export const userHasConversationAccess = async (userId: string, conversationId: 
       )
     )
     .limit(1);
-  
+
   return participation.length > 0;
 };
 
-export const getMessagesByConversationId = async (
-  conversationId: string,
-) => {
+export const getMessagesByConversationId = async (conversationId: string) => {
   try {
     const conversationMessages = await db
       .select()
@@ -259,14 +342,10 @@ export const getMessagesByConversationId = async (
 
     return conversationMessages;
   } catch (error) {
-    console.error('Error getting messages by conversation id:', error);
+    console.error("Error getting messages by conversation id:", error);
     return [];
   }
 };
-  
-
-
-
 
 //--------------------------------
 // Onboarding helpers
@@ -274,7 +353,7 @@ export const getMessagesByConversationId = async (
 
 export const isUserOnboarded = async (userId: string): Promise<boolean> => {
   const existing = await db.query.customers.findFirst({
-    where: eq(customers.userId, userId),
+    where: eq(customers.userId, userId)
   });
   return !!existing;
 };
@@ -311,7 +390,7 @@ export interface OnboardingPayload {
 
 export const saveUserOnboarding = async (
   userId: string,
-  { username, firstName, lastName, dateOfBirth }: OnboardingPayload,
+  { username, firstName, lastName, dateOfBirth }: OnboardingPayload
 ) => {
   // update username if provided
   if (username) {
@@ -320,7 +399,7 @@ export const saveUserOnboarding = async (
 
   // upsert customer row (simple insert; rely on RLS to allow)
   const existing = await db.query.customers.findFirst({
-    where: eq(customers.userId, userId),
+    where: eq(customers.userId, userId)
   });
 
   if (existing) {
@@ -333,11 +412,7 @@ export const saveUserOnboarding = async (
       userId,
       firstName,
       lastName,
-      dateOfBirth,
+      dateOfBirth
     });
   }
 };
-  
-
-
-

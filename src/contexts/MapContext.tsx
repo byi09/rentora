@@ -1,5 +1,6 @@
 "use client";
 
+import { ENABLE_MAP } from "@/lib/config";
 import type { FilterOptions, PropertyListing, SortOption } from "@/lib/types";
 import { searchPropertiesWithFilter } from "@/src/db/queries";
 import { useSearchParams } from "next/navigation";
@@ -58,16 +59,21 @@ export const MapContextProvider = ({
   const searchParams = useSearchParams();
 
   // update catalog based on filter options
-  // useEffect(() => {
-  //   if (!ready) return;
-  //   startFetchingListings(async () => {
-  //     // JSON stringify + parse to avoid mutating the original filterOptions object
-  //     // and pass deep objects to server-side function
-  //     const optionsBundle = JSON.parse(JSON.stringify(filterOptions));
-  //     const properties = await searchPropertiesWithFilter(optionsBundle, sortOption);
-  //     setCatalog(properties);
-  //   });
-  // }, [filterOptions, ready, sortOption]);
+  useEffect(() => {
+    if (!ready) return;
+    // TODO: get rid of this check when we don't need coming soon component
+    if (!ENABLE_MAP) return;
+    startFetchingListings(async () => {
+      // JSON stringify + parse to avoid mutating the original filterOptions object
+      // and pass deep objects to server-side function
+      const optionsBundle = JSON.parse(JSON.stringify(filterOptions));
+      const properties = await searchPropertiesWithFilter(
+        optionsBundle,
+        sortOption
+      );
+      setCatalog(properties);
+    });
+  }, [filterOptions, ready, sortOption]);
 
   useEffect(() => {
     // prevent running this effect multiple times from
