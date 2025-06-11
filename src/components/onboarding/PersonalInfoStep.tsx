@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/src/components/ui/button';
 import { Input } from '@/src/components/ui/input';
 import { Label } from '@/src/components/ui/label';
-import { Calendar } from '@/src/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/src/components/ui/popover';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
 import { CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -17,8 +17,8 @@ const PersonalInfoStep: React.FC<StepProps> = ({ data, onUpdate, onNext }) => {
     lastName: data.lastName ?? '',
     dateOfBirth: data.dateOfBirth
   });
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(
-    data.dateOfBirth ? new Date(data.dateOfBirth) : undefined
+  const [selectedDate, setSelectedDate] = useState<Date | null>(
+    data.dateOfBirth ? new Date(data.dateOfBirth) : null
   );
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [checkingUsername, setCheckingUsername] = useState(false);
@@ -121,38 +121,25 @@ const PersonalInfoStep: React.FC<StepProps> = ({ data, onUpdate, onNext }) => {
 
         <div>
           <Label>Date of Birth *</Label>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className={cn(
-                  "w-full justify-start text-left font-normal",
-                  !selectedDate && "text-muted-foreground",
-                  errors.dateOfBirth && "border-red-500"
-                )}
-              >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {selectedDate ? format(selectedDate, "PPP") : "Select your birth date"}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0 bg-white shadow-md rounded-md" align="start">
-              <Calendar
-                mode="single"
-                numberOfMonths={1}
-                defaultMonth={new Date(2000, 0, 1)}
-                selected={selectedDate}
-                onSelect={(date) => {
-                  setSelectedDate(date);
-                  if (errors.dateOfBirth) {
-                    setErrors(prev => ({ ...prev, dateOfBirth: '' }));
-                  }
-                }}
-                disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
-                initialFocus
-                className="p-3 pointer-events-auto"
-              />
-            </PopoverContent>
-          </Popover>
+          <div className="relative w-full">
+            <DatePicker
+              selected={selectedDate}
+              onChange={(date: Date | null) => {
+                setSelectedDate(date);
+                if (errors.dateOfBirth) setErrors(prev => ({ ...prev, dateOfBirth: '' }));
+              }}
+              dateFormat="MM/dd/yyyy"
+              placeholderText="MM/DD/YYYY"
+              maxDate={new Date()}
+              minDate={new Date('1900-01-01')}
+              showMonthDropdown
+              showYearDropdown
+              dropdownMode="select"
+              wrapperClassName="w-full"
+              className={cn('w-full rounded-md border px-3 py-2 text-sm', errors.dateOfBirth && 'border-red-500')}
+            />
+            <CalendarIcon className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 pointer-events-none" />
+          </div>
           {errors.dateOfBirth && <p className="text-sm text-red-500 mt-1">{errors.dateOfBirth}</p>}
         </div>
       </div>
