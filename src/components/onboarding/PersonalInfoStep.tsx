@@ -6,7 +6,7 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/styles";
 import { StepProps } from "@/src/types/onboarding";
 import Spinner from "@/src/components/ui/Spinner";
 

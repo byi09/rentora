@@ -2,8 +2,7 @@ import * as React from "react";
 import DatePicker from "react-datepicker";
 import type { ComponentProps } from "react";
 import "react-datepicker/dist/react-datepicker.css";
-
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/styles";
 
 // Derive prop types directly to avoid relying on type re-export from the lib
 type ReactDatePickerProps = ComponentProps<typeof DatePicker>;
