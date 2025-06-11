@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { useRouter } from 'next/navigation';
 import PersonalInfoStep from './PersonalInfoStep';
@@ -7,21 +7,24 @@ import { OnboardingPayload } from '@/src/db/queries';
 import ContactInfoStep from './ContactInfoStep';
 import LocationInfoStep from './LocationInfoStep';
 import UserTypeStep from './UserTypeStep';
+import NotificationPreferencesStep from './NotificationPreferencesStep';
 
 interface Props {
   onComplete: () => void;
 }
 
-// Step order: 1) Personal, 2) Account type, 3) Contact, 4) Location
+// Step order: 1) Personal, 2) Account type, 3) Contact, 4) Notifications, 5) Location
 const steps = [
   { component: PersonalInfoStep, label: "Personal Information" },
   { component: UserTypeStep, label: "Account Type" },
   { component: ContactInfoStep, label: "Contact Details" },
+  { component: NotificationPreferencesStep, label: "Notification Preferences" },
   { component: LocationInfoStep, label: "Location Preferences" },
 ];
 
 const OnboardingFlow: React.FC<Props> = ({ onComplete }) => {
   const [data, setData] = useState<any>({});
+  const dataRef = useRef<any>({});
   const [currentStep, setCurrentStep] = useState(0);
   const [submitting, setSubmitting] = useState(false);
 
@@ -35,7 +38,13 @@ const OnboardingFlow: React.FC<Props> = ({ onComplete }) => {
   };
 
   const handleUpdate = (partial: Partial<OnboardingPayload>) => {
-    setData((prev: any) => ({ ...prev, ...partial }));
+    console.log('🔄 OnboardingFlow updating data with:', JSON.stringify(partial, null, 2));
+    setData((prev: any) => {
+      const newData = { ...prev, ...partial };
+      console.log('🔄 OnboardingFlow total data now:', JSON.stringify(newData, null, 2));
+      dataRef.current = newData;
+      return newData;
+    });
   };
 
   const handleNext = () => {
@@ -54,11 +63,13 @@ const OnboardingFlow: React.FC<Props> = ({ onComplete }) => {
 
   const finish = async () => {
     setSubmitting(true);
+    const payload = dataRef.current;
+    console.log('🚀 OnboardingFlow finishing with data:', JSON.stringify(payload, null, 2));
     try {
       const res = await fetch('/api/onboarding/complete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        body: JSON.stringify(payload),
       });
       if (res.ok) {
         onComplete();

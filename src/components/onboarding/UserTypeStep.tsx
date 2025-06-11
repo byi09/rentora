@@ -17,7 +17,9 @@ const UserTypeStep: React.FC<StepProps> = ({ data, onUpdate, onNext, onPrevious 
 
   const handleNext = () => {
     if (!type) { setErr('Please select an option'); return; }
-    onUpdate({ userType: type, gender });
+    // Map "both" to "renter" as primary role (backend creates both roles anyway)
+    const userType = type === 'both' ? 'renter' : type;
+    onUpdate({ userType, gender });
     onNext?.();
   };
 

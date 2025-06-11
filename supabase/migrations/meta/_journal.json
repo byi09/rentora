@@ -29,6 +29,20 @@
       "when": 1749401785003,
       "tag": "0003_bumpy_mojo",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1749620957381,
+      "tag": "0004_nappy_puff_adder",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1749662247515,
+      "tag": "0005_mean_smasher",
+      "breakpoints": true
     }
   ]
 }

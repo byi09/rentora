@@ -22,6 +22,16 @@ const ContactInfoStep: React.FC<StepProps> = ({ data, onUpdate, onNext, onPrevio
         <Input id="phone" value={phone} onChange={e=>{setPhone(e.target.value); setError('')}} placeholder="555-123-4567" />
         {error && <p className="text-sm text-red-500">{error}</p>}
       </div>
+
+      <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-gray-700">
+        <p className="font-medium mb-2">Why we ask for your phone number</p>
+        <ul className="list-disc pl-5 space-y-1">
+          <li>Quick communication with property managers</li>
+          <li>Emergency contact for property issues</li>
+          <li>SMS notifications for important updates</li>
+        </ul>
+      </div>
+
       <div className="flex justify-between pt-4">
         <Button variant="outline" onClick={onPrevious}>Previous</Button>
         <Button onClick={handleNext}>Next</Button>

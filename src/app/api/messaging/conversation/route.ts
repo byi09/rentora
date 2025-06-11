@@ -4,10 +4,11 @@ import { createClient } from '@/utils/supabase/server';
 import { db } from '@/src/db';
 import { conversations, conversationParticipants, users } from '@/src/db/schema';
 import { eq, inArray } from 'drizzle-orm';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 export async function GET(request: NextRequest) {
     try {
-        const supabase = await createClient();
+        const supabase: SupabaseClient = await createClient();
         const { data: { user }, error } = await supabase.auth.getUser();
 
         if (!user || error) {
@@ -33,7 +34,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
     try {
-        const supabase = await createClient();
+        const supabase: SupabaseClient = await createClient();
         const { data: { user }, error } = await supabase.auth.getUser();
 
         if (!user || error) {

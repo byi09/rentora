@@ -61,10 +61,13 @@ export const customers = pgTable('customers', {
     currentState: varchar('current_state', { length: 50 }),
     currentZipCode: varchar('current_zip_code', { length: 10 }),
     
+    // Desired future location
+    interestCity: varchar('interest_city', { length: 100 }),
+    interestState: varchar('interest_state', { length: 50 }),
+    interestZipCode: varchar('interest_zip_code', { length: 10 }),
+    
     // Communication preferences
     preferredContactMethod: contactMethodEnum('preferred_contact_method').default('email'),
-    marketingOptIn: boolean('marketing_opt_in').default(false),
-    notificationsEnabled: boolean('notifications_enabled').default(true),
     
     createdAt: timestamp('created_at').defaultNow(),
     updatedAt: timestamp('updated_at').defaultNow(),
@@ -497,6 +500,27 @@ export const groupInvitations = pgTable('group_invitations', {
     respondedAt: timestamp('responded_at'),
     
     createdAt: timestamp('created_at').defaultNow(),
+});
+
+// ==================== USER PREFERENCES ====================
+
+export const userPreferences = pgTable('user_preferences', {
+    userId: uuid('user_id').primaryKey().references(() => users.id, { onDelete: 'cascade' }),
+
+    // Saved properties updates
+    updatesSavedPropertiesEmail: boolean('updates_saved_properties_email').default(true),
+    updatesSavedPropertiesPush: boolean('updates_saved_properties_push').default(true),
+
+    // New matching properties
+    newPropertiesEmail: boolean('new_properties_email').default(true),
+    newPropertiesPush: boolean('new_properties_push').default(true),
+
+    // General news
+    newsEmail: boolean('news_email').default(true),
+    newsPush: boolean('news_push').default(true),
+
+    createdAt: timestamp('created_at').defaultNow(),
+    updatedAt: timestamp('updated_at').defaultNow(),
 });
 
 // ==================== RELATIONS ====================
