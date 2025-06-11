@@ -284,6 +284,29 @@ export interface OnboardingPayload {
   firstName: string;
   lastName: string;
   dateOfBirth: string; // yyyy-mm-dd
+  phoneNumber?: string;
+  userType?: 'renter' | 'landlord';
+  gender?: string;
+
+  // New separate location fields
+  currentCity?: string;
+  currentState?: string;
+  currentZipCode?: string;
+  interestCity?: string;
+  interestState?: string;
+  interestZipCode?: string;
+
+  // Legacy location fields for backward compatibility
+  currentLocation?: string;
+  locationOfInterest?: string;
+
+  // notification prefs
+  updatesSavedPropertiesEmail?: boolean;
+  updatesSavedPropertiesPush?: boolean;
+  newPropertiesEmail?: boolean;
+  newPropertiesPush?: boolean;
+  newsEmail?: boolean;
+  newsPush?: boolean;
 }
 
 export const saveUserOnboarding = async (
