@@ -1,5 +1,7 @@
 "use client";
 import React, { useState } from 'react';
+import { createClient } from '@/utils/supabase/client';
+import { useRouter } from 'next/navigation';
 import PersonalInfoStep from './PersonalInfoStep';
 import { OnboardingPayload } from '@/src/db/queries';
 import ContactInfoStep from './ContactInfoStep';
@@ -22,6 +24,15 @@ const OnboardingFlow: React.FC<Props> = ({ onComplete }) => {
   const [data, setData] = useState<any>({});
   const [currentStep, setCurrentStep] = useState(0);
   const [submitting, setSubmitting] = useState(false);
+
+  const router = useRouter();
+
+  const handleSignOut = async () => {
+    onComplete(); // hide modal immediately
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push('/');
+  };
 
   const handleUpdate = (partial: Partial<OnboardingPayload>) => {
     setData((prev: any) => ({ ...prev, ...partial }));
@@ -71,7 +82,15 @@ const OnboardingFlow: React.FC<Props> = ({ onComplete }) => {
         {/* Close button handled by OnboardingGate backdrop so omitted */}
 
         {/* Header */}
-        <div className="px-6 pt-6 pb-4 text-center border-b border-transparent">
+        <div className="px-6 pt-6 pb-4 text-center border-b border-transparent relative">
+          {/* Sign-out link */}
+          <button
+            onClick={handleSignOut}
+            className="absolute right-4 top-4 text-sm text-gray-500 hover:text-red-600 focus:outline-none"
+          >
+            Sign out
+          </button>
+
           <h2 className="text-xl font-semibold mb-4">Welcome! Let's set up your profile</h2>
 
           {/* Step info */}

@@ -31,41 +31,42 @@ const Header = ({ toggleSidebar, user }: HeaderProps) => {
       <header className="sticky top-0 z-50 w-full">
         <div className="absolute inset-0 bg-gray-900/90 backdrop-blur-md border-b border-gray-800"></div>
         <div className="relative w-full px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              {/* Menu button for mobile */}
-              {toggleSidebar && (
-                <button
-                  className="text-white p-1 focus:outline-none"
-                  onClick={toggleSidebar}
-                  aria-label="Toggle menu"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                  </svg>
-                </button>
-              )}
+          <div className="flex justify-center items-center h-16 relative">
+            {/* Mobile menu button */}
+            {toggleSidebar && (
+              <button
+                className="text-white p-1 focus:outline-none absolute left-0"
+                onClick={toggleSidebar}
+                aria-label="Toggle menu"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              </button>
+            )}
 
-              <Link href="/" className="flex items-center ml-1 group">
+            {/* Center content: logo + actions */}
+            <div className="flex items-center gap-4">
+              <Link href="/" className="flex items-center group">
                 <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center mr-2 transition-transform duration-200 group-hover:scale-110">
                   <span className="text-white font-bold text-lg">R</span>
                 </div>
                 <span className="text-xl font-bold text-white tracking-tight">Rentora</span>
               </Link>
-            </div>
-            <div className="flex items-center space-x-2 pr-1">
-              <Link
-                href="/sign-in"
-                className="inline-flex items-center px-3 py-2 text-sm font-medium text-white hover:bg-gray-800 transition-colors duration-200 rounded-md"
-              >
-                Log in
-              </Link>
-              <Link
-                href="/partner"
-                className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-all duration-200 focus:outline-none"
-              >
-                Partner with us
-              </Link>
+              <div className="flex items-center space-x-2">
+                <Link
+                  href="/sign-in"
+                  className="inline-flex items-center px-3 py-2 text-sm font-medium text-white hover:bg-gray-800 transition-colors duration-200 rounded-md"
+                >
+                  Log in
+                </Link>
+                <Link
+                  href="/sign-up"
+                  className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-all duration-200 focus:outline-none"
+                >
+                  Sign Up
+                </Link>
+              </div>
             </div>
           </div>
         </div>
@@ -90,17 +91,15 @@ const Header = ({ toggleSidebar, user }: HeaderProps) => {
 
           {/* Navigation */}
           <nav className="hidden md:flex items-center space-x-8">
-            <Link href="/buy" className="text-gray-700 hover:text-gray-900 font-medium transition-colors">
-              Buy
-            </Link>
+          
             <Link href="/rent" className="text-gray-700 hover:text-gray-900 font-medium transition-colors">
               Rent
             </Link>
             <Link href="/sell" className="text-gray-700 hover:text-gray-900 font-medium transition-colors">
-              Sell
+              Upload Property
             </Link>
             <Link href="/manage" className="text-gray-700 hover:text-gray-900 font-medium transition-colors">
-              Manage Rentals
+              Manage Properties
             </Link>
           </nav>
 
