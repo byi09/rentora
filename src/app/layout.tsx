@@ -20,9 +20,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <ClientWrapper>
-          <GeolocationProvider>{children}</GeolocationProvider>
-        </ClientWrapper>
+        <GeolocationProvider>
+          <ClientWrapper>{children}</ClientWrapper>
+        </GeolocationProvider>
       </body>
     </html>
   );

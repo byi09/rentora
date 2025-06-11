@@ -4,13 +4,7 @@ import { ENABLE_MAP } from "@/lib/config";
 import type { FilterOptions, PropertyListing, SortOption } from "@/lib/types";
 import { searchPropertiesWithFilter } from "@/src/db/queries";
 import { useSearchParams } from "next/navigation";
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-  useTransition
-} from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 
 interface MapContextProps {
   filterOptions: FilterOptions;
@@ -37,7 +31,7 @@ export const MapContextProvider = ({
 }: {
   children: React.ReactNode;
 }) => {
-  const [fetchingListings, startFetchingListings] = useTransition();
+  const [fetchingListings, setFetchingListings] = useState(false);
   const [ready, setReady] = useState(false);
   const [filterOptions, setFilterOptions] = useState<FilterOptions>({
     propertyTypes: {},
@@ -60,10 +54,12 @@ export const MapContextProvider = ({
 
   // update catalog based on filter options
   useEffect(() => {
-    if (!ready) return;
     // TODO: get rid of this check when we don't need coming soon component
     if (!ENABLE_MAP) return;
-    startFetchingListings(async () => {
+    // check that map is ready and loaded
+    if (!ready) return;
+    setFetchingListings(true);
+    (async () => {
       // JSON stringify + parse to avoid mutating the original filterOptions object
       // and pass deep objects to server-side function
       const optionsBundle = JSON.parse(JSON.stringify(filterOptions));
@@ -72,7 +68,8 @@ export const MapContextProvider = ({
         sortOption
       );
       setCatalog(properties);
-    });
+      setFetchingListings(false);
+    })();
   }, [filterOptions, ready, sortOption]);
 
   useEffect(() => {
