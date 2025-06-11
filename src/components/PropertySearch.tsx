@@ -1,9 +1,11 @@
-'use client'
+"use client";
 
 import { LocationSearchInput, Checkbox, SearchSelect } from "./ui/Form";
 import { FieldErrors, Resolver, useForm } from "react-hook-form";
-import { useCallback } from "react";
-import { searchPropertiesWithFilter } from "../db/queries";
+import { useCallback, useEffect } from "react";
+import { useGeolocationContext } from "../contexts/GeolocationContext";
+import { useRouter } from "next/navigation";
+import { geocode } from "@/utils/geocoding";
 
 // select options for property type and beds
 const propertyTypeOptions = [
@@ -12,7 +14,7 @@ const propertyTypeOptions = [
   { value: "house", label: "House" },
   { value: "condo", label: "Condo" },
   { value: "townhouse", label: "Townhouse" }
-]
+];
 
 const bedOptions = [
   { value: "null", label: "Beds" },
@@ -20,7 +22,7 @@ const bedOptions = [
   { value: "1", label: "1 Bed" },
   { value: "2", label: "2 Beds" },
   { value: "3+", label: "3+ Beds" }
-]
+];
 
 // form values
 interface SearchFormValues {
@@ -41,7 +43,7 @@ const resolver: Resolver<SearchFormValues> = async (values) => {
     errors.location = {
       type: "required",
       message: "Location is required"
-    }
+    };
   }
 
   const hasErrors = Object.keys(errors).length > 0;
@@ -50,45 +52,58 @@ const resolver: Resolver<SearchFormValues> = async (values) => {
     values: hasErrors ? {} : values,
     errors: hasErrors ? errors : {}
   };
-}
+};
 
 // form component
 export default function PropertySearch() {
-  const { register, handleSubmit, formState: { errors } } = useForm<SearchFormValues>({ resolver });
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    setValue
+  } = useForm<SearchFormValues>({ resolver });
+  const { location, isLoading } = useGeolocationContext();
+  const router = useRouter();
 
-  const onSubmit = useCallback(async (data: SearchFormValues) => {
-    // Uncomment the following lines to test search functionality
+  useEffect(() => {
+    if (isLoading) return;
+    const defaultLocation =
+      location?.city && location?.state
+        ? `${location.city.long_name}, ${location.state.short_name}`
+        : "";
+    setValue("location", defaultLocation);
+  }, [isLoading, location, setValue]);
 
-    // // TODO: remove this console log in production
-    // console.log("Form data:", data);
+  const onSubmit = useCallback(
+    async (data: SearchFormValues) => {
+      // build search parameters for map filters
+      const searchParams = new URLSearchParams();
 
-    // // TODO: use a more robust location parsing method
-    // const location = data.location.split(",").map(part => part.trim());
+      // if location is provided, geocode it to get center coordinates
+      // for the map's initial view
+      if (data.location) {
+        searchParams.set("location", data.location);
+        const geometry = await geocode(data.location);
+        if (geometry?.location) {
+          searchParams.set("lng", geometry.location.lng.toString());
+          searchParams.set("lat", geometry.location.lat.toString());
+        }
+      }
 
-    // const bedOptionInt = !data.beds || data.beds === "null" ? undefined : parseInt(data.beds, 10);
-    // const numBeds = bedOptionInt === -1 ? 0 : bedOptionInt;
+      if (data.propertyType && data.propertyType !== "null")
+        searchParams.set("propertyType", data.propertyType);
 
-    // const query = {
-    //   city: location[0] || "San Francisco",
-    //   state: location[1] || "CA",
-    //   country: location[2] || "United States",
-    //   propertyType: data.propertyType !== "null" ? data.propertyType : undefined,
-    //   beds: numBeds,
-    //   petFriendly: data.petFriendly,
-    //   parking: data.parking,
-    //   furnished: data.furnished,
-    //   utilitiesIncluded: data.utilitiesIncluded
-    // };
+      if (data.beds && data.beds !== "null")
+        searchParams.set("beds", data.beds);
+      if (data.petFriendly) searchParams.set("petFriendly", "true");
+      if (data.parking) searchParams.set("parking", "true");
+      if (data.furnished) searchParams.set("furnished", "true");
+      if (data.utilitiesIncluded) searchParams.set("utilitiesIncluded", "true");
 
-    // console.log("Parsed search query:", query);
-
-    // // TODO: parse location into city, state, country
-    // // WARNING: currently, we'll assume the location is always "San Francisco, CA, USA"
-    // const results = await searchPropertiesWithFilter(query);
-
-    // // TODO: remove this console log in production
-    // console.log("Results:", results);
-  }, []);
+      router.push(`/map?${searchParams.toString()}`);
+    },
+    [router]
+  );
 
   return (
     <form
@@ -98,17 +113,35 @@ export default function PropertySearch() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         {/* Location Input */}
         <div className="md:col-span-2">
-          <LocationSearchInput {...register("location", { required: true })}>
-            {errors.location && (
-              <p className="text-red-500 text-sm mt-1 absolute">
-                {errors.location.message}
-              </p>
-            )}
-          </LocationSearchInput>
+          {isLoading ? (
+            <LocationSearchInput
+              {...register("location", { required: true })}
+              defaultValue={""}
+              disabled
+            />
+          ) : (
+            <LocationSearchInput
+              {...register("location", { required: true })}
+              defaultValue={
+                location?.city && location?.state
+                  ? `${location.city.long_name}, ${location.state.short_name}`
+                  : ""
+              }
+            >
+              {errors.location && (
+                <p className="text-red-500 text-sm mt-1 absolute">
+                  {errors.location.message}
+                </p>
+              )}
+            </LocationSearchInput>
+          )}
         </div>
 
         {/* Property Type */}
-        <SearchSelect {...register("propertyType")} options={propertyTypeOptions} />
+        <SearchSelect
+          {...register("propertyType")}
+          options={propertyTypeOptions}
+        />
 
         {/* Beds */}
         <SearchSelect {...register("beds")} options={bedOptions} />
@@ -117,13 +150,29 @@ export default function PropertySearch() {
       {/* Filters and Search */}
       <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
         <div className="flex flex-wrap gap-4">
-          <Checkbox {...register("petFriendly")} id="pet-friendly" field="Pet Friendly" />
-          <Checkbox {...register("parking")} id="parking" field="Parking Available" />
-          <Checkbox {...register("furnished")} id="furnished" field="Furnished" />
-          <Checkbox {...register("utilitiesIncluded")} id="utilities-included" field="Utilities Included" />
+          <Checkbox
+            {...register("petFriendly")}
+            id="pet-friendly"
+            field="Pet Friendly"
+          />
+          <Checkbox
+            {...register("parking")}
+            id="parking"
+            field="Parking Available"
+          />
+          <Checkbox
+            {...register("furnished")}
+            id="furnished"
+            field="Furnished"
+          />
+          <Checkbox
+            {...register("utilitiesIncluded")}
+            id="utilities-included"
+            field="Utilities Included"
+          />
           <button
             className="text-blue-600 font-medium hover:text-blue-800"
-            onClick={e => e.preventDefault()}
+            onClick={(e) => e.preventDefault()}
           >
             More Filters
           </button>
@@ -136,5 +185,5 @@ export default function PropertySearch() {
         </button>
       </div>
     </form>
-  )
+  );
 }

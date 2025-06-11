@@ -1,7 +1,7 @@
 'use client'
 
 import { Marker } from "react-map-gl/mapbox";
-import { useMapContext } from "./map-context"
+import { useMapContext } from "../../contexts/MapContext"
 import { formatLargeNumber } from "@/utils/formatters";
 
 export default function MapMarkers() {
