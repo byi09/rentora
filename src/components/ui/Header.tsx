@@ -2,16 +2,19 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
-import { HiHeart, HiBell, HiUser, HiChevronDown, HiCog, HiChat, HiUserCircle } from 'react-icons/hi';
+import { HiHeart, HiUser, HiChevronDown, HiCog, HiChat, HiUserCircle } from 'react-icons/hi';
 import { HiArrowRightOnRectangle } from 'react-icons/hi2';
 import { createClient } from '@/utils/supabase/client';
 import { useRouter } from 'next/navigation';
 import type { User } from '@supabase/supabase-js';
+import dynamic from 'next/dynamic';
 
 interface HeaderProps {
   toggleSidebar?: () => void;
   user?: User | null;
 }
+
+const NotificationBell = dynamic(() => import('@/src/components/ui/NotificationBell'), { ssr: false });
 
 const Header = ({ toggleSidebar, user }: HeaderProps) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -110,12 +113,7 @@ const Header = ({ toggleSidebar, user }: HeaderProps) => {
             </Link>
 
             {/* Notifications */}
-            <button className="relative p-2 text-gray-700 hover:text-gray-900 transition-colors">
-              <HiBell className="w-5 h-5" />
-              <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
-                0
-              </span>
-            </button>
+            <NotificationBell />
 
             {/* User profile dropdown */}
             <div className="relative">

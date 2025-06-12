@@ -30,6 +30,9 @@ export const messageTypeEnum = pgEnum('message_type', ['text', 'image', 'file', 
 export const messageStatusEnum = pgEnum('message_status', ['sent', 'delivered', 'read']);
 export const participantRoleEnum = pgEnum('participant_role', ['member', 'admin', 'owner']);
 
+// ==================== NOTIFICATION ENUMS ====================
+export const notificationTypeEnum = pgEnum('notification_type', ['notification', 'phone', 'email']);
+
 // ==================== USER & CUSTOMER TABLES ====================
 
 export const users = pgTable('users', {
@@ -521,6 +524,18 @@ export const userPreferences = pgTable('user_preferences', {
 
     createdAt: timestamp('created_at').defaultNow(),
     updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+// ==================== NOTIFICATIONS TABLE ====================
+
+export const notifications = pgTable('notifications', {
+    id: uuid('id').defaultRandom().primaryKey(),
+    senderId: uuid('sender_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    receiverId: uuid('receiver_id').references(() => users.id, { onDelete: 'cascade' }),
+    type: notificationTypeEnum('type').notNull(),
+    message: text('message').notNull(),
+    createdAt: timestamp('created_at').defaultNow(),
+    readAt: timestamp('read_at'),
 });
 
 // ==================== RELATIONS ====================
