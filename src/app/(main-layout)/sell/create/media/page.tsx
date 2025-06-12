@@ -1,9 +1,12 @@
 'use client';
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 export default function MediaPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const propertyId = searchParams.get('property_id');
+  
   const [photos, setPhotos] = useState<File[]>([]);
   const [tourFile, setTourFile] = useState<File | null>(null);
 
@@ -30,6 +33,17 @@ export default function MediaPage() {
       setTourFile(e.target.files[0]);
     }
   };
+
+  // Redirect if no property ID
+  useEffect(() => {
+    if (!propertyId) {
+      router.push('/sell/create');
+    }
+  }, [propertyId, router]);
+
+  if (!propertyId) {
+    return <div>Loading...</div>;
+  }
 
   return (
     <main className="min-h-screen bg-white p-8">
@@ -123,7 +137,7 @@ export default function MediaPage() {
         {/* Next Button */}
         <div className="flex justify-end mt-12">
           <button 
-            onClick={() => router.push('/sell/create/amenities')}
+            onClick={() => router.push(`/sell/create/amenities?property_id=${propertyId}`)}
             className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
             Next

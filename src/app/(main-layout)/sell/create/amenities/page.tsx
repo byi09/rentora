@@ -1,10 +1,15 @@
 'use client';
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { createClient } from '@/utils/supabase/client';
 
 export default function AmenitiesPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const propertyId = searchParams.get('property_id');
+  
   const [customAmenities, setCustomAmenities] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const steps = [
     'Property Info',
@@ -17,6 +22,125 @@ export default function AmenitiesPage() {
     'Review',
     'Publish'
   ];
+
+  // Redirect if no property ID
+  useEffect(() => {
+    if (!propertyId) {
+      router.push('/sell/create');
+    }
+  }, [propertyId, router]);
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    
+    console.log('Amenities form submitted!');
+    console.log('Property ID:', propertyId);
+    
+    try {
+      const formData = new FormData(e.currentTarget);
+      const supabase = createClient();
+      
+      console.log('Supabase client created successfully');
+      
+      // Extract features data - this will be an array of features
+      const features = [];
+      
+      // Get all form fields that start with 'feature_'
+      for (const [key, value] of formData.entries()) {
+        if (key.startsWith('feature_') && value && value !== '') {
+          const parts = key.split('_');
+          if (parts.length >= 3) {
+            // Handle compound categories like "building_amenities"
+            let category: string;
+            let name: string;
+            
+            if (parts[1] === 'building' && parts[2] === 'amenities') {
+              category = 'building_amenities';
+              name = parts.slice(3).join('_');
+            } else {
+              category = parts[1];
+              name = parts.slice(2).join('_');
+            }
+            
+            // Handle checkbox and radio values
+            const featureValue = value as string;
+            
+            // Validate category
+            const validCategories = ['interior', 'exterior', 'building_amenities', 'appliances', 'utilities'];
+            if (!validCategories.includes(category)) {
+              console.warn(`Invalid category: ${category}, skipping feature: ${key}`);
+              continue;
+            }
+            
+            // Clean up the feature name
+            const cleanFeatureName = name
+              .replace(/([A-Z])/g, ' $1')
+              .toLowerCase()
+              .replace(/^./, str => str.toUpperCase())
+              .replace(/\b\w/g, l => l.toUpperCase()); // Capitalize each word
+            
+            features.push({
+              property_id: propertyId,
+              feature_name: cleanFeatureName,
+              feature_category: category as 'interior' | 'exterior' | 'building_amenities' | 'appliances' | 'utilities',
+              feature_value: featureValue
+            });
+          }
+        }
+      }
+
+      // Handle custom amenities
+      const customAmenitiesText = formData.get('custom_amenities') as string;
+      if (customAmenitiesText && customAmenitiesText.trim()) {
+        // Split custom amenities by line or comma and add them as individual features
+        const customFeatures = customAmenitiesText.split(/[,\n]/).map(amenity => amenity.trim()).filter(amenity => amenity);
+        
+        customFeatures.forEach(amenity => {
+          features.push({
+            property_id: propertyId,
+            feature_name: amenity,
+            feature_category: 'building_amenities' as const,
+            feature_value: 'available'
+          });
+        });
+      }
+
+      console.log('Features to be inserted:', features);
+      
+      if (features.length > 0) {
+        // Insert the property features
+        const { data, error } = await supabase
+          .from('property_features')
+          .insert(features)
+          .select();
+
+        if (error) {
+          console.error('Error creating property features:', error);
+          console.error('Features that failed:', features);
+          alert(`Error saving amenities: ${error.message}. Please try again.`);
+          setIsSubmitting(false);
+          return;
+        }
+
+        console.log('Property features created successfully:', data);
+      } else {
+        console.log('No features selected, skipping amenities save');
+      }
+      
+      // Client-side redirect
+      router.push(`/sell/create/screening?property_id=${propertyId}`);
+      
+    } catch (error) {
+      console.error('Unexpected error:', error);
+      alert('An unexpected error occurred. Please try again.');
+      setIsSubmitting(false);
+    }
+  };
+
+  if (!propertyId) {
+    return <div>Loading...</div>;
+  }
 
   return (
     <main className="min-h-screen bg-white p-8">
@@ -51,27 +175,48 @@ export default function AmenitiesPage() {
           </div>
         </div>
 
+        {/* Form */}
+        <form onSubmit={handleSubmit}>
+
         {/* Main Content */}
         <div className="max-w-4xl mx-auto">
           <h2 className="text-2xl font-bold mb-2">Highlight the Key Features of Your Home</h2>
           <p className="text-gray-600 mb-8">Showcase your amenities</p>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {/* Laundry */}
+              {/* Utilities */}
             <div>
-              <h3 className="font-semibold mb-4">Laundry</h3>
+                <h3 className="font-semibold mb-4">Utilities</h3>
               <div className="space-y-3">
                 <label className="flex items-center space-x-3">
-                  <input type="radio" name="laundry" className="form-radio text-blue-600" />
-                  <span>In unit</span>
+                    <input 
+                      type="radio" 
+                      name="feature_utilities_laundry" 
+                      value="in_unit"
+                      className="form-radio text-blue-600" 
+                      disabled={isSubmitting}
+                    />
+                    <span>Laundry In Unit</span>
                 </label>
                 <label className="flex items-center space-x-3">
-                  <input type="radio" name="laundry" className="form-radio text-blue-600" />
-                  <span>In building</span>
+                    <input 
+                      type="radio" 
+                      name="feature_utilities_laundry" 
+                      value="in_building"
+                      className="form-radio text-blue-600" 
+                      disabled={isSubmitting}
+                    />
+                    <span>Laundry In Building</span>
                 </label>
                 <label className="flex items-center space-x-3">
-                  <input type="radio" name="laundry" className="form-radio text-blue-600" />
-                  <span>No facilities</span>
+                    <input 
+                      type="radio" 
+                      name="feature_utilities_laundry" 
+                      value="none"
+                      className="form-radio text-blue-600" 
+                      disabled={isSubmitting}
+                    />
+                    <span>No Laundry Facilities</span>
                 </label>
               </div>
             </div>
@@ -81,58 +226,148 @@ export default function AmenitiesPage() {
               <h3 className="font-semibold mb-4">Appliances</h3>
               <div className="space-y-3">
                 <label className="flex items-center space-x-3">
-                  <input type="checkbox" className="form-checkbox text-blue-600" />
+                    <input 
+                      type="checkbox" 
+                      name="feature_appliances_dishwasher"
+                      value="true"
+                      className="form-checkbox text-blue-600" 
+                      disabled={isSubmitting}
+                    />
                   <span>Dishwasher</span>
                 </label>
                 <label className="flex items-center space-x-3">
-                  <input type="checkbox" className="form-checkbox text-blue-600" />
+                    <input 
+                      type="checkbox" 
+                      name="feature_appliances_freezer"
+                      value="true"
+                      className="form-checkbox text-blue-600" 
+                      disabled={isSubmitting}
+                    />
                   <span>Freezer</span>
                 </label>
                 <label className="flex items-center space-x-3">
-                  <input type="checkbox" className="form-checkbox text-blue-600" />
+                    <input 
+                      type="checkbox" 
+                      name="feature_appliances_microwave"
+                      value="true"
+                      className="form-checkbox text-blue-600" 
+                      disabled={isSubmitting}
+                    />
                   <span>Microwave</span>
                 </label>
                 <label className="flex items-center space-x-3">
-                  <input type="checkbox" className="form-checkbox text-blue-600" />
+                    <input 
+                      type="checkbox" 
+                      name="feature_appliances_oven"
+                      value="true"
+                      className="form-checkbox text-blue-600" 
+                      disabled={isSubmitting}
+                    />
                   <span>Oven</span>
                 </label>
                 <label className="flex items-center space-x-3">
-                  <input type="checkbox" className="form-checkbox text-blue-600" />
+                    <input 
+                      type="checkbox" 
+                      name="feature_appliances_refrigerator"
+                      value="true"
+                      className="form-checkbox text-blue-600" 
+                      disabled={isSubmitting}
+                    />
                   <span>Refrigerator</span>
                 </label>
               </div>
             </div>
 
-            {/* Pets Allowed */}
+              {/* Building Amenities */}
             <div>
-              <h3 className="font-semibold mb-4">Pets Allowed</h3>
+                <h3 className="font-semibold mb-4">Building Amenities</h3>
               <div className="space-y-3">
                 <label className="flex items-center space-x-3">
-                  <input type="radio" name="pets" className="form-radio text-blue-600" />
-                  <span>Yes</span>
+                    <input 
+                      type="checkbox" 
+                      name="feature_building_amenities_gym"
+                      value="true"
+                      className="form-checkbox text-blue-600" 
+                      disabled={isSubmitting}
+                    />
+                    <span>Gym/Fitness Center</span>
+                  </label>
+                  <label className="flex items-center space-x-3">
+                    <input 
+                      type="checkbox" 
+                      name="feature_building_amenities_pool"
+                      value="true"
+                      className="form-checkbox text-blue-600" 
+                      disabled={isSubmitting}
+                    />
+                    <span>Pool</span>
+                  </label>
+                  <label className="flex items-center space-x-3">
+                    <input 
+                      type="checkbox" 
+                      name="feature_building_amenities_elevator"
+                      value="true"
+                      className="form-checkbox text-blue-600" 
+                      disabled={isSubmitting}
+                    />
+                    <span>Elevator</span>
                 </label>
                 <label className="flex items-center space-x-3">
-                  <input type="radio" name="pets" className="form-radio text-blue-600" />
-                  <span>No</span>
+                    <input 
+                      type="checkbox" 
+                      name="feature_building_amenities_parking"
+                      value="true"
+                      className="form-checkbox text-blue-600" 
+                      disabled={isSubmitting}
+                    />
+                    <span>Parking Available</span>
                 </label>
               </div>
             </div>
 
-            {/* Cooling */}
+              {/* Interior Features */}
             <div>
-              <h3 className="font-semibold mb-4">Cooling</h3>
+                <h3 className="font-semibold mb-4">Interior Features</h3>
               <div className="space-y-3">
                 <label className="flex items-center space-x-3">
-                  <input type="radio" name="cooling" className="form-radio text-blue-600" />
-                  <span>Central</span>
+                    <input 
+                      type="radio" 
+                      name="feature_interior_cooling" 
+                      value="central"
+                      className="form-radio text-blue-600" 
+                      disabled={isSubmitting}
+                    />
+                    <span>Central Air</span>
+                  </label>
+                  <label className="flex items-center space-x-3">
+                    <input 
+                      type="radio" 
+                      name="feature_interior_cooling" 
+                      value="wall"
+                      className="form-radio text-blue-600" 
+                      disabled={isSubmitting}
+                    />
+                    <span>Wall AC</span>
                 </label>
                 <label className="flex items-center space-x-3">
-                  <input type="radio" name="cooling" className="form-radio text-blue-600" />
-                  <span>Wall</span>
+                    <input 
+                      type="radio" 
+                      name="feature_interior_cooling" 
+                      value="window"
+                      className="form-radio text-blue-600" 
+                      disabled={isSubmitting}
+                    />
+                    <span>Window AC</span>
                 </label>
                 <label className="flex items-center space-x-3">
-                  <input type="radio" name="cooling" className="form-radio text-blue-600" />
-                  <span>Window</span>
+                    <input 
+                      type="checkbox" 
+                      name="feature_interior_furnished"
+                      value="true"
+                      className="form-checkbox text-blue-600" 
+                      disabled={isSubmitting}
+                    />
+                    <span>Furnished</span>
                 </label>
               </div>
             </div>
@@ -142,20 +377,44 @@ export default function AmenitiesPage() {
               <h3 className="font-semibold mb-4">Heating</h3>
               <div className="space-y-3">
                 <label className="flex items-center space-x-3">
-                  <input type="radio" name="heating" className="form-radio text-blue-600" />
+                    <input 
+                      type="radio" 
+                      name="feature_interior_heating" 
+                      value="baseboard"
+                      className="form-radio text-blue-600" 
+                      disabled={isSubmitting}
+                    />
                   <span>Baseboard</span>
                 </label>
                 <label className="flex items-center space-x-3">
-                  <input type="radio" name="heating" className="form-radio text-blue-600" />
+                    <input 
+                      type="radio" 
+                      name="feature_interior_heating" 
+                      value="forced_air"
+                      className="form-radio text-blue-600" 
+                      disabled={isSubmitting}
+                    />
                   <span>Forced Air</span>
                 </label>
                 <label className="flex items-center space-x-3">
-                  <input type="radio" name="heating" className="form-radio text-blue-600" />
+                    <input 
+                      type="radio" 
+                      name="feature_interior_heating" 
+                      value="heat_pump"
+                      className="form-radio text-blue-600" 
+                      disabled={isSubmitting}
+                    />
                   <span>Heat Pump</span>
                 </label>
                 <label className="flex items-center space-x-3">
-                  <input type="radio" name="heating" className="form-radio text-blue-600" />
-                  <span>Wall</span>
+                    <input 
+                      type="radio" 
+                      name="feature_interior_heating" 
+                      value="wall"
+                      className="form-radio text-blue-600" 
+                      disabled={isSubmitting}
+                    />
+                    <span>Wall Heater</span>
                 </label>
               </div>
             </div>
@@ -165,29 +424,140 @@ export default function AmenitiesPage() {
               <h3 className="font-semibold mb-4">Flooring</h3>
               <div className="space-y-3">
                 <label className="flex items-center space-x-3">
-                  <input type="radio" name="flooring" className="form-radio text-blue-600" />
+                    <input 
+                      type="radio" 
+                      name="feature_interior_flooring" 
+                      value="carpet"
+                      className="form-radio text-blue-600" 
+                      disabled={isSubmitting}
+                    />
                   <span>Carpet</span>
                 </label>
                 <label className="flex items-center space-x-3">
-                  <input type="radio" name="flooring" className="form-radio text-blue-600" />
+                    <input 
+                      type="radio" 
+                      name="feature_interior_flooring" 
+                      value="hardwood"
+                      className="form-radio text-blue-600" 
+                      disabled={isSubmitting}
+                    />
                   <span>Hardwood</span>
                 </label>
                 <label className="flex items-center space-x-3">
-                  <input type="radio" name="flooring" className="form-radio text-blue-600" />
+                    <input 
+                      type="radio" 
+                      name="feature_interior_flooring" 
+                      value="tile"
+                      className="form-radio text-blue-600" 
+                      disabled={isSubmitting}
+                    />
                   <span>Tile</span>
                 </label>
+                  <label className="flex items-center space-x-3">
+                    <input 
+                      type="radio" 
+                      name="feature_interior_flooring" 
+                      value="laminate"
+                      className="form-radio text-blue-600" 
+                      disabled={isSubmitting}
+                    />
+                    <span>Laminate</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Exterior Features */}
+              <div>
+                <h3 className="font-semibold mb-4">Exterior</h3>
+                <div className="space-y-3">
+                  <label className="flex items-center space-x-3">
+                    <input 
+                      type="checkbox" 
+                      name="feature_exterior_balcony"
+                      value="true"
+                      className="form-checkbox text-blue-600" 
+                      disabled={isSubmitting}
+                    />
+                    <span>Balcony</span>
+                  </label>
+                  <label className="flex items-center space-x-3">
+                    <input 
+                      type="checkbox" 
+                      name="feature_exterior_patio"
+                      value="true"
+                      className="form-checkbox text-blue-600" 
+                      disabled={isSubmitting}
+                    />
+                    <span>Patio</span>
+                  </label>
+                  <label className="flex items-center space-x-3">
+                    <input 
+                      type="checkbox" 
+                      name="feature_exterior_yard"
+                      value="true"
+                      className="form-checkbox text-blue-600" 
+                      disabled={isSubmitting}
+                    />
+                    <span>Yard</span>
+                  </label>
+                  <label className="flex items-center space-x-3">
+                    <input 
+                      type="checkbox" 
+                      name="feature_exterior_garden"
+                      value="true"
+                      className="form-checkbox text-blue-600" 
+                      disabled={isSubmitting}
+                    />
+                    <span>Garden</span>
+                  </label>
               </div>
             </div>
 
-            {/* Other */}
+              {/* Pet Policy */}
             <div>
-              <h3 className="font-semibold mb-4">Other</h3>
+                <h3 className="font-semibold mb-4">Pet Policy</h3>
               <div className="space-y-3">
                 <label className="flex items-center space-x-3">
-                  <input type="checkbox" className="form-checkbox text-blue-600" />
-                  <span>Furnished</span>
+                    <input 
+                      type="radio" 
+                      name="feature_building_amenities_pets" 
+                      value="allowed"
+                      className="form-radio text-blue-600" 
+                      disabled={isSubmitting}
+                    />
+                    <span>Pets Allowed</span>
+                  </label>
+                  <label className="flex items-center space-x-3">
+                    <input 
+                      type="radio" 
+                      name="feature_building_amenities_pets" 
+                      value="not_allowed"
+                      className="form-radio text-blue-600" 
+                      disabled={isSubmitting}
+                    />
+                    <span>No Pets</span>
+                  </label>
+                  <label className="flex items-center space-x-3">
+                    <input 
+                      type="radio" 
+                      name="feature_building_amenities_pets" 
+                      value="cats_only"
+                      className="form-radio text-blue-600" 
+                      disabled={isSubmitting}
+                    />
+                    <span>Cats Only</span>
+                  </label>
+                  <label className="flex items-center space-x-3">
+                    <input 
+                      type="radio" 
+                      name="feature_building_amenities_pets" 
+                      value="small_pets"
+                      className="form-radio text-blue-600" 
+                      disabled={isSubmitting}
+                    />
+                    <span>Small Pets Only</span>
                 </label>
-              </div>
+                </div>
             </div>
           </div>
 
@@ -195,23 +565,31 @@ export default function AmenitiesPage() {
           <div className="mt-8">
             <h3 className="text-xl font-semibold mb-4">Add in any other key amenities</h3>
             <textarea
+                name="custom_amenities"
               value={customAmenities}
               onChange={(e) => setCustomAmenities(e.target.value)}
               className="w-full h-32 p-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
               placeholder="Enter additional amenities..."
+                disabled={isSubmitting}
             />
           </div>
 
           {/* Next Button */}
           <div className="flex justify-end mt-8">
             <button 
-              onClick={() => router.push('/sell/create/screening')}
-              className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              Next
+                type="submit"
+                disabled={isSubmitting}
+                className={`px-8 py-3 rounded-lg transition-colors ${
+                  isSubmitting 
+                    ? 'bg-gray-400 cursor-not-allowed' 
+                    : 'bg-blue-600 hover:bg-blue-700'
+                } text-white`}
+              >
+                {isSubmitting ? 'Saving Amenities...' : 'Next'}
             </button>
           </div>
         </div>
+        </form>
       </div>
     </main>
   );

@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createProperty } from '@/utils/supabase/actions';
+import { createClient } from '@/utils/supabase/client';
 
 export default function CreateListingPage() {
   const router = useRouter();
@@ -9,6 +9,7 @@ export default function CreateListingPage() {
   const [baths, setBaths] = useState('1');
   const [squareFootage, setSquareFootage] = useState('1500');
   const [propertyType, setPropertyType] = useState('apartment');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const steps = [
     'Property Info',
@@ -21,6 +22,56 @@ export default function CreateListingPage() {
     'Review',
     'Publish'
   ];
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    
+    try {
+      const formData = new FormData(e.currentTarget);
+      const supabase = createClient();
+      
+      // Extract form data
+      const propertyData = {
+        // Using existing landlord_id - you'll need to replace this with actual user's landlord_id
+        landlord_id: 'b7ee8ae5-686c-48a7-9a45-df7fb9b2ab3f', // TODO: Get from current user
+        address_line_1: formData.get('address_line_1') as string,
+        address_line_2: formData.get('address_line_2') as string || null,
+        city: formData.get('city') as string,
+        state: formData.get('state') as string,
+        zip_code: formData.get('zip_code') as string,
+        property_type: formData.get('property_type') as string || 'apartment',
+        bedrooms: parseInt(formData.get('bedrooms') as string),
+        bathrooms: parseFloat(formData.get('bathrooms') as string),
+        square_footage: parseInt(formData.get('square_footage') as string),
+        description: formData.get('description') as string || null,
+        year_built: formData.get('year_built') ? parseInt(formData.get('year_built') as string) : null,
+      };
+
+      // Insert the property
+      const { data, error } = await supabase
+        .from('properties')
+        .insert([propertyData])
+        .select();
+
+      if (error) {
+        console.error('Error creating property:', error);
+        alert('Error creating property. Please try again.');
+        setIsSubmitting(false);
+        return;
+      }
+
+      console.log('Property created successfully:', data);
+      
+      // Client-side redirect - much more reliable
+      router.push(`/sell/create/rent-details?property_id=${data[0].id}`);
+      
+    } catch (error) {
+      console.error('Unexpected error:', error);
+      alert('An unexpected error occurred. Please try again.');
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <main className="min-h-screen bg-white p-8">
@@ -56,11 +107,11 @@ export default function CreateListingPage() {
         </div>
 
         {/* Form */}
-        <form action={createProperty}>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-            {/* Left Column - Basic Details */}
-            <div>
-              <h2 className="text-xl font-semibold mb-6">Basic Details</h2>
+        <form onSubmit={handleSubmit}>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+          {/* Left Column - Basic Details */}
+          <div>
+            <h2 className="text-xl font-semibold mb-6">Basic Details</h2>
               
               {/* Property Type */}
               <div className="mb-6">
@@ -73,6 +124,7 @@ export default function CreateListingPage() {
                   onChange={(e) => setPropertyType(e.target.value)}
                   className="block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 rounded-md bg-blue-50"
                   required
+                  disabled={isSubmitting}
                 >
                   <option value="apartment">Apartment</option>
                   <option value="house">House</option>
@@ -95,6 +147,7 @@ export default function CreateListingPage() {
                   className="block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 rounded-md bg-blue-50"
                   placeholder="Enter street address"
                   required
+                  disabled={isSubmitting}
                 />
               </div>
 
@@ -107,6 +160,7 @@ export default function CreateListingPage() {
                   name="address_line_2"
                   className="block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 rounded-md bg-blue-50"
                   placeholder="Apt, suite, etc. (optional)"
+                  disabled={isSubmitting}
                 />
               </div>
 
@@ -121,6 +175,7 @@ export default function CreateListingPage() {
                     className="block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 rounded-md bg-blue-50"
                     placeholder="Enter city"
                     required
+                    disabled={isSubmitting}
                   />
                 </div>
                 <div>
@@ -133,6 +188,7 @@ export default function CreateListingPage() {
                     className="block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 rounded-md bg-blue-50"
                     placeholder="State"
                     required
+                    disabled={isSubmitting}
                   />
                 </div>
               </div>
@@ -147,62 +203,66 @@ export default function CreateListingPage() {
                   className="block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 rounded-md bg-blue-50"
                   placeholder="Enter ZIP code"
                   required
+                  disabled={isSubmitting}
                 />
               </div>
-              
-              {/* Beds */}
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Beds
-                </label>
-                <div className="relative">
-                  <select
+            
+            {/* Beds */}
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Beds
+              </label>
+              <div className="relative">
+                <select
                     name="bedrooms"
-                    value={beds}
-                    onChange={(e) => setBeds(e.target.value)}
-                    className="block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 rounded-md bg-blue-50"
-                    required
-                  >
-                    {[...Array(10)].map((_, i) => (
-                      <option key={i + 1} value={i + 1}>{i + 1}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {/* Bathrooms */}
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Bathrooms
-                </label>
-                <div className="relative">
-                  <select
-                    name="bathrooms"
-                    value={baths}
-                    onChange={(e) => setBaths(e.target.value)}
-                    className="block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 rounded-md bg-blue-50"
-                    required
-                  >
-                    {[...Array(10)].map((_, i) => (
-                      <option key={i + 1} value={i + 1}>{i + 1}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {/* Square Footage */}
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Square Footage
-                </label>
-                <input
-                  type="number"
-                  name="square_footage"
-                  value={squareFootage}
-                  onChange={(e) => setSquareFootage(e.target.value)}
+                  value={beds}
+                  onChange={(e) => setBeds(e.target.value)}
                   className="block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 rounded-md bg-blue-50"
-                  placeholder="Enter square footage"
+                    required
+                    disabled={isSubmitting}
+                >
+                  {[...Array(10)].map((_, i) => (
+                    <option key={i + 1} value={i + 1}>{i + 1}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Bathrooms */}
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Bathrooms
+              </label>
+              <div className="relative">
+                <select
+                    name="bathrooms"
+                  value={baths}
+                  onChange={(e) => setBaths(e.target.value)}
+                  className="block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 rounded-md bg-blue-50"
+                    required
+                    disabled={isSubmitting}
+                >
+                  {[...Array(10)].map((_, i) => (
+                    <option key={i + 1} value={i + 1}>{i + 1}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Square Footage */}
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Square Footage
+              </label>
+              <input
+                type="number"
+                  name="square_footage"
+                value={squareFootage}
+                onChange={(e) => setSquareFootage(e.target.value)}
+                className="block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 rounded-md bg-blue-50"
+                placeholder="Enter square footage"
                   required
+                  disabled={isSubmitting}
                 />
               </div>
 
@@ -218,31 +278,38 @@ export default function CreateListingPage() {
                   max={new Date().getFullYear()}
                   className="block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 rounded-md bg-blue-50"
                   placeholder="Enter year built"
-                />
-              </div>
-            </div>
-
-            {/* Right Column - Property Description */}
-            <div>
-              <h2 className="text-xl font-semibold mb-6">Describe Your Property</h2>
-              <p className="text-gray-600 mb-4">What makes your place unique?</p>
-              <textarea
-                name="description"
-                className="w-full h-[250px] p-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white resize-none"
-                placeholder="Describe your property..."
+                  disabled={isSubmitting}
               />
             </div>
           </div>
 
-          {/* Next Button */}
-          <div className="flex justify-end mt-8">
-            <button 
-              type="submit"
-              className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              Next
-            </button>
+          {/* Right Column - Property Description */}
+          <div>
+            <h2 className="text-xl font-semibold mb-6">Describe Your Property</h2>
+            <p className="text-gray-600 mb-4">What makes your place unique?</p>
+            <textarea
+                name="description"
+              className="w-full h-[250px] p-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white resize-none"
+              placeholder="Describe your property..."
+              disabled={isSubmitting}
+            />
           </div>
+        </div>
+
+        {/* Next Button */}
+        <div className="flex justify-end mt-8">
+          <button 
+              type="submit"
+              disabled={isSubmitting}
+            className={`px-8 py-3 rounded-lg transition-colors ${
+              isSubmitting 
+                ? 'bg-gray-400 cursor-not-allowed' 
+                : 'bg-blue-600 hover:bg-blue-700'
+            } text-white`}
+          >
+            {isSubmitting ? 'Creating Property...' : 'Next'}
+          </button>
+        </div>
         </form>
       </div>
     </main>

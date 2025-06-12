@@ -1,11 +1,23 @@
 'use client';
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { createClient } from '@/utils/supabase/client';
 
 export default function RentDetailsPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const propertyId = searchParams.get('property_id');
+  
   const [rent, setRent] = useState('');
   const [securityDeposit, setSecurityDeposit] = useState('');
+  const [petDeposit, setPetDeposit] = useState('');
+  const [applicationFee, setApplicationFee] = useState('');
+  const [minLeaseTerm, setMinLeaseTerm] = useState('12');
+  const [maxLeaseTerm, setMaxLeaseTerm] = useState('12');
+  const [availableDate, setAvailableDate] = useState('');
+  const [listingTitle, setListingTitle] = useState('');
+  const [listingDescription, setListingDescription] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const steps = [
     'Property Info',
@@ -18,6 +30,65 @@ export default function RentDetailsPage() {
     'Review',
     'Publish'
   ];
+
+  // Redirect if no property ID
+  useEffect(() => {
+    if (!propertyId) {
+      router.push('/sell/create');
+    }
+  }, [propertyId, router]);
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    
+    try {
+      const formData = new FormData(e.currentTarget);
+      const supabase = createClient();
+      
+      // Extract form data
+      const listingData = {
+        property_id: propertyId,
+        monthly_rent: parseFloat(formData.get('monthly_rent') as string),
+        security_deposit: formData.get('security_deposit') ? parseFloat(formData.get('security_deposit') as string) : null,
+        pet_deposit: formData.get('pet_deposit') ? parseFloat(formData.get('pet_deposit') as string) : null,
+        application_fee: formData.get('application_fee') ? parseFloat(formData.get('application_fee') as string) : null,
+        minimum_lease_term: formData.get('minimum_lease_term') ? parseInt(formData.get('minimum_lease_term') as string) : null,
+        maximum_lease_term: formData.get('maximum_lease_term') ? parseInt(formData.get('maximum_lease_term') as string) : null,
+        available_date: formData.get('available_date') as string || null,
+        listing_title: formData.get('listing_title') as string || null,
+        listing_description: formData.get('listing_description') as string || null,
+        listing_status: 'active',
+      };
+
+      // Insert the property listing
+      const { data, error } = await supabase
+        .from('property_listings')
+        .insert([listingData])
+        .select();
+
+      if (error) {
+        console.error('Error creating property listing:', error);
+        alert('Error creating property listing. Please try again.');
+        setIsSubmitting(false);
+        return;
+      }
+
+      console.log('Property listing created successfully:', data);
+      
+      // Client-side redirect
+      router.push(`/sell/create/media?property_id=${propertyId}`);
+      
+    } catch (error) {
+      console.error('Unexpected error:', error);
+      alert('An unexpected error occurred. Please try again.');
+      setIsSubmitting(false);
+    }
+  };
+
+  if (!propertyId) {
+    return <div>Loading...</div>;
+  }
 
   return (
     <main className="min-h-screen bg-white p-8">
@@ -52,54 +123,195 @@ export default function RentDetailsPage() {
           </div>
         </div>
 
-        {/* Main Content */}
-        <div className="max-w-2xl mx-auto">
-          <h2 className="text-2xl font-semibold mb-8">How Much is the Rent and Security Deposit?</h2>
+        {/* Form */}
+        <form onSubmit={handleSubmit}>
           
-          {/* Rent Input */}
-          <div className="mb-8">
-            <label className="block text-lg font-medium text-gray-700 mb-3">
-              Rent
-            </label>
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
+          <div className="max-w-2xl mx-auto space-y-8">
+            <h2 className="text-2xl font-semibold mb-8">Listing Details</h2>
+            
+            {/* Listing Title */}
+            <div>
+              <label className="block text-lg font-medium text-gray-700 mb-3">
+                Listing Title
+              </label>
               <input
-                type="number"
-                value={rent}
-                onChange={(e) => setRent(e.target.value)}
-                className="block w-full pl-8 pr-4 py-3 text-base border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 rounded-lg bg-white"
-                placeholder="Enter monthly rent"
+                type="text"
+                name="listing_title"
+                value={listingTitle}
+                onChange={(e) => setListingTitle(e.target.value)}
+                className="block w-full px-4 py-3 text-base border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 rounded-lg bg-white"
+                placeholder="e.g., Beautiful 2BR Apartment in Downtown"
+                required
+                disabled={isSubmitting}
+              />
+            </div>
+
+            {/* Listing Description */}
+            <div>
+              <label className="block text-lg font-medium text-gray-700 mb-3">
+                Listing Description
+              </label>
+              <textarea
+                name="listing_description"
+                value={listingDescription}
+                onChange={(e) => setListingDescription(e.target.value)}
+                rows={4}
+                className="block w-full px-4 py-3 text-base border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 rounded-lg bg-white resize-none"
+                placeholder="Describe what makes this property special..."
+                required
+                disabled={isSubmitting}
+              />
+            </div>
+            
+            {/* Monthly Rent */}
+            <div>
+              <label className="block text-lg font-medium text-gray-700 mb-3">
+                Monthly Rent *
+              </label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
+                <input
+                  type="number"
+                  name="monthly_rent"
+                  value={rent}
+                  onChange={(e) => setRent(e.target.value)}
+                  className="block w-full pl-8 pr-4 py-3 text-base border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 rounded-lg bg-white"
+                  placeholder="Enter monthly rent"
+                  required
+                  disabled={isSubmitting}
+                />
+              </div>
+            </div>
+
+            {/* Security Deposit */}
+            <div>
+              <label className="block text-lg font-medium text-gray-700 mb-3">
+                Security Deposit
+              </label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
+                <input
+                  type="number"
+                  name="security_deposit"
+                  value={securityDeposit}
+                  onChange={(e) => setSecurityDeposit(e.target.value)}
+                  className="block w-full pl-8 pr-4 py-3 text-base border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 rounded-lg bg-white"
+                  placeholder="Enter security deposit amount"
+                  disabled={isSubmitting}
+                />
+              </div>
+            </div>
+
+            {/* Pet Deposit */}
+            <div>
+              <label className="block text-lg font-medium text-gray-700 mb-3">
+                Pet Deposit (if pets allowed)
+              </label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
+                <input
+                  type="number"
+                  name="pet_deposit"
+                  value={petDeposit}
+                  onChange={(e) => setPetDeposit(e.target.value)}
+                  className="block w-full pl-8 pr-4 py-3 text-base border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 rounded-lg bg-white"
+                  placeholder="Enter pet deposit amount"
+                  disabled={isSubmitting}
+                />
+              </div>
+            </div>
+
+            {/* Application Fee */}
+            <div>
+              <label className="block text-lg font-medium text-gray-700 mb-3">
+                Application Fee
+              </label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
+                <input
+                  type="number"
+                  name="application_fee"
+                  value={applicationFee}
+                  onChange={(e) => setApplicationFee(e.target.value)}
+                  className="block w-full pl-8 pr-4 py-3 text-base border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 rounded-lg bg-white"
+                  placeholder="Enter application fee"
+                  disabled={isSubmitting}
+                />
+              </div>
+            </div>
+
+            {/* Lease Terms */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-lg font-medium text-gray-700 mb-3">
+                  Minimum Lease Term (months)
+                </label>
+                <select
+                  name="minimum_lease_term"
+                  value={minLeaseTerm}
+                  onChange={(e) => setMinLeaseTerm(e.target.value)}
+                  className="block w-full px-4 py-3 text-base border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 rounded-lg bg-white"
+                  disabled={isSubmitting}
+                >
+                  <option value="1">1 month</option>
+                  <option value="3">3 months</option>
+                  <option value="6">6 months</option>
+                  <option value="12">12 months</option>
+                  <option value="24">24 months</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-lg font-medium text-gray-700 mb-3">
+                  Maximum Lease Term (months)
+                </label>
+                <select
+                  name="maximum_lease_term"
+                  value={maxLeaseTerm}
+                  onChange={(e) => setMaxLeaseTerm(e.target.value)}
+                  className="block w-full px-4 py-3 text-base border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 rounded-lg bg-white"
+                  disabled={isSubmitting}
+                >
+                  <option value="1">1 month</option>
+                  <option value="3">3 months</option>
+                  <option value="6">6 months</option>
+                  <option value="12">12 months</option>
+                  <option value="24">24 months</option>
+                  <option value="36">36 months</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Available Date */}
+            <div>
+              <label className="block text-lg font-medium text-gray-700 mb-3">
+                Available Date
+              </label>
+              <input
+                type="date"
+                name="available_date"
+                value={availableDate}
+                onChange={(e) => setAvailableDate(e.target.value)}
+                className="block w-full px-4 py-3 text-base border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 rounded-lg bg-white"
+                disabled={isSubmitting}
               />
             </div>
           </div>
 
-          {/* Security Deposit Input */}
-          <div className="mb-8">
-            <label className="block text-lg font-medium text-gray-700 mb-3">
-              Security Deposit
-            </label>
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
-              <input
-                type="number"
-                value={securityDeposit}
-                onChange={(e) => setSecurityDeposit(e.target.value)}
-                className="block w-full pl-8 pr-4 py-3 text-base border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 rounded-lg bg-white"
-                placeholder="Enter security deposit amount"
-              />
-            </div>
+          {/* Next Button */}
+          <div className="flex justify-end mt-12">
+            <button 
+              type="submit"
+              disabled={isSubmitting}
+              className={`px-8 py-3 rounded-lg transition-colors ${
+                isSubmitting 
+                  ? 'bg-gray-400 cursor-not-allowed' 
+                  : 'bg-blue-600 hover:bg-blue-700'
+              } text-white`}
+            >
+              {isSubmitting ? 'Saving Listing...' : 'Next'}
+            </button>
           </div>
-        </div>
-
-        {/* Next Button */}
-        <div className="flex justify-end mt-12">
-          <button 
-            onClick={() => router.push('/sell/create/media')}
-            className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            Next
-          </button>
-        </div>
+        </form>
       </div>
     </main>
   );

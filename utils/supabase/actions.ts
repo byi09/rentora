@@ -124,9 +124,127 @@ export async function createProperty(formData: FormData) {
 
     console.log('Property created successfully:', data)
     
-    // Redirect to the next step in the form or to a success page
+    // Store the property ID in the URL params for the next step
     revalidatePath('/sell/create', 'layout')
-    redirect('/sell/create/rent-details')
+    revalidatePath('/sell/create/rent-details', 'layout')
+    redirect(`/sell/create/rent-details?property_id=${data[0].id}`)
+    
+  } catch (error) {
+    console.error('Unexpected error:', error)
+    redirect('/error?type=unknown')
+  }
+}
+
+export async function createPropertyListing(formData: FormData) {
+  const supabase = await createClient()
+  
+  try {
+    const property_id = formData.get('property_id') as string
+    
+    if (!property_id) {
+      console.error('No property ID provided')
+      redirect('/error?type=unknown')
+    }
+
+    // Extract form data
+    const listingData = {
+      property_id,
+      monthly_rent: parseFloat(formData.get('monthly_rent') as string),
+      security_deposit: formData.get('security_deposit') ? parseFloat(formData.get('security_deposit') as string) : null,
+      pet_deposit: formData.get('pet_deposit') ? parseFloat(formData.get('pet_deposit') as string) : null,
+      application_fee: formData.get('application_fee') ? parseFloat(formData.get('application_fee') as string) : null,
+      minimum_lease_term: formData.get('minimum_lease_term') ? parseInt(formData.get('minimum_lease_term') as string) : null,
+      maximum_lease_term: formData.get('maximum_lease_term') ? parseInt(formData.get('maximum_lease_term') as string) : null,
+      available_date: formData.get('available_date') as string || null,
+      listing_title: formData.get('listing_title') as string || null,
+      listing_description: formData.get('listing_description') as string || null,
+      listing_status: 'active',
+    }
+
+    // Insert the property listing
+    const { data, error } = await supabase
+      .from('property_listings')
+      .insert([listingData])
+      .select()
+
+    if (error) {
+      console.error('Error creating property listing:', error)
+      redirect('/error?type=unknown')
+    }
+
+    console.log('Property listing created successfully:', data)
+    
+    revalidatePath('/sell/create', 'layout')
+    redirect(`/sell/create/media?property_id=${property_id}`)
+    
+  } catch (error) {
+    console.error('Unexpected error:', error)
+    redirect('/error?type=unknown')
+  }
+}
+
+export async function addPropertyFeatures(formData: FormData) {
+  const supabase = await createClient()
+  
+  try {
+    const property_id = formData.get('property_id') as string
+    
+    if (!property_id) {
+      console.error('No property ID provided')
+      redirect('/error?type=unknown')
+    }
+
+    // Extract features data - this will be an array of features
+    const features = []
+    
+    // Get all form fields that start with 'feature_'
+    for (const [key, value] of formData.entries()) {
+      if (key.startsWith('feature_') && value && value !== '') {
+        const [, category, name] = key.split('_', 3)
+        const featureValue = value as string
+        
+        features.push({
+          property_id,
+          feature_name: name.replace(/([A-Z])/g, ' $1').toLowerCase().replace(/^./, str => str.toUpperCase()),
+          feature_category: category as 'interior' | 'exterior' | 'building_amenities' | 'appliances' | 'utilities',
+          feature_value: featureValue
+        })
+      }
+    }
+
+    // Handle custom amenities
+    const customAmenities = formData.get('custom_amenities') as string
+    if (customAmenities && customAmenities.trim()) {
+      // Split custom amenities by line or comma and add them as individual features
+      const customFeatures = customAmenities.split(/[,\n]/).map(amenity => amenity.trim()).filter(amenity => amenity)
+      
+      customFeatures.forEach(amenity => {
+        features.push({
+          property_id,
+          feature_name: amenity,
+          feature_category: 'building_amenities' as const,
+          feature_value: 'available'
+        })
+      })
+    }
+
+    if (features.length > 0) {
+      // Insert the property features
+      const { data, error } = await supabase
+        .from('property_features')
+        .insert(features)
+        .select()
+
+      if (error) {
+        console.error('Error creating property features:', error)
+        redirect('/error?type=unknown')
+      }
+
+      console.log('Property features created successfully:', data)
+    }
+    
+    revalidatePath('/sell/create', 'layout')
+    redirect(`/sell/create/screening?property_id=${property_id}`)
     
   } catch (error) {
     console.error('Unexpected error:', error)
