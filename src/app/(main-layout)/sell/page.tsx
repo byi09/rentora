@@ -94,7 +94,7 @@ export default function SellPage() {
               Ready to List Your Property?
             </h2>
             <Link 
-              href="/sell/create"
+              href="/sell/dashboard"
               className="inline-flex justify-center py-3 px-8 border border-transparent rounded-md shadow-sm text-lg font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
             >
               List My Property
