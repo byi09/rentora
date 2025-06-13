@@ -5,6 +5,8 @@ import { users, customers, renters, landlords, userPreferences } from '@/src/db/
 import { eq } from 'drizzle-orm';
 import { OnboardingPayload } from '@/src/db/queries';
 
+const ONBOARDING_COOKIE_NAME = 'onboarding-status'
+
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient();
@@ -133,7 +135,11 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({ success: true });
+    // Create response and clear the onboarding cookie to force a fresh check
+    const response = NextResponse.json({ success: true });
+    response.cookies.delete(ONBOARDING_COOKIE_NAME);
+
+    return response;
   } catch (err) {
     console.error('Onboarding complete error:', err);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

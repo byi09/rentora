@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { ArrowLeft } from 'lucide-react';
 import { pusherClient } from '@/src/lib/pusher';
 import ConversationList from '@/src/components/messaging/ConversationList';
 import ConversationView from '@/src/components/messaging/ConversationView';
@@ -311,60 +312,77 @@ export default function MessagesPage() {
   }
 
   return (
-    <div className="h-screen flex bg-gray-50">
-      {/* Conversation List */}
-      <ConversationList
-        conversations={filteredConversations}
-        selectedConversationId={selectedConversationId}
-        currentUserId={currentUserId!}
-        onSelectConversation={setSelectedConversationId}
-        onCreateConversation={() => setIsCreateModalOpen(true)}
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-      />
+    <div className="h-screen flex flex-col bg-gray-50">
+      {/* Header with Back Button */}
+      <div className="bg-white border-b border-gray-200 px-4 py-3">
+        <div className="flex items-center">
+          <button
+            onClick={() => router.push('/')}
+            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-lg mr-3 transition-colors"
+            aria-label="Go back"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+          <h1 className="text-xl font-semibold text-gray-900">Messages</h1>
+        </div>
+      </div>
 
-      {/* Conversation View */}
-      <div className="flex-1">
-        {selectedConversation && currentUserId ? (
-          <ConversationView
-            conversation={selectedConversation}
-            messages={messages}
-            currentUserId={currentUserId}
-            onSendMessage={handleSendMessage}
-            isLoading={isMessagesLoading}
-          />
-        ) : conversations.length === 0 ? (
-          <div className="flex items-center justify-center h-full text-gray-500">
-            <div className="text-center max-w-md px-4">
-              <div className="mb-6">
-                <svg className="mx-auto h-16 w-16 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                </svg>
+      {/* Main Messages Layout */}
+      <div className="flex-1 flex">
+        {/* Conversation List */}
+        <ConversationList
+          conversations={filteredConversations}
+          selectedConversationId={selectedConversationId}
+          currentUserId={currentUserId!}
+          onSelectConversation={setSelectedConversationId}
+          onCreateConversation={() => setIsCreateModalOpen(true)}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+        />
+
+        {/* Conversation View */}
+        <div className="flex-1">
+          {selectedConversation && currentUserId ? (
+            <ConversationView
+              conversation={selectedConversation}
+              messages={messages}
+              currentUserId={currentUserId}
+              onSendMessage={handleSendMessage}
+              isLoading={isMessagesLoading}
+            />
+          ) : conversations.length === 0 ? (
+            <div className="flex items-center justify-center h-full text-gray-500">
+              <div className="text-center max-w-md px-4">
+                <div className="mb-6">
+                  <svg className="mx-auto h-16 w-16 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                  </svg>
+                </div>
+                <h3 className="text-xl font-medium text-gray-900 mb-2">No conversations yet</h3>
+                <p className="text-gray-500 mb-6">
+                  Start your first conversation by reaching out to landlords, renters, or agents. 
+                  Click the + button to get texting!
+                </p>
+                <button
+                  onClick={() => setIsCreateModalOpen(true)}
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                  <svg className="mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  Start a conversation
+                </button>
               </div>
-              <h3 className="text-xl font-medium text-gray-900 mb-2">No conversations yet</h3>
-              <p className="text-gray-500 mb-6">
-                Start your first conversation by reaching out to landlords, renters, or agents. 
-                Click the + button to get texting!
-              </p>
-              <button
-                onClick={() => setIsCreateModalOpen(true)}
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              >
-                <svg className="mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-                Start a conversation
-              </button>
             </div>
-          </div>
-        ) : (
-          <div className="flex items-center justify-center h-full text-gray-500">
-            <div className="text-center">
-              <h3 className="text-lg font-medium mb-2">No conversation selected</h3>
-              <p className="text-sm">Choose a conversation from the list to start messaging</p>
+          ) : (
+            <div className="flex items-center justify-center h-full text-gray-500">
+              <div className="text-center">
+                <h3 className="text-lg font-medium mb-2">No conversation selected</h3>
+                <p className="text-sm">Choose a conversation from the list to start messaging</p>
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {/* Create Conversation Modal */}

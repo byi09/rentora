@@ -18,14 +18,57 @@ const NotificationBell = dynamic(() => import('@/src/components/ui/NotificationB
 
 const Header = ({ toggleSidebar, user }: HeaderProps) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
   const router = useRouter();
 
   const handleSignOut = async () => {
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    setIsDropdownOpen(false);
-    router.push('/');
+    try {
+      // Immediately show full-page loading overlay
+      const loadingOverlay = document.createElement('div');
+      loadingOverlay.id = 'signout-overlay';
+      loadingOverlay.className = 'fixed inset-0 bg-white z-[9999] flex items-center justify-center';
+      loadingOverlay.innerHTML = `
+        <div class="text-center">
+          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+          <p class="mt-4 text-gray-600">Signing out...</p>
+        </div>
+      `;
+      document.body.appendChild(loadingOverlay);
+      
+      // Set signing out state to prevent header re-renders
+      setIsSigningOut(true);
+      setIsDropdownOpen(false);
+      
+      // Call our logout API to clear cookies first
+      const response = await fetch('/api/auth/logout', {
+        method: 'POST',
+      });
+      
+      if (response.ok) {
+        // Then call client-side signOut
+        const supabase = createClient();
+        await supabase.auth.signOut();
+        
+        // Force a page reload to ensure all state is cleared
+        window.location.href = '/';
+      } else {
+        console.error('Logout API failed');
+        // Fallback: try client signout anyway
+        const supabase = createClient();
+        await supabase.auth.signOut();
+        window.location.href = '/';
+      }
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Fallback: force reload to home page
+      window.location.href = '/';
+    }
   };
+
+  // If signing out, don't render anything (overlay handles the UI)
+  if (isSigningOut) {
+    return null;
+  }
 
   // Different header styles based on user authentication
   if (!user) {

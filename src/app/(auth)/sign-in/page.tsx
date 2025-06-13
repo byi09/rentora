@@ -25,7 +25,7 @@ export default function SignIn() {
           if (res.ok) {
             const { onboarded } = await res.json();
             if (onboarded) {
-              router.push('/messages');
+              router.push('/');
               return;
             }
             // Logged in but not onboarded -> go to landing for onboarding flow

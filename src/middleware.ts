@@ -1,9 +1,8 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { updateSession } from '@/utils/supabase/middleware'
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
-import { db } from '@/src/db'
-import { users, customers } from '@/src/db/schema'
-import { eq } from 'drizzle-orm'
+
+const ONBOARDING_COOKIE_NAME = 'onboarding-status'
 
 export async function middleware(request: NextRequest) {
   // keep the Supabase session in sync
@@ -37,6 +36,9 @@ export async function middleware(request: NextRequest) {
 
   // unauthenticated users
   if (!user) {
+    // Clear onboarding cookie if user is not authenticated
+    response.cookies.delete(ONBOARDING_COOKIE_NAME)
+    
     const allowed = ['/', '/map', '/sign-in', '/sign-up', '/callback', '/error', '/confirm-email']
     if (!allowed.includes(pathname)) {
       return NextResponse.redirect(new URL('/sign-in', request.url))
@@ -44,29 +46,27 @@ export async function middleware(request: NextRequest) {
     return response
   }
 
-  // logged-in users – check onboarding status by querying Supabase via REST
-  const { data: onboardUserRow } = await supabase
-    .from('users')
-    .select('id')
-    .eq('id', user.id)
-    .single()
-
-  const { data: onboardCustomerRow } = await supabase
-    .from('customers')
-    .select('id')
-    .eq('user_id', user.id)
-    .single()
-
-  const onboarded = !!onboardUserRow && !!onboardCustomerRow
-
-  // Pages that require full onboarding
-  const requiresOnboarding = ['/sell', '/rent', '/profile', '/settings']
-  const requiresOnboardingAccess = requiresOnboarding.some(path => pathname.startsWith(path))
-
-  // Non-onboarded users can't access certain protected pages
-  if (!onboarded && requiresOnboardingAccess) {
-    return NextResponse.redirect(new URL('/', request.url))
+  // For authenticated users, check onboarding status using cookie
+  const onboardingCookie = request.cookies.get(ONBOARDING_COOKIE_NAME)
+  
+  if (onboardingCookie) {
+    // Use cached value from cookie for speed
+    const onboarded = onboardingCookie.value === 'true'
+    
+    // Redirect logic based on onboarding status
+    if (!onboarded) {
+      // Non-onboarded users should only access the home page for onboarding
+      if (pathname !== '/') {
+        return NextResponse.redirect(new URL('/', request.url))
+      }
+    } else {
+      // Onboarded users should be redirected away from sign-in pages only
+      if (pathname.startsWith('/sign-in')) {
+        return NextResponse.redirect(new URL('/', request.url))
+      }
+    }
   }
+  // If no cookie exists, let the request proceed and let the page handle the database check
 
   return response
 }

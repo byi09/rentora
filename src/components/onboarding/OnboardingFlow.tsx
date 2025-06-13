@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { useRouter } from 'next/navigation';
 import PersonalInfoStep from './PersonalInfoStep';
@@ -8,10 +8,6 @@ import ContactInfoStep from './ContactInfoStep';
 import LocationInfoStep from './LocationInfoStep';
 import UserTypeStep from './UserTypeStep';
 import NotificationPreferencesStep from './NotificationPreferencesStep';
-
-interface Props {
-  onComplete: () => void;
-}
 
 // Step order: 1) Personal, 2) Account type, 3) Contact, 4) Notifications, 5) Location
 const steps = [
@@ -22,7 +18,7 @@ const steps = [
   { component: LocationInfoStep, label: "Location Preferences" },
 ];
 
-const OnboardingFlow: React.FC<Props> = ({ onComplete }) => {
+const OnboardingFlow: React.FC = () => {
   const [data, setData] = useState<any>({});
   const dataRef = useRef<any>({});
   const [currentStep, setCurrentStep] = useState(0);
@@ -30,11 +26,44 @@ const OnboardingFlow: React.FC<Props> = ({ onComplete }) => {
 
   const router = useRouter();
 
+  // Prevent body scrolling when modal is active
+  useEffect(() => {
+    // Store original overflow style
+    const originalOverflow = document.body.style.overflow;
+    
+    // Prevent scrolling
+    document.body.style.overflow = 'hidden';
+    
+    // Cleanup function to restore scrolling
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, []);
+
   const handleSignOut = async () => {
-    onComplete(); // hide modal immediately
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    router.push('/');
+    try {
+      // First, call client-side signOut to trigger auth state changes
+      const supabase = createClient();
+      await supabase.auth.signOut();
+      
+      // Then call our logout API to clear cookies
+      const response = await fetch('/api/auth/logout', {
+        method: 'POST',
+      });
+      
+      if (response.ok) {
+        // Force a page reload to ensure all state is cleared
+        window.location.href = '/';
+      } else {
+        console.error('Logout API failed, but client signout succeeded');
+        // Still redirect even if API fails since client signout worked
+        window.location.href = '/';
+      }
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Fallback: force reload to home page
+      window.location.href = '/';
+    }
   };
 
   const handleUpdate = (partial: Partial<OnboardingPayload>) => {
@@ -72,7 +101,8 @@ const OnboardingFlow: React.FC<Props> = ({ onComplete }) => {
         body: JSON.stringify(payload),
       });
       if (res.ok) {
-        onComplete();
+        // Redirect to main page after successful onboarding
+        router.push('/');
       } else {
         console.error('Onboarding failed');
       }

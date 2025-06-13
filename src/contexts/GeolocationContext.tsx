@@ -7,8 +7,7 @@ import {
   createContext,
   useContext,
   useEffect,
-  useState,
-  useTransition
+  useState
 } from "react";
 
 interface GeolocationContextProps {
@@ -34,17 +33,21 @@ export function GeolocationProvider({
 }: {
   children: React.ReactNode;
 }) {
-  const [isLoading, startLoading] = useTransition();
+  const [isLoading, setIsLoading] = useState(false);
   const [coords, setCoords] = useState<LngLat | null>(null);
   const [location, setLocation] = useState<ClientLocation | null>(null);
 
   useEffect(() => {
-    startLoading(async () => {
+    const loadGeolocation = async () => {
+      setIsLoading(true);
+      
       if (typeof window === "undefined") {
+        setIsLoading(false);
         return;
       }
 
       if (!navigator || !navigator.geolocation) {
+        setIsLoading(false);
         return;
       }
 
@@ -68,32 +71,44 @@ export function GeolocationProvider({
 
       // fallback to IP geolocation
       if (!coords) {
-        const ipData = await fetch("https://ipapi.co/8.8.8.8/json/");
-        if (!ipData.ok) return;
-
-        const ipLocation = await ipData.json();
-        const { latitude, longitude } = ipLocation;
-        const ipLngLat = new LngLat(longitude, latitude);
-        coords = ipLngLat;
+        try {
+          const ipData = await fetch("https://ipapi.co/8.8.8.8/json/");
+          if (ipData.ok) {
+            const ipLocation = await ipData.json();
+            const { latitude, longitude } = ipLocation;
+            const ipLngLat = new LngLat(longitude, latitude);
+            coords = ipLngLat;
+          }
+        } catch (error) {
+          console.warn("IP geolocation failed:", error);
+        }
       }
 
       if (!coords) {
         console.warn("Unable to retrieve geolocation coordinates.");
+        setIsLoading(false);
         return;
       }
 
       setCoords(coords);
 
       // start reverse geocoding
-      const { lat, lng } = coords;
-      const location = await reverseGeocode(lat, lng);
-      if (!location) {
-        console.warn("Failed to reverse geocode coordinates.");
-        return;
+      try {
+        const { lat, lng } = coords;
+        const location = await reverseGeocode(lat, lng);
+        if (location) {
+          setLocation(location);
+        } else {
+          console.warn("Failed to reverse geocode coordinates.");
+        }
+      } catch (error) {
+        console.warn("Reverse geocoding failed:", error);
       }
 
-      setLocation(location);
-    });
+      setIsLoading(false);
+    };
+
+    loadGeolocation();
   }, []);
 
   return (

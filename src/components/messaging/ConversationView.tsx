@@ -202,7 +202,7 @@ export default function ConversationView({
             <div
               key={message.id}
               className={`flex items-end ${isOwnMessage ? 'justify-end' : 'justify-start'} ${
-                isGrouped ? (hasSameTimestamp ? 'mt-1' : '') : 'mt-4'
+                isGrouped ? (hasSameTimestamp ? 'mt-0.5' : 'mt-2') : 'mt-4'
               }`}
             >
               {!isOwnMessage && (

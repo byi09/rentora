@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '../../../../../utils/supabase/server';
-import { db } from '../../../../db';
-import { users, customers } from '../../../../db/schema';
+import { createClient } from '@/utils/supabase/server';
+import { db } from '@/src/db';
+import { users, customers } from '@/src/db/schema';
 import { eq } from 'drizzle-orm';
+
+const ONBOARDING_COOKIE_NAME = 'onboarding-status'
+const COOKIE_MAX_AGE = 60 * 60 * 24 // 24 hours
 
 export async function GET(request: NextRequest) {
   try {
@@ -12,7 +15,6 @@ export async function GET(request: NextRequest) {
     if (!user || error) {
       return NextResponse.json({ 
         onboarded: false, 
-        user: null,
         error: 'Unauthorized' 
       }, { status: 401 });
     }
@@ -31,19 +33,22 @@ export async function GET(request: NextRequest) {
 
     const onboarded = !!userRow && !!customerRow;
     
-    return NextResponse.json({ 
-      onboarded,
-      user: {
-        id: user.id,
-        email: user.email
-      }
+    // Create response and set the onboarding cookie
+    const response = NextResponse.json({ onboarded });
+    response.cookies.set(ONBOARDING_COOKIE_NAME, onboarded.toString(), {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: COOKIE_MAX_AGE,
+      path: '/'
     });
+
+    return response;
     
   } catch (err) {
     console.error('Onboarding status error:', err);
     return NextResponse.json({ 
       onboarded: false,
-      user: null,
       error: 'Internal server error' 
     }, { status: 500 });
   }
