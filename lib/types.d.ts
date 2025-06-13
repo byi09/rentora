@@ -69,3 +69,10 @@ interface Geometry {
   };
   location_type: string;
 }
+
+interface AccountDetails {
+  firstName: string;
+  lastName: string;
+  username: string;
+  email: string;
+}
