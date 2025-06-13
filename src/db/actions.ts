@@ -73,3 +73,81 @@ export const changeUsername = async (username: string) => {
     };
   }
 };
+
+/**
+ * Sends confirmation emails to the user's old and new email addresses
+ *  to verify the change.
+ *
+ * Note: user must be authenticated.
+ */
+export const changeEmail = async (email: string) => {
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase.auth.getUser();
+    if (error || !data.user) {
+      return {
+        success: false,
+        error: "User not authenticated"
+      };
+    }
+
+    const { error: updateError } = await supabase.auth.updateUser({
+      email
+    });
+
+    if (updateError) {
+      return {
+        success: false,
+        error: updateError.message
+      };
+    }
+
+    return {
+      success: true
+    };
+  } catch (error) {
+    console.error("Error changing email:", error);
+    return {
+      success: false,
+      error: "Failed to change email"
+    };
+  }
+};
+
+/**
+ * Updates the user's password.
+ * Note: user must be authenticated.
+ */
+export const changePassword = async (newPassword: string) => {
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase.auth.getUser();
+    if (error || !data.user) {
+      return {
+        success: false,
+        error: "User not authenticated"
+      };
+    }
+
+    const { error: updateError } = await supabase.auth.updateUser({
+      password: newPassword
+    });
+
+    if (updateError) {
+      return {
+        success: false,
+        error: updateError.message
+      };
+    }
+
+    return {
+      success: true
+    };
+  } catch (error) {
+    console.error("Error changing password:", error);
+    return {
+      success: false,
+      error: "Failed to change password"
+    };
+  }
+};

@@ -45,7 +45,7 @@ export function ProfileFieldAction({
       <div className="flex items-center gap-4">
         <Dialog.Root>
           <Dialog.Trigger asChild>
-            <button className="text-blue-700 hover:ring-2 rounded px-2 ml-auto md:ml-0">
+            <button className="text-blue-700 hover:bg-blue-50 rounded px-2 ml-auto md:ml-0">
               {action}
             </button>
           </Dialog.Trigger>

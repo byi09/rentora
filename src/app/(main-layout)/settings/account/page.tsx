@@ -1,11 +1,12 @@
 import FieldValue from "@/src/components/settings/FieldValue";
+import EditEmailForm from "@/src/components/settings/forms/EditEmailForm";
 import EditNameForm from "@/src/components/settings/forms/EditNameForm";
+import EditPasswordForm from "@/src/components/settings/forms/EditPasswordForm";
 import EditUsernameForm from "@/src/components/settings/forms/EditUsernameForm";
 import {
   ProfileFieldAction,
   ProfileFieldEditable
 } from "@/src/components/settings/ProfileUI";
-import { TextInput } from "@/src/components/ui/Form";
 import { AccountSettingProvider } from "@/src/contexts/AccountSettingContext";
 import Link from "next/link";
 import { HiChevronLeft } from "react-icons/hi";
@@ -45,25 +46,14 @@ export default function ProfilePage() {
 
           <section className="space-y-4">
             <h3 className="text-xl font-semibold">Security</h3>
-            <ProfileFieldEditable field="Email" value="john.doe@example.com">
-              <div className="flex flex-col gap-4">
-                <div className="flex flex-col gap-1">
-                  <label htmlFor="email">Email</label>
-                  <TextInput name="email" />
-                </div>
-              </div>
+            <ProfileFieldEditable
+              field="Email"
+              value={<FieldValue field="email" />}
+            >
+              <EditEmailForm />
             </ProfileFieldEditable>
             <ProfileFieldEditable field="Password" value="********">
-              <div className="flex flex-col gap-4">
-                <div className="flex flex-col gap-1">
-                  <label htmlFor="oldPassword">Old Password</label>
-                  <TextInput name="oldPassword" />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <label htmlFor="newPassword">New Password</label>
-                  <TextInput name="newPassword" />
-                </div>
-              </div>
+              <EditPasswordForm />
             </ProfileFieldEditable>
             <ProfileFieldAction
               field="Two-Factor Authentication"
