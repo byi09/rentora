@@ -34,9 +34,9 @@ const OnboardingChecker: React.FC = () => {
           const data = await response.json();
           setIsOnboarded(data.onboarded);
           
-          // If user is onboarded, redirect to messages (middleware should handle this but just in case)
+          // If user is onboarded, refresh the page so the server can render the un-blurred dashboard
           if (data.onboarded) {
-            router.push('/messages');
+            router.refresh();
           }
         } else {
           // If API fails, assume not onboarded and show onboarding flow

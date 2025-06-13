@@ -1,6 +1,11 @@
 import { type EmailOtpType } from '@supabase/supabase-js'
 import { type NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/utils/supabase/server'
+import { db } from '@/src/db'
+import { users, customers } from '@/src/db/schema'
+import { eq } from 'drizzle-orm'
+
+const ONBOARDING_COOKIE_NAME = 'onboarding-status'
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url)
@@ -31,8 +36,40 @@ export async function GET(request: NextRequest) {
     }
     
     if (data.session) {
-      console.log('OAuth success, redirecting to homepage')
-      return NextResponse.redirect(`${origin}/`)
+      console.log('OAuth success, checking onboarding status')
+
+      // Determine if the logged-in user has completed onboarding so we can set the cookie
+      let onboarded = false
+      try {
+        const userId = data.session.user.id
+
+        const [userRow, customerRow] = await Promise.all([
+          db.query.users.findFirst({
+            where: eq(users.id, userId),
+            columns: { id: true },
+          }),
+          db.query.customers.findFirst({
+            where: eq(customers.userId, userId),
+            columns: { id: true },
+          }),
+        ])
+
+        onboarded = !!userRow && !!customerRow
+      } catch (err) {
+        console.error('Error checking onboarding status during callback:', err)
+      }
+
+      const response = NextResponse.redirect(`${origin}/`)
+      // Set onboarding cookie so the homepage can render correctly the first time.
+      response.cookies.set(ONBOARDING_COOKIE_NAME, onboarded.toString(), {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24, // 24 hours
+        path: '/',
+      })
+
+      return response
     }
   }
 
