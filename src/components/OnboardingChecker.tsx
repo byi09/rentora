@@ -1,14 +1,16 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import OnboardingFlow from './onboarding/OnboardingFlow';
-import Dashboard from './Dashboard';
+import Spinner from './ui/Spinner';
 
 const OnboardingChecker: React.FC = () => {
   const [isOnboarded, setIsOnboarded] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const router = useRouter();
+  const hasChecked = useRef(false);
 
   // Prevent body scrolling when modal/loading is active
   useEffect(() => {
@@ -16,7 +18,7 @@ const OnboardingChecker: React.FC = () => {
     const originalOverflow = document.body.style.overflow;
     
     // Prevent scrolling when loading or showing onboarding
-    if (loading || isOnboarded === false) {
+    if (loading || isOnboarded === false || refreshing) {
       document.body.style.overflow = 'hidden';
     }
     
@@ -24,19 +26,29 @@ const OnboardingChecker: React.FC = () => {
     return () => {
       document.body.style.overflow = originalOverflow;
     };
-  }, [loading, isOnboarded]);
+  }, [loading, isOnboarded, refreshing]);
 
   useEffect(() => {
+    // Prevent multiple API calls
+    if (hasChecked.current) return;
+    
     const checkOnboardingStatus = async () => {
+      hasChecked.current = true;
+      
       try {
         const response = await fetch('/api/onboarding/check-status');
         if (response.ok) {
           const data = await response.json();
           setIsOnboarded(data.onboarded);
           
-          // If user is onboarded, refresh the page so the server can render the un-blurred dashboard
+          // If user is onboarded, refresh the page so the server can render the dashboard
           if (data.onboarded) {
-            router.refresh();
+            setRefreshing(true);
+            // Small delay to show the loading message
+            setTimeout(() => {
+              router.refresh();
+            }, 100);
+            return; // Don't set loading to false, let the refresh handle it
           }
         } else {
           // If API fails, assume not onboarded and show onboarding flow
@@ -47,19 +59,24 @@ const OnboardingChecker: React.FC = () => {
         // If API fails, assume not onboarded and show onboarding flow
         setIsOnboarded(false);
       } finally {
-        setLoading(false);
+        // Only set loading to false if we're not refreshing
+        if (!refreshing) {
+          setLoading(false);
+        }
       }
     };
 
     checkOnboardingStatus();
-  }, [router]);
+  }, [router]); // Remove refreshing from dependencies
 
-  if (loading) {
+  if (loading || refreshing) {
     return (
-      <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
-          <p className="text-white">Loading...</p>
+      <div className="fixed inset-0 z-50 bg-white flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <Spinner size={40} />
+          <p className="text-gray-600">
+            {refreshing ? 'Loading your dashboard...' : 'Setting up your dashboard...'}
+          </p>
         </div>
       </div>
     );
@@ -69,8 +86,15 @@ const OnboardingChecker: React.FC = () => {
     return <OnboardingFlow />;
   }
 
-  // This shouldn't happen due to middleware redirect, but just in case
-  return <Dashboard />;
+  // If we reach here, something went wrong - show loading
+  return (
+    <div className="fixed inset-0 z-50 bg-white flex items-center justify-center">
+      <div className="text-center space-y-4">
+        <Spinner size={40} />
+        <p className="text-gray-600">Loading...</p>
+      </div>
+    </div>
+  );
 };
 
 export default OnboardingChecker; 

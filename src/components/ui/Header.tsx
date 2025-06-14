@@ -8,6 +8,7 @@ import { createClient } from '@/utils/supabase/client';
 import { useRouter } from 'next/navigation';
 import type { User } from '@supabase/supabase-js';
 import dynamic from 'next/dynamic';
+import { useProfile } from '@/src/hooks/useProfile';
 
 interface HeaderProps {
   toggleSidebar?: () => void;
@@ -20,6 +21,7 @@ const Header = ({ toggleSidebar, user }: HeaderProps) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
   const router = useRouter();
+  const { profile } = useProfile();
 
   const handleSignOut = async () => {
     try {
@@ -47,10 +49,18 @@ const Header = ({ toggleSidebar, user }: HeaderProps) => {
       if (response.ok) {
         // Then call client-side signOut
         const supabase = createClient();
-        await supabase.auth.signOut();
+        const { error } = await supabase.auth.signOut();
         
-        // Force a page reload to ensure all state is cleared
-        window.location.href = '/';
+        if (error) {
+          console.error('Supabase signout error:', error);
+          // Fallback: try client signout anyway
+          const supabase = createClient();
+          await supabase.auth.signOut();
+          window.location.href = '/';
+        } else {
+          // Successful signout
+          window.location.href = '/';
+        }
       } else {
         console.error('Logout API failed');
         // Fallback: try client signout anyway
@@ -77,7 +87,7 @@ const Header = ({ toggleSidebar, user }: HeaderProps) => {
       <header className="sticky top-0 z-50 w-full">
         <div className="absolute inset-0 bg-gray-900/90 backdrop-blur-md border-b border-gray-800"></div>
         <div className="relative w-full px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
+          <div className="flex justify-between items-center h-20">
             <div className="flex items-center">
               {toggleSidebar && (
                 <button
@@ -91,23 +101,23 @@ const Header = ({ toggleSidebar, user }: HeaderProps) => {
                 </button>
               )}
               <Link href="/" className="flex items-center group">
-                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center mr-2 transition-transform duration-200 group-hover:scale-110">
-                  <span className="text-white font-bold text-lg">R</span>
+                <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center mr-3 transition-transform duration-200 group-hover:scale-110">
+                  <span className="text-white font-bold text-xl">R</span>
                 </div>
-                <span className="text-xl font-bold text-white tracking-tight">Rentora</span>
+                <span className="text-2xl font-bold text-white tracking-tight">Rentora</span>
               </Link>
             </div>
 
-            <div className="flex items-center space-x-2 pr-1">
+            <div className="flex items-center space-x-3 pr-1">
               <Link
                 href="/sign-in"
-                className="inline-flex items-center px-3 py-2 text-sm font-medium text-white hover:bg-gray-800 transition-colors duration-200 rounded-md"
+                className="inline-flex items-center px-4 py-2.5 text-sm font-medium text-white hover:bg-gray-800 transition-colors duration-200 rounded-md"
               >
                 Log in
               </Link>
               <Link
                 href="/sign-up"
-                className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-all duration-200 focus:outline-none"
+                className="inline-flex items-center px-4 py-2.5 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-all duration-200 focus:outline-none"
               >
                 Sign Up
               </Link>
@@ -118,43 +128,44 @@ const Header = ({ toggleSidebar, user }: HeaderProps) => {
     );
   }
 
+  // Get display name - prioritize username from profile, then fallback to user metadata
+  const getDisplayName = () => {
+    if (profile?.username) {
+      return profile.username;
+    }
+    return user.user_metadata?.full_name || user.email?.split('@')[0] || 'User';
+  };
+
   // Header for logged in users (white style)
   return (
     <header className="bg-white border-b border-gray-200 sticky top-0 z-50 w-full">
       <div className="w-full px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
+        <div className="flex justify-between items-center h-20">
           {/* Logo */}
           <Link href="/" className="flex items-center">
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-lg">R</span>
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold text-xl">R</span>
               </div>
-              <span className="text-xl font-bold text-gray-900">Rentora</span>
+              <span className="text-2xl font-bold text-gray-900">Rentora</span>
             </div>
           </Link>
 
           {/* Navigation */}
-          <nav className="hidden md:flex items-center space-x-8">
+          <nav className="hidden md:flex items-center space-x-10">
           
-            <Link href="/rent" className="text-gray-700 hover:text-gray-900 font-medium transition-colors">
+            <Link href="/map" className="text-gray-700 hover:text-gray-900 font-medium transition-colors text-base">
               Rent
             </Link>
-            <Link href="/sell" className="text-gray-700 hover:text-gray-900 font-medium transition-colors">
+            <Link href="/sell" className="text-gray-700 hover:text-gray-900 font-medium transition-colors text-base">
               Upload Property
-            </Link>
-            <Link href="/manage" className="text-gray-700 hover:text-gray-900 font-medium transition-colors">
-              Manage Properties
             </Link>
           </nav>
 
           {/* Right side actions */}
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-5">
             {/* Saved properties */}
-            <Link href="/saved" className="flex items-center space-x-1 text-gray-700 hover:text-gray-900 transition-colors">
-              <HiHeart className="w-5 h-5" />
-              <span className="hidden sm:inline font-medium">Saved</span>
-            </Link>
-
+          
             {/* Notifications */}
             <NotificationBell />
 
@@ -164,11 +175,11 @@ const Header = ({ toggleSidebar, user }: HeaderProps) => {
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                 className="flex items-center space-x-2 text-gray-700 hover:text-gray-900 transition-colors focus:outline-none"
               >
-                <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-                  <HiUser className="w-4 h-4 text-white" />
+                <div className="w-9 h-9 bg-blue-600 rounded-full flex items-center justify-center">
+                  <HiUser className="w-5 h-5 text-white" />
                 </div>
-                <span className="hidden sm:inline font-medium text-gray-900">
-                  {user.user_metadata?.full_name || user.email?.split('@')[0] || 'User'}
+                <span className="hidden sm:inline font-medium text-gray-900 text-base">
+                  {getDisplayName()}
                 </span>
                 <HiChevronDown className={`w-4 h-4 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
               </button>

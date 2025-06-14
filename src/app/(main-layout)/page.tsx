@@ -20,13 +20,9 @@ export default async function Home() {
       const isOnboarded = onboardingCookie.value === 'true';
       
       if (!isOnboarded) {
-        // Show onboarding flow with dashboard as background
+        // Show onboarding flow with clean background
         return (
-          <main className="relative min-h-screen overflow-hidden">
-            {/* Dashboard as background - blurred and non-interactive */}
-            <div className="absolute inset-0 blur-sm pointer-events-none">
-              <Dashboard />
-            </div>
+          <main className="relative min-h-screen overflow-hidden bg-gray-50">
             {/* Onboarding modal overlay */}
             <OnboardingFlow />
           </main>
@@ -37,13 +33,9 @@ export default async function Home() {
       return <Dashboard />;
     } else {
       // No cookie exists, need to check database and set cookie
-      // Show dashboard as background while checking
+      // Show clean loading state while checking
       return (
-        <main className="relative min-h-screen overflow-hidden">
-          {/* Dashboard as background - blurred and non-interactive */}
-          <div className="absolute inset-0 blur-sm pointer-events-none">
-            <Dashboard />
-          </div>
+        <main className="relative min-h-screen overflow-hidden bg-gray-50">
           {/* Onboarding checker overlay */}
           <OnboardingChecker />
         </main>

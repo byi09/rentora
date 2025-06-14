@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { GeolocationProvider } from "../contexts/GeolocationContext";
+import { ToastProvider } from "../components/ui/Toast";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -19,9 +20,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <GeolocationProvider>
-          {children}
-        </GeolocationProvider>
+        <ToastProvider>
+          <GeolocationProvider>
+            {children}
+          </GeolocationProvider>
+        </ToastProvider>
       </body>
     </html>
   );

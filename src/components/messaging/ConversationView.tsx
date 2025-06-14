@@ -40,7 +40,7 @@ interface Conversation {
 }
 
 interface ConversationViewProps {
-  conversation: Conversation;
+  conversation?: Conversation;
   messages: Message[];
   currentUserId: string;
   onSendMessage: (content: string) => void;
@@ -83,16 +83,17 @@ export default function ConversationView({
   };
 
   const getConversationTitle = () => {
+    if (!conversation) return '';
     if (conversation.title) return conversation.title;
     
-    const otherParticipant = conversation.participants.find(p => p.user.id !== currentUserId);
+    const otherParticipant = conversation.participants?.find(p => p.user.id !== currentUserId);
     return otherParticipant 
       ? `${otherParticipant.user.firstName} ${otherParticipant.user.lastName}`
       : 'Unknown';
   };
 
   const getConversationSubtitle = () => {
-    const otherParticipant = conversation.participants.find(p => p.user.id !== currentUserId);
+    const otherParticipant = conversation.participants?.find(p => p.user.id !== currentUserId);
     const role = otherParticipant?.role;
     const businessName = otherParticipant?.businessName;
     
@@ -115,7 +116,7 @@ export default function ConversationView({
   };
 
   const getPropertyAddress = () => {
-    if (!conversation.property) return '';
+    if (!conversation?.property) return '';
     
     return conversation.property.addressLine2 
       ? `${conversation.property.addressLine1}, ${conversation.property.addressLine2}`
@@ -141,7 +142,7 @@ export default function ConversationView({
   const propertyAddress = getPropertyAddress();
 
   return (
-    <div className="flex flex-col h-screen bg-white relative">
+    <div className="flex flex-col flex-1 bg-white relative overflow-hidden">
       {/* Loading Overlay */}
       {isLoading && (
         <div className="absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center z-20">
@@ -164,7 +165,7 @@ export default function ConversationView({
           )}
         </div>
         
-        <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-lg">
+        <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-lg ml-auto">
           <MoreVertical className="w-5 h-5" />
         </button>
       </div>
@@ -179,7 +180,7 @@ export default function ConversationView({
         
         {messages.map((message, index) => {
           const isOwnMessage = message.senderId === currentUserId;
-          const sender = conversation.participants.find(p => p.user.id === message.senderId);
+          const sender = conversation.participants?.find(p => p.user.id === message.senderId);
 
           const prevMessage = messages[index - 1];
           const nextMessage = messages[index + 1];
@@ -284,7 +285,7 @@ export default function ConversationView({
           <button
             onClick={handleSend}
             disabled={!messageInput.trim()}
-            className="p-3 bg-gray-900 text-white rounded-2xl hover:bg-gray-800 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+            className="btn-gradient flex items-center justify-center rounded-2xl disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Send className="w-5 h-5" />
           </button>

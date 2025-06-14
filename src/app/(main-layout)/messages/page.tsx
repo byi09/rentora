@@ -2,11 +2,12 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft } from 'lucide-react';
 import { pusherClient } from '@/src/lib/pusher';
 import ConversationList from '@/src/components/messaging/ConversationList';
 import ConversationView from '@/src/components/messaging/ConversationView';
 import CreateConversationModal from '@/src/components/messaging/CreateConversationModal';
+import { ListItemSkeleton } from '@/src/components/ui/LoadingSkeleton';
+import { Button } from '@/src/components/ui/button';
 import Spinner from '@/src/components/ui/Spinner';
 
 // Mock data types - replace with your actual types
@@ -61,6 +62,12 @@ export default function MessagesPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isMessagesLoading, setIsMessagesLoading] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
+  // Memoized lookup of the currently selected conversation so we can pass the full
+  // object down to the ConversationView component (needed for header info etc.)
+  const selectedConversation = selectedConversationId
+    ? conversations.find((c) => c.id === selectedConversationId)
+    : undefined;
 
   // --- 1. Authentication and Initial Load ---
   useEffect(() => {
@@ -198,21 +205,29 @@ export default function MessagesPage() {
     };
     setMessages(prev => [...prev, optimisticMessage]);
     setConversations(prev => prev.map(conv =>
-      conv.id === selectedConversationId ? { ...conv, lastMessage: optimisticMessage } : conv
+      conv.id === selectedConversationId
+        ? { ...conv, lastMessage: optimisticMessage }
+        : conv
     ));
 
     try {
-      await fetch('/api/messaging/message', {
+      const response = await fetch('/api/messaging/message', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           conversationId: selectedConversationId,
-          content: content,
-          clientId: clientId, // Send the clientId to the backend
+          content,
+          messageType: 'text',
+          clientId, // Send the client ID to the server
         }),
       });
+
+      if (!response.ok) {
+        throw new Error('Failed to send message');
+      }
     } catch (error) {
       console.error('Error sending message:', error);
+      // Remove the optimistic message on error
       setMessages(prev => prev.filter(msg => msg.id !== clientId));
     }
   };
@@ -224,49 +239,30 @@ export default function MessagesPage() {
     title?: string;
   }) => {
     try {
-      // Call the actual API endpoint to create the conversation
       const response = await fetch('/api/messaging/conversation', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          participant_ids: data.participantIds,
-          property_id: data.propertyId,
-          conversation_type: data.conversationType,
-          title: data.title,
-        }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new Error('Failed to create conversation');
       }
 
-      // Instead of just reloading, we can get the new conversation from the response
       const newConversation = await response.json();
-
-      // For a truly real-time feel, you wouldn't even need the next line,
-      // as Pusher would handle it. But for now, this adds it to the list.
-      await loadConversations();
-      
-      // Close the modal and select the new conversation
+      setConversations(prev => [newConversation, ...prev]);
+      setSelectedConversationId(newConversation.id);
       setIsCreateModalOpen(false);
-      setSelectedConversationId(newConversation.conversation.id);
-
     } catch (error) {
       console.error('Error creating conversation:', error);
-      // You could add user-facing error handling here, e.g., a toast notification
     }
   };
 
   const handleSearchUsers = async (query: string) => {
-    if (!query) return [];
     try {
       const response = await fetch(`/api/users/search?q=${encodeURIComponent(query)}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch users');
-      }
-      return response.json();
+      if (!response.ok) throw new Error('Failed to search users');
+      return await response.json();
     } catch (error) {
       console.error('Error searching users:', error);
       return [];
@@ -274,112 +270,106 @@ export default function MessagesPage() {
   };
 
   const handleSearchProperties = async (query: string) => {
-    if (!query) return [];
     try {
       const response = await fetch(`/api/properties/search?q=${encodeURIComponent(query)}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch properties');
-      }
-      return response.json();
+      if (!response.ok) throw new Error('Failed to search properties');
+      return await response.json();
     } catch (error) {
       console.error('Error searching properties:', error);
       return [];
     }
   };
 
-  const selectedConversation = conversations.find(conv => conv.id === selectedConversationId);
-  
-  const filteredConversations = conversations.filter(conv => {
-    if (!searchQuery) return true;
-    
-    const searchLower = searchQuery.toLowerCase();
-    const participant = conv.participants.find(p => p.user.id !== currentUserId);
-    const participantName = participant ? `${participant.user.firstName} ${participant.user.lastName}` : '';
-    const propertyAddress = conv.property?.addressLine1 || '';
-    
+  // Loading state for initial authentication check
+  if (!currentUserId) {
     return (
-      participantName.toLowerCase().includes(searchLower) ||
-      propertyAddress.toLowerCase().includes(searchLower) ||
-      conv.lastMessage?.content.toLowerCase().includes(searchLower)
-    );
-  });
-
-  if (isLoading) {
-    return (
-      <div className="h-screen flex items-center justify-center">
-        <Spinner size={32} />
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center space-y-4">
+          <Spinner size={40} />
+          <p className="text-gray-600">Loading your messages...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="h-screen flex flex-col bg-gray-50">
-      {/* Header with Back Button */}
-      <div className="bg-white border-b border-gray-200 px-4 py-3">
-        <div className="flex items-center">
-          <button
-            onClick={() => router.push('/')}
-            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-lg mr-3 transition-colors"
-            aria-label="Go back"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </button>
-          <h1 className="text-xl font-semibold text-gray-900">Messages</h1>
+    <div className="min-h-screen bg-gray-50 flex h-screen">
+      <div className="flex h-screen w-full">
+        {/* Sidebar - Conversation List */}
+        <div className="w-full max-w-xs md:max-w-sm lg:max-w-md bg-white border-r border-gray-200 flex flex-col flex-shrink-0">
+          {/* Header */}
+          <div className="p-4 border-b border-gray-200">
+            <div className="flex items-center justify-between mb-4">
+              <h1 className="text-xl font-semibold text-gray-900">Messages</h1>
+              <Button
+                size="sm"
+                onClick={() => setIsCreateModalOpen(true)}
+                className="btn-gradient"
+              >
+                New Chat
+              </Button>
+            </div>
+            
+            {/* Search */}
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search conversations..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="input-primary text-sm"
+              />
+            </div>
+          </div>
+
+          {/* Conversation List */}
+          <div className="flex-1 overflow-y-auto">
+            {isLoading ? (
+              <div className="space-y-1">
+                {Array.from({ length: 8 }).map((_, i) => (
+                  <ListItemSkeleton key={i} />
+                ))}
+              </div>
+            ) : (
+              <ConversationList
+                conversations={conversations}
+                selectedConversationId={selectedConversationId}
+                currentUserId={currentUserId!}
+                onSelectConversation={setSelectedConversationId}
+                onCreateConversation={() => setIsCreateModalOpen(true)}
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
+              />
+            )}
+          </div>
         </div>
-      </div>
 
-      {/* Main Messages Layout */}
-      <div className="flex-1 flex">
-        {/* Conversation List */}
-        <ConversationList
-          conversations={filteredConversations}
-          selectedConversationId={selectedConversationId}
-          currentUserId={currentUserId!}
-          onSelectConversation={setSelectedConversationId}
-          onCreateConversation={() => setIsCreateModalOpen(true)}
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-        />
-
-        {/* Conversation View */}
-        <div className="flex-1">
-          {selectedConversation && currentUserId ? (
+        {/* Main Content - Conversation View */}
+        <div className="flex-1 flex flex-col w-full">
+          {selectedConversationId && selectedConversation ? (
             <ConversationView
               conversation={selectedConversation}
               messages={messages}
-              currentUserId={currentUserId}
               onSendMessage={handleSendMessage}
+              currentUserId={currentUserId}
               isLoading={isMessagesLoading}
             />
-          ) : conversations.length === 0 ? (
-            <div className="flex items-center justify-center h-full text-gray-500">
-              <div className="text-center max-w-md px-4">
-                <div className="mb-6">
-                  <svg className="mx-auto h-16 w-16 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+          ) : (
+            <div className="flex-1 flex items-center justify-center bg-gray-50">
+              <div className="text-center space-y-4">
+                <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto">
+                  <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                   </svg>
                 </div>
-                <h3 className="text-xl font-medium text-gray-900 mb-2">No conversations yet</h3>
-                <p className="text-gray-500 mb-6">
-                  Start your first conversation by reaching out to landlords, renters, or agents. 
-                  Click the + button to get texting!
-                </p>
-                <button
-                  onClick={() => setIsCreateModalOpen(true)}
-                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                >
-                  <svg className="mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                  </svg>
-                  Start a conversation
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div className="flex items-center justify-center h-full text-gray-500">
-              <div className="text-center">
-                <h3 className="text-lg font-medium mb-2">No conversation selected</h3>
-                <p className="text-sm">Choose a conversation from the list to start messaging</p>
+                <div>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">
+                    Select a conversation
+                  </h3>
+                  <p className="text-gray-500">
+                    Choose a conversation from the sidebar to start messaging
+                  </p>
+                </div>
               </div>
             </div>
           )}
@@ -393,7 +383,6 @@ export default function MessagesPage() {
         onCreateConversation={handleCreateConversation}
         onSearchUsers={handleSearchUsers}
         onSearchProperties={handleSearchProperties}
-        currentUserId={currentUserId!}
       />
     </div>
   );

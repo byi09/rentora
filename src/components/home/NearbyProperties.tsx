@@ -3,7 +3,8 @@ import { useGeolocationContext } from "@/src/contexts/GeolocationContext";
 import { getNearbyProperties } from "@/src/db/queries";
 import { useEffect, useState } from "react";
 import PropertyCard from "../MapCatalogItem";
-import { FaExclamationTriangle } from "react-icons/fa";
+import { CardSkeleton } from "../ui/LoadingSkeleton";
+import { AlertTriangle } from "lucide-react";
 
 export default function NearbyProperties() {
   const { coords } = useGeolocationContext();
@@ -27,18 +28,24 @@ export default function NearbyProperties() {
     <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
       {isLoading && (
         <>
-          <div className="h-[250px] rounded-md shadow-md bg-gray-300 animate-pulse"></div>
-          <div className="h-[250px] rounded-md shadow-md bg-gray-300 animate-pulse"></div>
-          <div className="h-[250px] rounded-md shadow-md bg-gray-300 animate-pulse"></div>
+          <CardSkeleton />
+          <CardSkeleton />
+          <CardSkeleton />
         </>
       )}
 
       {!isLoading && properties.length === 0 && (
-        <div className="col-span-3 grid place-items-center">
-          <div className="text-gray-500 flex gap-4 items-center justify-center px-16 py-8 rounded-md shadow-md bg-white md:w-[500px]">
-            <FaExclamationTriangle className="text-3xl" />
-            We couldn&apos;t find any nearby properties at the time. Please try
-            again later or check back soon.
+        <div className="col-span-3 flex justify-center">
+          <div className="card text-center p-8 max-w-md">
+            <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <AlertTriangle className="w-8 h-8 text-yellow-600" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              No Properties Found
+            </h3>
+            <p className="text-gray-600">
+              We couldn't find any nearby properties at the moment. Please try again later or check back soon.
+            </p>
           </div>
         </div>
       )}
