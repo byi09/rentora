@@ -151,3 +151,201 @@ export const changePassword = async (newPassword: string) => {
     };
   }
 };
+
+/**
+ * Starts enrollment for two-factor authentication (2FA).
+ * Note: user must be authenticated.
+ */
+export const enrollTwoFactor = async () => {
+  try {
+    const supabase = await createClient();
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+    if (userError || !userData.user) {
+      return {
+        success: false,
+        error: "User not authenticated"
+      };
+    }
+
+    // if user already has a factorId, unenroll it first
+    const user = await db.query.users.findFirst({
+      where: eq(users.id, userData.user.id),
+      columns: { factorId: true }
+    });
+    if (user && user.factorId) {
+      await supabase.auth.mfa.unenroll({ factorId: user.factorId });
+    }
+
+    // enroll new TOTP factor
+    const { data: mfaData, error: mfaError } = await supabase.auth.mfa.enroll({
+      factorType: "totp",
+      friendlyName: "Rentora"
+    });
+    if (mfaError) {
+      return {
+        success: false,
+        error: mfaError.message
+      };
+    }
+
+    // store factorId in the database
+    await db
+      .update(users)
+      .set({ factorId: mfaData.id })
+      .where(eq(users.id, userData.user.id));
+
+    return {
+      success: true,
+      factorId: mfaData.id,
+      totp: mfaData.totp
+    };
+  } catch (error) {
+    console.error("Error enrolling two-factor authentication:", error);
+    return {
+      success: false,
+      error: "Failed to enroll two-factor authentication"
+    };
+  }
+};
+
+export const verifyTwoFactor = async (code: string) => {
+  try {
+    const supabase = await createClient();
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+    if (userError || !userData.user) {
+      return {
+        success: false,
+        error: "User not authenticated"
+      };
+    }
+
+    // get factorId
+    const user = await db.query.users.findFirst({
+      where: eq(users.id, userData.user.id),
+      columns: { factorId: true }
+    });
+    if (!user || !user.factorId) {
+      return {
+        success: false,
+        error: "Two-factor authentication not enrolled"
+      };
+    }
+
+    // verify the TOTP code
+    const { error: verifyError } = await supabase.auth.mfa.challengeAndVerify({
+      factorId: user.factorId,
+      code
+    });
+
+    if (verifyError) {
+      return {
+        success: false,
+        error: verifyError.message
+      };
+    }
+
+    return {
+      success: true
+    };
+  } catch (error) {
+    console.error("Error verifying two-factor authentication:", error);
+    return {
+      success: false,
+      error: "Failed to verify two-factor authentication"
+    };
+  }
+};
+
+/**
+ * Disables two-factor authentication for the user.
+ * Note: user must be authenticated.
+ */
+export const unenrollTwoFactor = async () => {
+  try {
+    const supabase = await createClient();
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+    if (userError || !userData.user) {
+      return {
+        success: false,
+        error: "User not authenticated"
+      };
+    }
+
+    // get factorId
+    const user = await db.query.users.findFirst({
+      where: eq(users.id, userData.user.id),
+      columns: { factorId: true }
+    });
+    if (!user || !user.factorId) {
+      return {
+        success: false,
+        error: "Two-factor authentication not enrolled"
+      };
+    }
+
+    const { error: mfaError } = await supabase.auth.mfa.unenroll({
+      factorId: user.factorId
+    });
+    if (mfaError) {
+      return {
+        success: false,
+        error: mfaError.message
+      };
+    }
+
+    // remove factorId from the database
+    await db
+      .update(users)
+      .set({ factorId: null })
+      .where(eq(users.id, userData.user.id));
+
+    return {
+      success: true
+    };
+  } catch (error) {
+    console.error("Error disabling two-factor authentication:", error);
+    return {
+      success: false,
+      error: "Failed to disable two-factor authentication"
+    };
+  }
+};
+
+/**
+ * Returns whether the user has two-factor authentication enabled.
+ * Note: user must be authenticated.
+ */
+export const getMFAStatus = async () => {
+  try {
+    const supabase = await createClient();
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+    if (userError || !userData.user) {
+      return {
+        success: false,
+        error: "User not authenticated"
+      };
+    }
+
+    const { data, error } =
+      await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    if (error) {
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+
+    const hasMFA = data.nextLevel === "aal2";
+
+    return {
+      success: true,
+      hasMFA
+    };
+  } catch (error) {
+    console.error("Error getting MFA status:", error);
+    return {
+      success: false,
+      error: "Failed to get MFA status"
+    };
+  }
+};

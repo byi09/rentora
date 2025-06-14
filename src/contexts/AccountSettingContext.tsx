@@ -3,10 +3,13 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { getUserAccountDetails } from "../db/queries";
 import { AccountDetails } from "@/lib/types";
+import { getMFAStatus } from "../db/actions";
 
 interface AccountSettingContextProps {
   accountDetails: AccountDetails | null;
   updateAccountDetails: (details: Partial<AccountDetails>) => void;
+  mfaEnabled: boolean | null;
+  setMfaEnabled: (enabled: boolean) => void;
 }
 
 const AccountSettingContext = createContext<AccountSettingContextProps | null>(
@@ -31,6 +34,7 @@ export function AccountSettingProvider({
   const [accountDetails, setAccountDetails] = useState<AccountDetails | null>(
     null
   );
+  const [mfaEnabled, setMfaEnabled] = useState<boolean | null>(null);
 
   const updateAccountDetails = (details: Partial<AccountDetails>) => {
     if (accountDetails === null) return;
@@ -46,14 +50,24 @@ export function AccountSettingProvider({
 
   useEffect(() => {
     (async () => {
-      const accDeets = await getUserAccountDetails();
+      const [accDeets, mfaStatus] = await Promise.all([
+        getUserAccountDetails(),
+        getMFAStatus()
+      ]);
+
       setAccountDetails(accDeets.accountDetails || null);
+      setMfaEnabled(mfaStatus.success ? mfaStatus.hasMFA! : null);
     })();
   }, []);
 
   return (
     <AccountSettingContext.Provider
-      value={{ accountDetails, updateAccountDetails }}
+      value={{
+        accountDetails,
+        updateAccountDetails,
+        mfaEnabled,
+        setMfaEnabled
+      }}
     >
       {children}
     </AccountSettingContext.Provider>

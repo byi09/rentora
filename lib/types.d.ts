@@ -76,3 +76,9 @@ interface AccountDetails {
   username: string;
   email: string;
 }
+
+interface TOTPInfo {
+  qr_code: string;
+  secret: string;
+  uri: string;
+}

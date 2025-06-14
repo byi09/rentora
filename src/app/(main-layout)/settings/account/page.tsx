@@ -1,3 +1,4 @@
+import TwoFactorAction from "@/src/components/settings/TwoFactor";
 import FieldValue from "@/src/components/settings/FieldValue";
 import EditEmailForm from "@/src/components/settings/forms/EditEmailForm";
 import EditNameForm from "@/src/components/settings/forms/EditNameForm";
@@ -25,6 +26,8 @@ export default function ProfilePage() {
         <div className="p-8 flex flex-col gap-24 md:gap-16 rounded-lg border shadow-md w-full">
           <section className="space-y-4">
             <h3 className="text-xl font-semibold">Personal Information</h3>
+
+            {/* first and last name */}
             <ProfileFieldEditable
               field="Name"
               value={
@@ -36,6 +39,8 @@ export default function ProfilePage() {
             >
               <EditNameForm />
             </ProfileFieldEditable>
+
+            {/* username */}
             <ProfileFieldEditable
               field="Username"
               value={<FieldValue field="username" />}
@@ -46,31 +51,31 @@ export default function ProfilePage() {
 
           <section className="space-y-4">
             <h3 className="text-xl font-semibold">Security</h3>
+
+            {/* email */}
             <ProfileFieldEditable
               field="Email"
               value={<FieldValue field="email" />}
             >
               <EditEmailForm />
             </ProfileFieldEditable>
+
+            {/* password */}
             <ProfileFieldEditable field="Password" value="********">
               <EditPasswordForm />
             </ProfileFieldEditable>
-            <ProfileFieldAction
-              field="Two-Factor Authentication"
-              action="Enable"
-              popupTitle="Enable Two-Factor Authentication"
-            >
-              <div className="flex flex-col gap-4">
-                <p className="text-gray-700">
-                  Two-factor authentication adds an extra layer of security to
-                  your account.
-                </p>
-              </div>
-            </ProfileFieldAction>
+
+            {/* two-factor authentication */}
+            <div className="flex justify-between flex-col md:flex-row">
+              <b className="font-medium">Two-Factor Authentication</b>
+              <TwoFactorAction />
+            </div>
           </section>
 
           <section className="space-y-4">
             <h3 className="text-xl font-semibold">Manage Account</h3>
+
+            {/* delete account */}
             <ProfileFieldAction
               field="Delete Account"
               action="Delete"

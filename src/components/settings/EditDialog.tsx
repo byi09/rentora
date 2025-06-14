@@ -67,22 +67,24 @@ export function EditDialogConfirm({
 export function EditDialogSubmit({
   className,
   loading,
+  value = "Apply",
   ...props
 }: Omit<React.HTMLAttributes<HTMLButtonElement>, "children"> & {
   loading?: boolean;
+  value?: string;
 }) {
   return (
     <button
       {...props}
       className={cn(
-        className,
         "rounded-md bg-blue-600 text-white px-4 py-2 hover:bg-blue-700 transition-colors flex gap-2 items-center",
-        loading && "opacity-50 cursor-not-allowed"
+        loading && "opacity-50 cursor-not-allowed",
+        className
       )}
       type="submit"
     >
       {loading ? <ImSpinner2 className="animate-spin" /> : null}
-      Apply
+      {value}
     </button>
   );
 }
