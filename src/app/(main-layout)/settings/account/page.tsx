@@ -4,13 +4,11 @@ import EditEmailForm from "@/src/components/settings/forms/EditEmailForm";
 import EditNameForm from "@/src/components/settings/forms/EditNameForm";
 import EditPasswordForm from "@/src/components/settings/forms/EditPasswordForm";
 import EditUsernameForm from "@/src/components/settings/forms/EditUsernameForm";
-import {
-  ProfileFieldAction,
-  ProfileFieldEditable
-} from "@/src/components/settings/ProfileUI";
+import { ProfileFieldEditable } from "@/src/components/settings/ProfileUI";
 import { AccountSettingProvider } from "@/src/contexts/AccountSettingContext";
 import Link from "next/link";
 import { HiChevronLeft } from "react-icons/hi";
+import DeleteAccountAction from "@/src/components/settings/DeleteAccountAction";
 
 export default function ProfilePage() {
   return (
@@ -76,18 +74,10 @@ export default function ProfilePage() {
             <h3 className="text-xl font-semibold">Manage Account</h3>
 
             {/* delete account */}
-            <ProfileFieldAction
-              field="Delete Account"
-              action="Delete"
-              popupTitle="Are you sure you want to delete your account?"
-            >
-              <div className="flex flex-col gap-4">
-                <p className="text-red-800">
-                  This action is irreversible. All your data will be permanently
-                  deleted.
-                </p>
-              </div>
-            </ProfileFieldAction>
+            <div className="flex justify-between flex-col md:flex-row">
+              <b className="font-medium">Delete Account</b>
+              <DeleteAccountAction />
+            </div>
           </section>
         </div>
       </div>
