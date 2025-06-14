@@ -69,3 +69,16 @@ interface Geometry {
   };
   location_type: string;
 }
+
+interface AccountDetails {
+  firstName: string;
+  lastName: string;
+  username: string;
+  email: string;
+}
+
+interface TOTPInfo {
+  qr_code: string;
+  secret: string;
+  uri: string;
+}

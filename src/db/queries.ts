@@ -13,6 +13,7 @@ import {
   customers
 } from "./schema";
 import type { FilterOptions, PropertyListing, SortOption } from "@/lib/types";
+import { createClient } from "@/utils/supabase/server";
 
 /**
  * Search for properties based on filters and sort options.
@@ -364,7 +365,7 @@ export interface OnboardingPayload {
   lastName: string;
   dateOfBirth: string; // yyyy-mm-dd
   phoneNumber?: string;
-  userType?: 'renter' | 'landlord';
+  userType?: "renter" | "landlord";
   gender?: string;
 
   // New separate location fields
@@ -414,5 +415,56 @@ export const saveUserOnboarding = async (
       lastName,
       dateOfBirth
     });
+  }
+};
+
+// ----------------
+// |   Settings   |
+// ----------------
+
+/**
+ * Gets the authenticated user's account details.
+ */
+export const getUserAccountDetails = async () => {
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase.auth.getUser();
+    if (error || !data.user) {
+      return {
+        success: false,
+        error: "User not authenticated"
+      };
+    }
+
+    const results = await db
+      .select()
+      .from(users)
+      .innerJoin(customers, eq(users.id, customers.userId))
+      .where(eq(users.id, data.user.id));
+
+    if (results.length === 0) {
+      return {
+        success: false,
+        error: "User account details not found"
+      };
+    }
+
+    const userDetails = results[0];
+
+    return {
+      success: true,
+      accountDetails: {
+        email: userDetails.users.email,
+        username: userDetails.users.username,
+        firstName: userDetails.customers.firstName,
+        lastName: userDetails.customers.lastName
+      }
+    };
+  } catch (error) {
+    console.error("Error getting user account details:", error);
+    return {
+      success: false,
+      error: "Failed to get user account details"
+    };
   }
 };

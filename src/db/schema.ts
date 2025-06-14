@@ -45,6 +45,7 @@ export const users = pgTable('users', {
     lastLoginAt: timestamp('last_login_at'),
     createdAt: timestamp('created_at').defaultNow(),
     updatedAt: timestamp('updated_at').defaultNow(),
+    factorId: uuid('factor_id')
 });
 
 export const customers = pgTable('customers', {
