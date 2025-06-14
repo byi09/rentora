@@ -7,6 +7,7 @@ import { pusherClient } from '@/src/lib/pusher';
 import ConversationList from '@/src/components/messaging/ConversationList';
 import ConversationView from '@/src/components/messaging/ConversationView';
 import CreateConversationModal from '@/src/components/messaging/CreateConversationModal';
+import Spinner from '@/src/components/ui/Spinner';
 
 // Mock data types - replace with your actual types
 interface Message {
@@ -306,7 +307,7 @@ export default function MessagesPage() {
   if (isLoading) {
     return (
       <div className="h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <Spinner size={32} />
       </div>
     );
   }

@@ -5,6 +5,6 @@ export default {
   out: './supabase/migrations',
   dialect: 'postgresql',
   dbCredentials: {
-    url: 'postgresql://postgres:Home135!a38xQ6@db.fzkkrztvbflpbnayrfne.supabase.co:5432/postgres',
+    url: process.env.DATABASE_URL!,
   },
 } satisfies Config; 

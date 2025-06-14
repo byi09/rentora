@@ -82,8 +82,8 @@ export async function GET(request: NextRequest) {
     })
     
     if (!error) {
-      console.log('Email confirmation success, redirecting to:', next)
-      return NextResponse.redirect(`${origin}${next}`)
+      console.log('Email confirmation success, redirecting to sign-in')
+      return NextResponse.redirect(`${origin}/sign-in?verified=true`)
     } else {
       console.error('Email confirmation error:', error)
       return NextResponse.redirect(`${origin}/error?type=email_verification_failed&message=${encodeURIComponent('Email verification failed. Please try again.')}`)

@@ -58,10 +58,6 @@ export default function SignUpPage() {
             <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">Password*</label>
             <input id="password" name="password" type="password" required className="block w-full px-4 py-3 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" placeholder="Create a password" />
           </div>
-          <div>
-            <label htmlFor="school" className="block text-sm font-medium text-gray-700 mb-1">School*</label>
-            <input id="school" name="school" type="text" required className="block w-full px-4 py-3 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" placeholder="Enter your school" />
-          </div>
           <div className="relative py-3 mt-6">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-gray-300"></div>

@@ -23,6 +23,7 @@ const OnboardingFlow: React.FC = () => {
   const dataRef = useRef<any>({});
   const [currentStep, setCurrentStep] = useState(0);
   const [submitting, setSubmitting] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
 
   const router = useRouter();
 
@@ -42,23 +43,32 @@ const OnboardingFlow: React.FC = () => {
 
   const handleSignOut = async () => {
     try {
-      // First, call client-side signOut to trigger auth state changes
-      const supabase = createClient();
-      await supabase.auth.signOut();
-      
+      // Immediately show full-page loading overlay, same as Header sign-out
+      const loadingOverlay = document.createElement('div');
+      loadingOverlay.id = 'signout-overlay';
+      loadingOverlay.className = 'fixed inset-0 bg-white z-[9999] flex items-center justify-center';
+      loadingOverlay.innerHTML = `
+        <div class="text-center">
+          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+          <p class="mt-4 text-gray-600">Signing out...</p>
+        </div>
+      `;
+      document.body.appendChild(loadingOverlay);
+
+      // Disable rendering of onboarding UI while we sign out
+      setSigningOut(true);
+
       // Then call our logout API to clear cookies
       const response = await fetch('/api/auth/logout', {
         method: 'POST',
       });
-      
-      if (response.ok) {
-        // Force a page reload to ensure all state is cleared
-        window.location.href = '/';
-      } else {
-        console.error('Logout API failed, but client signout succeeded');
-        // Still redirect even if API fails since client signout worked
-        window.location.href = '/';
-      }
+
+      // After server session/cookies cleared, sign out on client
+      const supabase = createClient();
+      await supabase.auth.signOut();
+
+      // Always redirect to home (or sign-in) afterward
+      window.location.href = '/';
     } catch (error) {
       console.error('Logout error:', error);
       // Fallback: force reload to home page
@@ -116,6 +126,11 @@ const OnboardingFlow: React.FC = () => {
   const CurrentStepComponent = steps[currentStep].component;
   const progress = ((currentStep + 1) / steps.length) * 100;
   const stepNumber = currentStep + 1;
+
+  // If signing out, render nothing – overlay covers the screen
+  if (signingOut) {
+    return null;
+  }
 
   return (
     <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-2 sm:p-4">

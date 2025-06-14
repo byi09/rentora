@@ -2,8 +2,9 @@
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
+import Spinner from '@/src/components/ui/Spinner';
 
 export default function SignIn() {
   const [email, setEmail] = useState('');
@@ -12,6 +13,8 @@ export default function SignIn() {
   const [errorMessage, setErrorMessage] = useState('');
   const [checking, setChecking] = useState(true);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isVerified = searchParams.get('verified') === 'true';
 
   // Check if user is already authenticated and onboarded
   useEffect(() => {
@@ -81,7 +84,7 @@ export default function SignIn() {
   if (checking) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <Spinner size={32} />
       </div>
     );
   }
@@ -117,6 +120,12 @@ export default function SignIn() {
           </div>
 
           <h1 className="text-2xl font-bold text-gray-900 mb-6">Sign in</h1>
+
+          {isVerified && (
+            <div className="mb-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded">
+              ✅ Email verified successfully! You can now sign in with your account.
+            </div>
+          )}
 
           {errorMessage && (
             <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
@@ -208,7 +217,7 @@ export default function SignIn() {
 
       {/* Right side - Image */}
       <div className="hidden lg:block lg:w-1/2 relative">
-        <div className="absolute inset-0">
+        <div className="absolute inset-0 bg-gray-200">
           <Image
             src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?ixlib=rb-4.0.3"
             alt="Student housing"
