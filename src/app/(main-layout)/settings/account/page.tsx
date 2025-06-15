@@ -1,14 +1,14 @@
-import TwoFactorAction from "@/src/components/settings/TwoFactor";
-import FieldValue from "@/src/components/settings/FieldValue";
-import EditEmailForm from "@/src/components/settings/forms/EditEmailForm";
-import EditNameForm from "@/src/components/settings/forms/EditNameForm";
-import EditPasswordForm from "@/src/components/settings/forms/EditPasswordForm";
-import EditUsernameForm from "@/src/components/settings/forms/EditUsernameForm";
-import { ProfileFieldEditable } from "@/src/components/settings/ProfileUI";
+import TwoFactorAction from "@/src/components/settings/account/TwoFactor";
+import FieldValue from "@/src/components/settings/account/FieldValue";
+import EditEmailForm from "@/src/components/settings/account/forms/EditEmailForm";
+import EditNameForm from "@/src/components/settings/account/forms/EditNameForm";
+import EditPasswordForm from "@/src/components/settings/account/forms/EditPasswordForm";
+import EditUsernameForm from "@/src/components/settings/account/forms/EditUsernameForm";
+import { ProfileFieldEditable } from "@/src/components/settings/account/ProfileUI";
 import { AccountSettingProvider } from "@/src/contexts/AccountSettingContext";
 import Link from "next/link";
 import { HiChevronLeft } from "react-icons/hi";
-import DeleteAccountAction from "@/src/components/settings/DeleteAccountAction";
+import DeleteAccountAction from "@/src/components/settings/account/DeleteAccountAction";
 
 export default function ProfilePage() {
   return (

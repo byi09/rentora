@@ -1,24 +1,32 @@
 "use client";
 
-import { Dialog } from "radix-ui";
-import { EditDialog, EditDialogCancel, EditDialogSubmit } from "../EditDialog";
-import { Input } from "../../ui/input";
 import { FieldErrors, Resolver, useForm } from "react-hook-form";
+import { Input } from "../../../ui/input";
+import { EditDialog, EditDialogCancel, EditDialogSubmit } from "../EditDialog";
+import { Dialog } from "radix-ui";
 import { useCallback, useState, useTransition } from "react";
-import { changeUsername } from "@/src/db/actions";
+import { changeName } from "@/src/db/actions";
 import { useAccountSetting } from "@/src/contexts/AccountSettingContext";
 
 interface FormValues {
-  username: string;
+  firstName: string;
+  lastName: string;
 }
 
 const resolver: Resolver<FormValues> = async (values) => {
   const errors: FieldErrors<FormValues> = {};
 
-  if (!values.username) {
-    errors.username = {
+  if (!values.firstName) {
+    errors.firstName = {
       type: "required",
-      message: "Username is required"
+      message: "First name is required"
+    };
+  }
+
+  if (!values.lastName) {
+    errors.lastName = {
+      type: "required",
+      message: "Last name is required"
     };
   }
 
@@ -30,7 +38,7 @@ const resolver: Resolver<FormValues> = async (values) => {
   };
 };
 
-export default function EditUsernameForm() {
+export default function EditNameForm() {
   const {
     register,
     handleSubmit,
@@ -43,10 +51,11 @@ export default function EditUsernameForm() {
   const onSubmit = useCallback(
     async (data: FormValues) => {
       startLoading(async () => {
-        await changeUsername(data.username);
+        await changeName(data.firstName, data.lastName);
         setIsOpen(false);
         updateAccountDetails({
-          username: data.username
+          firstName: data.firstName,
+          lastName: data.lastName
         });
       });
     },
@@ -54,16 +63,23 @@ export default function EditUsernameForm() {
   );
 
   return (
-    <EditDialog field="Username" open={isOpen} onOpenChange={setIsOpen}>
+    <EditDialog field="Name" open={isOpen} onOpenChange={setIsOpen}>
       <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
-        <div className="flex flex-col gap-1">
-          <label htmlFor="username">Username</label>
-          <Input {...register("username")} />
-          {errors.username && (
-            <p className="text-red-500 text-sm mt-1">
-              {errors.username.message}
-            </p>
-          )}
+        <div className="flex gap-4">
+          <div className="space-y-1">
+            <label htmlFor="firstName">First Name</label>
+            <Input {...register("firstName")} />
+            {errors.firstName && (
+              <p className="text-red-600 text-sm">{errors.firstName.message}</p>
+            )}
+          </div>
+          <div className="space-y-1">
+            <label htmlFor="lastName">Last Name</label>
+            <Input {...register("lastName")} />
+            {errors.lastName && (
+              <p className="text-red-600 text-sm">{errors.lastName.message}</p>
+            )}
+          </div>
         </div>
         <div className="flex gap-4 justify-end">
           <Dialog.Close asChild>

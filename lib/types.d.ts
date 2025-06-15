@@ -82,3 +82,14 @@ interface TOTPInfo {
   secret: string;
   uri: string;
 }
+
+// notification settings types
+
+interface NotificationPreferences {
+  updatesSavedPropertiesEmail: boolean;
+  updatesSavedPropertiesPush: boolean;
+  newPropertiesEmail: boolean;
+  newPropertiesPush: boolean;
+  newsEmail: boolean;
+  newsPush: boolean;
+}

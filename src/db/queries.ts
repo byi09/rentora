@@ -10,7 +10,8 @@ import {
   properties,
   propertyFeatures,
   propertyListings,
-  customers
+  customers,
+  userPreferences
 } from "./schema";
 import type { FilterOptions, PropertyListing, SortOption } from "@/lib/types";
 import { createClient } from "@/utils/supabase/server";
@@ -465,6 +466,70 @@ export const getUserAccountDetails = async () => {
     return {
       success: false,
       error: "Failed to get user account details"
+    };
+  }
+};
+
+/**
+ * Gets the authenticated user's notification preferences.
+ * If no preferences exist, creates default preferences.
+ * Note: user must be authenticated
+ */
+export const getNotificationPreferences = async () => {
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase.auth.getUser();
+    if (error || !data.user) {
+      return {
+        success: false,
+        error: "User not authenticated"
+      };
+    }
+
+    // fetch notification preferences from the database
+    const results = await db.query.userPreferences.findFirst({
+      where: eq(customers.userId, data.user.id),
+      columns: {
+        updatesSavedPropertiesEmail: true,
+        updatesSavedPropertiesPush: true,
+        newPropertiesEmail: true,
+        newPropertiesPush: true,
+        newsEmail: true,
+        newsPush: true
+      }
+    });
+
+    // if no preferences exist, create default preferences
+    if (!results) {
+      const defaultPreferences = {
+        updatesSavedPropertiesEmail: true,
+        updatesSavedPropertiesPush: false,
+        newPropertiesEmail: true,
+        newPropertiesPush: false,
+        newsEmail: true,
+        newsPush: false
+      };
+
+      await db.insert(userPreferences).values({
+        userId: data.user.id,
+        ...defaultPreferences
+      });
+
+      return {
+        success: true,
+        preferences: defaultPreferences
+      };
+    }
+
+    return {
+      success: true,
+      preferences: results
+    };
+  } catch (error) {
+    console.error("Error getting notification preferences:", error);
+    return {
+      success: false,
+      error: "Failed to get notification preferences"
     };
   }
 };
