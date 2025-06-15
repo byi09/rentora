@@ -26,6 +26,9 @@ export default function AuthErrorPage() {
         case 'invalid_credentials':
           setErrorMessage('Invalid email or password. Please try again.');
           break;
+        case 'weak_password':
+          setErrorMessage('Password must be at least 8 characters and contain uppercase, lowercase, number, and special character.');
+          break;
         default:
           setErrorMessage('An authentication error occurred. Please try again.');
       }
@@ -59,7 +62,7 @@ export default function AuthErrorPage() {
         
         <div className="space-y-3">
           <button 
-            onClick={() => router.push('/sign-in')} 
+            onClick={() => router.push(searchParams.get('type') === 'weak_password' ? '/sign-up' : '/sign-in')} 
             className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors"
           >
             Try Again

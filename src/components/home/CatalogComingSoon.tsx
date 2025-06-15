@@ -35,16 +35,6 @@ export default function CatalogComingSoon({
           <div className="text-lg text-gray-600 mb-8 leading-relaxed">
             {children}
           </div>
-
-          
-
-          {/* Call to action */}
-          <div className="mt-10">
-            <div className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-medium shadow-lg hover:shadow-xl transition-all duration-200">
-              <HiRocketLaunch className="w-5 h-5 mr-2" />
-              Get Notified When We Launch
-            </div>
-          </div>
         </div>
       </div>
     </div>

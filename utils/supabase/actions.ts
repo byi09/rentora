@@ -46,13 +46,33 @@ export async function signup(formData: FormData) {
   redirect('/')
 }
 
+// Password validation utility for server-side
+const validatePasswordServer = (password: string) => {
+  const requirements = {
+    minLength: password.length >= 8,
+    hasUppercase: /[A-Z]/.test(password),
+    hasLowercase: /[a-z]/.test(password),
+    hasNumber: /\d/.test(password),
+    hasSpecialChar: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)
+  };
+  
+  return Object.values(requirements).every(req => req);
+};
+
 export async function signUpNewUser(formData: FormData) {
   const supabase = await createClient()
   const email = formData.get('email') as string
   const password = formData.get('password') as string
+  
+  // Server-side password validation
+  if (!validatePasswordServer(password)) {
+    redirect('/error?type=weak_password&message=Password must be at least 8 characters and contain uppercase, lowercase, number, and special character')
+  }
+  
   // Build absolute redirect URL for email confirmation
   // Use request origin if available (server actions), otherwise fallback to env or localhost
-  const origin = headers().get('origin') || process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+  const headersList = await headers()
+  const origin = headersList.get('origin') || process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
   const emailRedirectTo = `${origin}/callback?next=/sign-in%3Fverified%3Dtrue`
   const { error } = await supabase.auth.signUp({
     email,
