@@ -1,23 +1,14 @@
 'use client';
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
+import InteractiveProgressBar from '@/src/components/ui/InteractiveProgressBar';
 
 export default function FinalDetailsPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const propertyId = searchParams.get('property_id');
   const [leasePolicy, setLeasePolicy] = useState('');
   const [rentersInsurance, setRentersInsurance] = useState<'Yes' | 'No' | ''>('');
-
-  const steps = [
-    'Property Info',
-    'Rent Details',
-    'Media',
-    'Amenities',
-    'Screening',
-    'Costs and Fees',
-    'Final details',
-    'Review',
-    'Publish'
-  ];
 
   return (
     <main className="min-h-screen bg-white p-8">
@@ -34,23 +25,7 @@ export default function FinalDetailsPage() {
         </div>
 
         {/* Progress Bar */}
-        <div className="mb-12 relative">
-          <div className="h-2 bg-blue-100 rounded-full">
-            <div className="h-full w-7/9 bg-blue-600 rounded-full"></div>
-          </div>
-          <div className="flex justify-between absolute w-full" style={{ top: '-8px' }}>
-            {steps.map((step, index) => (
-              <div 
-                key={step}
-                className={`w-4 h-4 rounded-full ${index <= 6 ? 'bg-blue-600' : 'bg-blue-200'}`}
-              >
-                <div className="text-xs text-gray-600 mt-6 -ml-4 w-20 text-center">
-                  {step}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+        <InteractiveProgressBar currentStep={6} propertyId={propertyId} />
 
         {/* Main Content */}
         <div className="max-w-2xl mx-auto">
@@ -99,7 +74,7 @@ export default function FinalDetailsPage() {
           {/* Next Button */}
           <div className="flex justify-end">
             <button 
-              onClick={() => router.push('/sell/create/review')}
+              onClick={() => router.push(`/sell/create/review?property_id=${propertyId}`)}
               className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
             >
               Next

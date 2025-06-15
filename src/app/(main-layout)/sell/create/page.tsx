@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
+import InteractiveProgressBar from '@/src/components/ui/InteractiveProgressBar';
 
 export default function CreateListingPage() {
   const router = useRouter();
@@ -10,18 +11,6 @@ export default function CreateListingPage() {
   const [squareFootage, setSquareFootage] = useState('1500');
   const [propertyType, setPropertyType] = useState('apartment');
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const steps = [
-    'Property Info',
-    'Rent Details',
-    'Media',
-    'Amenities',
-    'Screening',
-    'Costs and Fees',
-    'Final details',
-    'Review',
-    'Publish'
-  ];
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -88,23 +77,7 @@ export default function CreateListingPage() {
         </div>
 
         {/* Progress Bar */}
-        <div className="mb-12 relative">
-          <div className="h-2 bg-blue-100 rounded-full">
-            <div className="h-full w-1/9 bg-blue-600 rounded-full"></div>
-          </div>
-          <div className="flex justify-between absolute w-full" style={{ top: '-8px' }}>
-            {steps.map((step, index) => (
-              <div 
-                key={step}
-                className={`w-4 h-4 rounded-full ${index === 0 ? 'bg-blue-600' : 'bg-blue-200'}`}
-              >
-                <div className="text-xs text-gray-600 mt-6 -ml-4 w-20 text-center">
-                  {step}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+        <InteractiveProgressBar currentStep={0} />
 
         {/* Form */}
         <form onSubmit={handleSubmit}>
