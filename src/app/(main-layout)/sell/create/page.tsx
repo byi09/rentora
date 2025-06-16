@@ -30,27 +30,35 @@ export default function CreateListingPage() {
         return;
       }
 
-      // Get the landlord_id by joining users -> customers -> landlords
-      const { data: landlordData, error: landlordError } = await supabase
-        .from('users')
-        .select(`
-          customers!inner(
-            landlords!inner(
-              id
-            )
-          )
-        `)
-        .eq('id', user.id)
+      // Step 1: find the customer record linked to the signed-in user
+      const { data: customerData, error: customerError } = await supabase
+        .from('customers')
+        .select('id')
+        .eq('user_id', user.id)
         .single();
 
-      if (landlordError || !landlordData?.customers?.[0]?.landlords?.[0]?.id) {
-        console.error('Landlord profile not found:', landlordError);
+      if (customerError || !customerData) {
+        console.error('Customer record not found:', customerError);
+        alert('Account profile not found. Please finish onboarding.');
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Step 2: fetch the landlord record for that customer
+      const { data: landlordRow, error: landlordRowError } = await supabase
+        .from('landlords')
+        .select('id')
+        .eq('customer_id', customerData.id)
+        .single();
+
+      if (landlordRowError || !landlordRow) {
+        console.error('Landlord profile not found:', landlordRowError);
         alert('Landlord profile not found. Please complete your onboarding.');
         setIsSubmitting(false);
         return;
       }
 
-      const landlordId = landlordData.customers[0].landlords[0].id;
+      const landlordId = landlordRow.id;
       
       // Extract form data
       const propertyData = {

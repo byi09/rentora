@@ -132,7 +132,7 @@ export default async function Home() {
           </p>
           <Link
             href="/sign-up"
-            className="inline-flex px-6 py-2.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-all duration-200 shadow-md text-sm font-semibold transform hover:scale-105"
+            className="inline-flex px-10 py-5 rounded-xl bg-blue-600 text-white hover:bg-blue-700 transition-all duration-200 shadow-lg text-xl font-bold transform hover:scale-105"
           >
             Sign up 🥳
           </Link>
