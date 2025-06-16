@@ -7,7 +7,7 @@ import {
   EditDialogConfirm,
   EditDialogSubmit
 } from "../EditDialog";
-import { Input } from "../../ui/input";
+import { Input } from "../../../ui/input";
 import { FieldErrors, Resolver, useForm } from "react-hook-form";
 import { useCallback, useState, useTransition } from "react";
 import { changeEmail } from "@/src/db/actions";

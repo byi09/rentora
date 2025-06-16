@@ -2,9 +2,10 @@
 
 import { createClient } from "@/utils/supabase/server";
 import { db } from ".";
-import { customers, users } from "./schema";
+import { customers, userPreferences, users } from "./schema";
 import { eq } from "drizzle-orm";
 import { createAdminClient } from "@/utils/supabase/admin";
+import { NotificationPreferences } from "@/lib/types";
 
 /**
  * Issues a request to change the user's name in the database.
@@ -389,6 +390,43 @@ export const deleteAccount = async () => {
     return {
       success: false,
       error: "Failed to delete account"
+    };
+  }
+};
+
+/**
+ * Updates the user's notification preferences.
+ * Note: user must be authenticated.
+ */
+export const updateNotificationPreferences = async (
+  preferences: NotificationPreferences
+) => {
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase.auth.getUser();
+    if (error || !data.user) {
+      return {
+        success: false,
+        error: "User not authenticated"
+      };
+    }
+
+    // Update preferences in the database
+    await db
+      .update(userPreferences)
+      .set({
+        ...preferences
+      })
+      .where(eq(userPreferences.userId, data.user.id));
+
+    return {
+      success: true
+    };
+  } catch (error) {
+    console.error("Error updating notification preferences:", error);
+    return {
+      success: false,
+      error: "Failed to update notification preferences"
     };
   }
 };

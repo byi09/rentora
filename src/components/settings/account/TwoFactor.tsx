@@ -11,7 +11,7 @@ import { ImSpinner2 } from "react-icons/im";
 import { EditDialogCancel, EditDialogSubmit } from "./EditDialog";
 import Image from "next/image";
 import { TOTPInfo } from "@/lib/types";
-import { Input } from "../ui/input";
+import { Input } from "../../ui/input";
 import { FieldErrors, Resolver, useForm } from "react-hook-form";
 import { useAccountSetting } from "@/src/contexts/AccountSettingContext";
 import { createClient } from "@/utils/supabase/client";
