@@ -46,7 +46,7 @@ export default function PropertyDashboard() {
       // Retrieve landlord id (join first, fallback to separate queries)
       let landlordId: string | null = null;
 
-      const { data: landlordData, error: landlordError } = await supabase
+      const { data: landlordData } = await supabase
         .from('users')
         .select(`
           customers!inner(

@@ -8,6 +8,7 @@ import ContactInfoStep from './ContactInfoStep';
 import LocationInfoStep from './LocationInfoStep';
 import UserTypeStep from './UserTypeStep';
 import NotificationPreferencesStep from './NotificationPreferencesStep';
+import Spinner from '@/src/components/ui/Spinner';
 
 // Step order: 1) Personal, 2) Account type, 3) Contact, 4) Notifications, 5) Location
 const steps = [
@@ -230,7 +231,7 @@ const OnboardingFlow: React.FC = () => {
           <div className="absolute inset-0 bg-white/95 backdrop-blur-md flex items-center justify-center">
             <div className="text-center p-8">
               <div className="mb-6">
-                <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-200 border-t-blue-600 mx-auto"></div>
+                <Spinner size={32} className="mx-auto" />
               </div>
               <h3 className="text-2xl font-semibold text-gray-800 mb-2">Almost there!</h3>
               <p className="text-lg text-gray-600">Saving your profile and setting up your account...</p>
