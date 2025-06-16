@@ -131,13 +131,9 @@ const Header = ({ toggleSidebar, user }: HeaderProps) => {
     );
   }
 
-  // Header for logged in users (white style with scroll effect)
+  // Header for logged in users – always white
   return (
-    <header className={`fixed top-0 z-50 w-full transition-all duration-300 ${
-      scrolled 
-        ? 'bg-gray-900/90 text-white backdrop-blur-md shadow-lg border-b border-gray-800' 
-        : 'bg-white/80 text-gray-900 backdrop-blur-sm border-b border-gray-200/50'
-    }`}>
+    <header className="fixed top-0 z-50 w-full bg-white text-gray-900 shadow-sm border-b border-gray-200">
       <div className="w-full px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-20">
           {/* Logo */}
@@ -151,10 +147,10 @@ const Header = ({ toggleSidebar, user }: HeaderProps) => {
           {/* Navigation */}
           <nav className="hidden md:flex items-center space-x-10">
           
-            <Link href="/map" className={`font-medium transition-colors text-base ${scrolled ? 'text-gray-100 hover:text-white' : 'text-gray-700 hover:text-gray-900'}`}>
+            <Link href="/map" className="font-medium transition-colors text-base text-gray-700 hover:text-gray-900">
               Rent
             </Link>
-            <Link href="/sell" className={`font-medium transition-colors text-base ${scrolled ? 'text-gray-100 hover:text-white' : 'text-gray-700 hover:text-gray-900'}`}>
+            <Link href="/sell" className="font-medium transition-colors text-base text-gray-700 hover:text-gray-900">
               Upload Property
             </Link>
           </nav>
