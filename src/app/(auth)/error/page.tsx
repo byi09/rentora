@@ -43,12 +43,12 @@ export default function AuthErrorPage() {
           <div className="relative w-10 h-10 mr-2">
             <Image
               src="/rentora-logo.svg"
-              alt="Rentora Logo"
+              alt="Livaro Logo"
               fill
               className="object-contain"
             />
           </div>
-          <span className="text-xl font-bold text-gray-900">Rentora</span>
+          <span className="text-xl font-bold text-gray-900">Livaro</span>
         </div>
 
         <div className="w-16 h-16 mx-auto bg-red-100 rounded-full flex items-center justify-center">

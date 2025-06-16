@@ -109,8 +109,8 @@ const Header = ({ toggleSidebar, user }: HeaderProps) => {
                 </button>
               )}
               <Link href="/" className="flex items-center group">
-                <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center mr-3 transition-transform duration-200 group-hover:scale-110">
-                  <span className="text-white font-bold text-xl">R</span>
+                <div className="w-10 h-10 mr-3 transition-transform duration-200 group-hover:scale-110 flex items-center justify-center">
+                  <img src="/rentora-logo.svg" alt="Livaro Logo" className="w-8 h-8 object-contain" />
                 </div>
                 <span className="text-2xl font-bold text-white tracking-tight">Livaro</span>
               </Link>
@@ -144,8 +144,8 @@ const Header = ({ toggleSidebar, user }: HeaderProps) => {
           {/* Logo */}
           <Link href="/" className="flex items-center">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-xl">R</span>
+              <div className="w-10 h-10 flex items-center justify-center">
+                <img src="/rentora-logo.svg" alt="Livaro Logo" className="w-8 h-8 object-contain" />
               </div>
               <span className="text-2xl font-bold text-gray-900">Livaro</span>
             </div>

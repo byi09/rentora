@@ -150,12 +150,12 @@ export default function SignIn() {
             <div className="relative w-10 h-10 mr-2">
               <Image
                 src="/rentora-logo.svg"
-                alt="Rentora Logo"
+                alt="Livaro Logo"
                 fill
                 className="object-contain"
               />
             </div>
-            <span className="text-xl font-bold text-gray-900">Rentora</span>
+            <span className="text-xl font-bold text-gray-900">Livaro</span>
           </div>
 
           <div className="text-center mb-8">
@@ -201,7 +201,7 @@ export default function SignIn() {
 
           <div className="mt-8 space-y-4">
             <p className="text-center text-sm text-gray-600">
-              New to Rentora?{' '}
+              New to Livaro?{' '}
               <Link href="/sign-up" className="text-blue-600 hover:text-blue-800 font-medium transition-colors">
                 Create account
               </Link>

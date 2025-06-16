@@ -76,13 +76,13 @@ export default function SignUpPage() {
           <div className="relative w-10 h-10 mr-2">
             <Image
               src="/rentora-logo.svg"
-              alt="Rentora Logo"
+              alt="Livaro Logo"
               fill
               className="object-contain"
               priority
             />
           </div>
-          <span className="text-xl font-bold text-gray-900">Rentora</span>
+          <span className="text-xl font-bold text-gray-900">Livaro</span>
         </div>
         <h1 className="text-2xl font-bold text-gray-900 mb-6 text-center">Create your account</h1>
 

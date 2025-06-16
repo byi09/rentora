@@ -72,7 +72,7 @@ export async function signUpNewUser(formData: FormData) {
   // Build absolute redirect URL for email confirmation
   // Use request origin if available (server actions), otherwise fallback to env or localhost
   const headersList = await headers()
-  const origin = headersList.get('origin') || process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+  const origin = headersList.get('origin') || process.env.NEXT_PUBLIC_SITE_URL || 'http://www.rentlivaro.com'
   const emailRedirectTo = `${origin}/callback?next=/sign-in%3Fverified%3Dtrue`
   const { error } = await supabase.auth.signUp({
     email,

@@ -180,7 +180,7 @@ const OnboardingFlow: React.FC = () => {
           {/* Welcome message - Enhanced */}
           <div className="mb-6 lg:mb-8">
             <h1 className="text-3xl lg:text-4xl xl:text-5xl font-bold mb-3 lg:mb-4 text-gray-800 leading-tight">
-              Welcome to Rentora!
+              Welcome to Livaro!
             </h1>
             <p className="text-lg lg:text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
               Let&apos;s set up your profile to find the perfect rental for you

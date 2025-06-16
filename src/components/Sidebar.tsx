@@ -78,12 +78,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
               <div className="relative w-8 h-8 mr-3">
                 <Image
                   src="/rentora-logo.svg"
-                  alt="Rentora Logo"
+                  alt="Livaro Logo"
                   fill
                   className="transition-transform duration-200"
                 />
               </div>
-              <span className="text-xl font-bold text-white">Rentora</span>
+              <span className="text-xl font-bold text-white">Livaro</span>
             </Link>
             <button
               onClick={toggleSidebar}

@@ -9,7 +9,7 @@ export default function Footer() {
               <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-lg">R</span>
               </div>
-              <span className="text-xl font-bold">Rentora</span>
+              <span className="text-xl font-bold">Livaro</span>
             </div>
             <p className="text-gray-400 mb-4">
               Find your perfect rental with the most comprehensive search tools and premium property listings.
@@ -52,7 +52,7 @@ export default function Footer() {
 
         <div className="border-t border-gray-800 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center">
           <p className="text-gray-400 text-sm">
-            © 2024 Rentora. All rights reserved.
+            © 2024 Livaro. All rights reserved.
           </p>
           <div className="flex space-x-6 mt-4 md:mt-0">
             <a href="#" className="text-gray-400 hover:text-white transition-colors text-sm">
