@@ -43,26 +43,47 @@ export default function PropertyDashboard() {
         return;
       }
 
-      // Get the landlord_id by joining users -> customers -> landlords
+      // Retrieve landlord id (join first, fallback to separate queries)
+      let landlordId: string | null = null;
+
       const { data: landlordData, error: landlordError } = await supabase
         .from('users')
         .select(`
           customers!inner(
-            landlords!inner(
-              id
-            )
+            landlords!inner(id)
           )
         `)
         .eq('id', user.id)
-        .single();
+        .maybeSingle();
 
-      if (landlordError || !landlordData?.customers?.[0]?.landlords?.[0]?.id) {
-        setError('Landlord profile not found. Please complete your onboarding.');
+      if (landlordData?.customers?.length && landlordData.customers[0].landlords?.length) {
+        landlordId = landlordData.customers[0].landlords[0].id;
+      }
+
+      if (!landlordId) {
+        // Fallback path
+        const { data: customer } = await supabase
+          .from('customers')
+          .select('id')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (customer?.id) {
+          const { data: landlordRow } = await supabase
+            .from('landlords')
+            .select('id')
+            .eq('customer_id', customer.id)
+            .maybeSingle();
+          landlordId = landlordRow?.id ?? null;
+        }
+      }
+
+      if (!landlordId) {
+        // No landlord profile – return early but keep UI (empty table)
+        setProperties([]);
         setIsLoading(false);
         return;
       }
-
-      const landlordId = landlordData.customers[0].landlords[0].id;
 
       const {error } = await supabase
         .from('properties')

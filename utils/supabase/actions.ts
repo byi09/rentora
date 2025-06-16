@@ -126,25 +126,47 @@ export async function createProperty(formData: FormData) {
       redirect('/error?type=auth');
     }
 
-    // Get the landlord_id by joining users -> customers -> landlords
+    // Attempt to fetch landlord_id in two steps to avoid issues with RLS joins
+    let landlordId: string | null = null;
+
+    // First try the join query (more efficient)
     const { data: landlordData, error: landlordError } = await supabase
       .from('users')
       .select(`
         customers!inner(
-          landlords!inner(
-            id
-          )
+          landlords!inner(id)
         )
       `)
       .eq('id', user.id)
-      .single();
+      .maybeSingle();
 
-    if (landlordError || !landlordData?.customers?.[0]?.landlords?.[0]?.id) {
-      console.error('Landlord profile not found:', landlordError);
-      redirect('/error?type=profile');
+    if (landlordData?.customers?.length && landlordData.customers[0].landlords?.length) {
+      landlordId = landlordData.customers[0].landlords[0].id;
     }
 
-    const landlordId = landlordData.customers[0].landlords[0].id;
+    // Fallback: fetch customer first, then landlord
+    if (!landlordId) {
+      const { data: customer, error: customerError } = await supabase
+        .from('customers')
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (!customerError && customer?.id) {
+        const { data: landlordRow } = await supabase
+          .from('landlords')
+          .select('id')
+          .eq('customer_id', customer.id)
+          .maybeSingle();
+
+        landlordId = landlordRow?.id ?? null;
+      }
+    }
+
+    if (!landlordId) {
+      console.error('Landlord profile not found for user', user.id);
+      redirect('/error?type=profile');
+    }
 
     // Extract form data
     const propertyData = {
