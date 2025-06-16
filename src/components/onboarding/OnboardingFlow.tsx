@@ -168,7 +168,7 @@ const OnboardingFlow: React.FC = () => {
       {/* Modal content - responsive height */}
       <div className="relative bg-white/95 backdrop-blur-md rounded-3xl shadow-2xl border border-white/60 w-full max-w-lg sm:max-w-xl md:max-w-2xl lg:max-w-4xl xl:max-w-5xl overflow-hidden max-h-[90vh] overflow-y-auto">
         {/* Header - Enhanced */}
-        <div className="px-8 lg:px-12 pt-8 lg:pt-10 pb-6 lg:pb-8 text-center border-b border-gray-100 relative bg-white/90 backdrop-blur-sm">
+        <div className="px-6 lg:px-8 pt-4 lg:pt-6 pb-4 lg:pb-6 text-center border-b border-gray-100 relative bg-white/90 backdrop-blur-sm">
           {/* Sign-out link */}
           <button
             onClick={handleSignOut}
@@ -178,7 +178,7 @@ const OnboardingFlow: React.FC = () => {
           </button>
 
           {/* Welcome message - Enhanced */}
-          <div className="mb-6 lg:mb-8">
+          <div className="mb-4 lg:mb-6">
             <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-3 sm:mb-4 text-gray-800 leading-tight">
               Welcome to Livaro!
             </h1>
@@ -205,7 +205,7 @@ const OnboardingFlow: React.FC = () => {
           </div>
 
           {/* Section label - Enhanced */}
-          <div className="mt-6 lg:mt-8">
+          <div className="mt-4 lg:mt-6">
             <h2 className="text-xl lg:text-2xl font-semibold text-gray-800 mb-2">
               {steps[currentStep].label}
             </h2>
@@ -214,7 +214,7 @@ const OnboardingFlow: React.FC = () => {
         </div>
 
         {/* Step content - responsive spacing */}
-        <div className="px-5 sm:px-8 lg:px-12 xl:px-16 py-6 sm:py-8 lg:py-12 xl:py-16 bg-white/90 backdrop-blur-sm min-h-[360px] lg:min-h-[500px] flex items-center">
+        <div className="px-5 sm:px-8 lg:px-12 xl:px-16 py-4 sm:py-6 lg:py-8 xl:py-12 bg-white/90 backdrop-blur-sm min-h-[280px] lg:min-h-[400px] flex items-center">
           <div className="w-full max-w-3xl mx-auto">
             <CurrentStepComponent
               data={data}
