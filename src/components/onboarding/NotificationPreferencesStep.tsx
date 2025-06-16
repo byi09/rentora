@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { StepProps } from '@/src/types/onboarding';
 import { Button } from '@/src/components/ui/button';
 import Switch  from '@/src/components/ui/switch';
-import { Label } from '@/src/components/ui/label';
+
 
 interface ToggleRowProps {
   label: string;
@@ -60,7 +60,8 @@ const NotificationPreferencesStep: React.FC<StepProps> = ({ data, onUpdate, onNe
   });
 
   const handleToggle = (keyBase: string, field: 'email' | 'push', value: boolean) => {
-    setPrefs((prev) => ({ ...prev, [`${keyBase}${field === 'email' ? 'Email' : 'Push'}`]: value } as any));
+    const key = `${keyBase}${field === 'email' ? 'Email' : 'Push'}` as keyof typeof prefs;
+    setPrefs((prev) => ({ ...prev, [key]: value }));
   };
 
   const handleNext = () => {
@@ -97,7 +98,7 @@ const NotificationPreferencesStep: React.FC<StepProps> = ({ data, onUpdate, onNe
       <div className="text-center mb-6 lg:mb-8">
         <h3 className="text-2xl lg:text-3xl font-bold text-gray-800 mb-3 lg:mb-4">Notification Preferences</h3>
         <p className="text-base lg:text-lg text-gray-600 max-w-lg mx-auto leading-relaxed">
-          Choose how you'd like to stay updated with the latest property information and platform news
+          Choose how you&apos;d like to stay updated with the latest property information and platform news
         </p>
       </div>
 

@@ -1,4 +1,4 @@
-import { HiRocketLaunch, HiHome, HiMapPin, HiCurrencyDollar } from "react-icons/hi2";
+import { HiRocketLaunch} from "react-icons/hi2";
 
 export default function CatalogComingSoon({
   children,

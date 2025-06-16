@@ -88,8 +88,11 @@ export default function ClientLayout({ children }: ClientLayoutProps) {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Spinner size="lg" />
+      <div className="flex min-h-screen items-center justify-center bg-white">
+        <div className="text-center space-y-4">
+          <Spinner size={48} />
+          <p className="text-gray-600">Loading...</p>
+        </div>
       </div>
     );
   }

@@ -3,7 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { useRouter } from 'next/navigation';
 import PersonalInfoStep from './PersonalInfoStep';
-import { OnboardingPayload } from '@/src/db/queries';
+import { OnboardingData } from '@/src/types/onboarding';
 import ContactInfoStep from './ContactInfoStep';
 import LocationInfoStep from './LocationInfoStep';
 import UserTypeStep from './UserTypeStep';
@@ -19,8 +19,8 @@ const steps = [
 ];
 
 const OnboardingFlow: React.FC = () => {
-  const [data, setData] = useState<any>({});
-  const dataRef = useRef<any>({});
+  const [data, setData] = useState<Partial<OnboardingData>>({});
+  const dataRef = useRef<Partial<OnboardingData>>({});
   const [currentStep, setCurrentStep] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
@@ -59,7 +59,7 @@ const OnboardingFlow: React.FC = () => {
       setSigningOut(true);
 
       // Then call our logout API to clear cookies
-      const response = await fetch('/api/auth/logout', {
+      await fetch('/api/auth/logout', {
         method: 'POST',
       });
 
@@ -76,9 +76,9 @@ const OnboardingFlow: React.FC = () => {
     }
   };
 
-  const handleUpdate = (partial: Partial<OnboardingPayload>) => {
+  const handleUpdate = (partial: Partial<OnboardingData>) => {
     console.log('🔄 OnboardingFlow updating data with:', JSON.stringify(partial, null, 2));
-    setData((prev: any) => {
+    setData((prev: Partial<OnboardingData>) => {
       const newData = { ...prev, ...partial };
       console.log('🔄 OnboardingFlow total data now:', JSON.stringify(newData, null, 2));
       dataRef.current = newData;
@@ -183,7 +183,7 @@ const OnboardingFlow: React.FC = () => {
               Welcome to Rentora!
             </h1>
             <p className="text-lg lg:text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
-              Let's set up your profile to find the perfect rental for you
+              Let&apos;s set up your profile to find the perfect rental for you
             </p>
           </div>
 

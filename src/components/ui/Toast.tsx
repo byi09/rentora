@@ -66,6 +66,11 @@ const ToastComponent = ({ toast, onRemove }: { toast: Toast; onRemove: (id: stri
     return () => clearTimeout(timer);
   }, []);
 
+  const handleRemove = useCallback(() => {
+    setIsLeaving(true);
+    setTimeout(() => onRemove(toast.id), 300);
+  }, [onRemove, toast.id]);
+
   useEffect(() => {
     if (toast.duration !== 0) {
       const timer = setTimeout(() => {
@@ -73,12 +78,7 @@ const ToastComponent = ({ toast, onRemove }: { toast: Toast; onRemove: (id: stri
       }, toast.duration || 5000);
       return () => clearTimeout(timer);
     }
-  }, [toast.duration]);
-
-  const handleRemove = () => {
-    setIsLeaving(true);
-    setTimeout(() => onRemove(toast.id), 300);
-  };
+  }, [toast.duration, handleRemove]);
 
   const getToastStyles = () => {
     const baseStyles = "relative flex items-start gap-3 p-4 rounded-lg shadow-lg border max-w-sm w-full transition-all duration-300 ease-out";

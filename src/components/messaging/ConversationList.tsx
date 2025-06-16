@@ -42,7 +42,6 @@ interface ConversationListProps {
   onSelectConversation: (conversationId: string) => void;
   onCreateConversation: () => void;
   searchQuery: string;
-  onSearchChange: (query: string) => void;
 }
 
 export default function ConversationList({
@@ -51,8 +50,7 @@ export default function ConversationList({
   currentUserId,
   onSelectConversation,
   onCreateConversation,
-  searchQuery,
-  onSearchChange
+  searchQuery
 }: ConversationListProps) {
   const getConversationTitle = (conversation: Conversation) => {
     if (conversation.title) return conversation.title;

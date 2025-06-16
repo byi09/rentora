@@ -10,6 +10,7 @@ import { Button } from "./ui/button";
 import { Skeleton } from "./ui/LoadingSkeleton";
 import { Search, SlidersHorizontal } from "lucide-react";
 import React from "react";
+import Spinner from "./ui/Spinner";
 
 // select options for property type and beds
 const propertyTypeOptions = [
@@ -141,6 +142,9 @@ function PropertySearch() {
             <Skeleton className="h-6 w-20 rounded" />
           </div>
           <Skeleton className="h-12 w-24 rounded-lg" />
+        </div>
+        <div className="flex justify-center py-8">
+          <Spinner size={48} />
         </div>
       </div>
     );

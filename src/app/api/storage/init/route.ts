@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import { createAdminClient } from '@/utils/supabase/admin';
 
-export async function POST(request: NextRequest) {
+export async function POST() {
   try {
     // Use regular client to check user authentication
     const supabase = await createClient();

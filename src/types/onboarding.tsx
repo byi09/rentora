@@ -31,7 +31,7 @@ export interface OnboardingData {
   }
   
   export interface StepProps {
-    data: OnboardingData;
+    data: Partial<OnboardingData>;
     onUpdate: (data: Partial<OnboardingData>) => void;
     onNext?: () => void;
     onPrevious?: () => void;

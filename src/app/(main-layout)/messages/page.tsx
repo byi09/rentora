@@ -338,7 +338,6 @@ export default function MessagesPage() {
                 onSelectConversation={setSelectedConversationId}
                 onCreateConversation={() => setIsCreateModalOpen(true)}
                 searchQuery={searchQuery}
-                onSearchChange={setSearchQuery}
               />
             )}
           </div>
@@ -383,6 +382,7 @@ export default function MessagesPage() {
         onCreateConversation={handleCreateConversation}
         onSearchUsers={handleSearchUsers}
         onSearchProperties={handleSearchProperties}
+        currentUserId={currentUserId!}
       />
     </div>
   );

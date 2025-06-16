@@ -11,6 +11,7 @@ const OnboardingChecker: React.FC = () => {
   const [refreshing, setRefreshing] = useState(false);
   const router = useRouter();
   const hasChecked = useRef(false);
+  const refreshingRef = useRef(false);
 
   // Prevent body scrolling when modal/loading is active
   useEffect(() => {
@@ -43,6 +44,7 @@ const OnboardingChecker: React.FC = () => {
           
           // If user is onboarded, refresh the page so the server can render the dashboard
           if (data.onboarded) {
+            refreshingRef.current = true;
             setRefreshing(true);
             // Small delay to show the loading message
             setTimeout(() => {
@@ -60,14 +62,14 @@ const OnboardingChecker: React.FC = () => {
         setIsOnboarded(false);
       } finally {
         // Only set loading to false if we're not refreshing
-        if (!refreshing) {
+        if (!refreshingRef.current) {
           setLoading(false);
         }
       }
     };
 
     checkOnboardingStatus();
-  }, [router]); // Remove refreshing from dependencies
+  }, [router]);
 
   if (loading || refreshing) {
     return (

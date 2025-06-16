@@ -44,7 +44,7 @@ export default function NearbyProperties() {
               No Properties Found
             </h3>
             <p className="text-gray-600">
-              We couldn't find any nearby properties at the moment. Please try again later or check back soon.
+              We couldn&apos;t find any nearby properties at the moment. Please try again later or check back soon.
             </p>
           </div>
         </div>

@@ -44,7 +44,6 @@ interface ConversationViewProps {
   messages: Message[];
   currentUserId: string;
   onSendMessage: (content: string) => void;
-  onLoadMoreMessages?: () => void;
   isLoading?: boolean;
 }
 
@@ -53,7 +52,6 @@ export default function ConversationView({
   messages,
   currentUserId,
   onSendMessage,
-  onLoadMoreMessages,
   isLoading = false
 }: ConversationViewProps) {
   const [messageInput, setMessageInput] = useState('');
@@ -93,6 +91,7 @@ export default function ConversationView({
   };
 
   const getConversationSubtitle = () => {
+    if (!conversation) return '';
     const otherParticipant = conversation.participants?.find(p => p.user.id !== currentUserId);
     const role = otherParticipant?.role;
     const businessName = otherParticipant?.businessName;
@@ -146,7 +145,7 @@ export default function ConversationView({
       {/* Loading Overlay */}
       {isLoading && (
         <div className="absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center z-20">
-          <Spinner size="lg" />
+          <Spinner size={40} />
         </div>
       )}
 
@@ -174,13 +173,13 @@ export default function ConversationView({
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {isLoading && (
           <div className="text-center py-4">
-            <Spinner size="md" />
+            <Spinner size={24} />
           </div>
         )}
         
         {messages.map((message, index) => {
           const isOwnMessage = message.senderId === currentUserId;
-          const sender = conversation.participants?.find(p => p.user.id === message.senderId);
+          const sender = conversation?.participants?.find(p => p.user.id === message.senderId);
 
           const prevMessage = messages[index - 1];
           const nextMessage = messages[index + 1];

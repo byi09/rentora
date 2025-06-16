@@ -53,7 +53,7 @@ const ContactInfoStep: React.FC<StepProps> = ({ data, onUpdate, onNext, onPrevio
             </li>
           </ul>
           <p className="text-xs lg:text-sm text-blue-600 mt-4 italic">
-            Don't worry - you can always update this later in your profile settings.
+            Don&apos;t worry - you can always update this later in your profile settings.
           </p>
         </div>
       </div>

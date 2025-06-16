@@ -115,3 +115,5 @@ export default function CostsAndFeesPage() {
     </main>
   );
 }
+
+export const dynamic = 'force-dynamic';

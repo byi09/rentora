@@ -2,10 +2,9 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
-import { HiHeart, HiUser, HiChevronDown, HiCog, HiChat, HiUserCircle } from 'react-icons/hi';
+import { HiUser, HiChevronDown, HiCog, HiChat} from 'react-icons/hi';
 import { HiArrowRightOnRectangle } from 'react-icons/hi2';
 import { createClient } from '@/utils/supabase/client';
-import { useRouter } from 'next/navigation';
 import type { User } from '@supabase/supabase-js';
 import dynamic from 'next/dynamic';
 
@@ -23,7 +22,6 @@ const NotificationBell = dynamic(() => import('@/src/components/ui/NotificationB
 const Header = ({ toggleSidebar, user }: HeaderProps) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
-  const router = useRouter();
 
   const handleSignOut = async () => {
     try {
@@ -197,16 +195,6 @@ const Header = ({ toggleSidebar, user }: HeaderProps) => {
 
                   {/* Dropdown Content */}
                   <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-20">
-                    {/* Profile */}
-                    <Link
-                      href="/profile"
-                      className="flex items-center px-4 py-3 text-gray-700 hover:bg-gray-50 transition-colors"
-                      onClick={() => setIsDropdownOpen(false)}
-                    >
-                      <HiUserCircle className="w-5 h-5 mr-3 text-gray-500" />
-                      <span className="font-medium">Profile</span>
-                    </Link>
-
                     {/* Messages */}
                     <Link
                       href="/messages"
@@ -215,16 +203,6 @@ const Header = ({ toggleSidebar, user }: HeaderProps) => {
                     >
                       <HiChat className="w-5 h-5 mr-3 text-gray-500" />
                       <span className="font-medium">Messages</span>
-                    </Link>
-
-                    {/* Saved Properties */}
-                    <Link
-                      href="/saved"
-                      className="flex items-center px-4 py-3 text-gray-700 hover:bg-gray-50 transition-colors"
-                      onClick={() => setIsDropdownOpen(false)}
-                    >
-                      <HiHeart className="w-5 h-5 mr-3 text-gray-500" />
-                      <span className="font-medium">Saved Properties</span>
                     </Link>
 
                     {/* Settings */}

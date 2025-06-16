@@ -26,7 +26,7 @@ const OPTIONS: Array<{ value: 'renter' | 'landlord' | 'both'; title: string; des
 const GENDERS = ['', 'Male', 'Female', 'Other', 'Prefer not to say'];
 
 const UserTypeStep: React.FC<StepProps> = ({ data, onUpdate, onNext, onPrevious }) => {
-  const [type, setType] = useState<'renter' | 'landlord' | 'both' | ''>(data.userType as any || '');
+  const [type, setType] = useState<'renter' | 'landlord' | 'both' | ''>(data.userType as 'renter' | 'landlord' | 'both' || '');
   const [gender, setGender] = useState<string>(data.gender || '');
   const [err, setErr] = useState('');
 

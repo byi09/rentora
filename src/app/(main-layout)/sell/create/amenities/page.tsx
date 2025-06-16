@@ -567,3 +567,5 @@ export default function AmenitiesPage() {
     </main>
   );
 }
+
+export const dynamic = 'force-dynamic';

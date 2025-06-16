@@ -143,7 +143,7 @@ const LocationInfoStep: React.FC<StepProps> = ({ data, onUpdate, onNext, onPrevi
         <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 rounded-2xl p-6 lg:p-8 text-center shadow-sm">
           <h4 className="text-lg lg:text-xl font-bold text-green-800 mb-2 lg:mb-3">Almost Done!</h4>
           <p className="text-sm lg:text-base text-green-700 leading-relaxed max-w-md mx-auto">
-            You're all set! Click "Complete Setup" to start exploring properties and connecting with the Rentora community.
+            You&apos;re all set! Click &quote;Complete Setup&quote; to start exploring properties and connecting with the Rentora community.
           </p>
         </div>
       </div>

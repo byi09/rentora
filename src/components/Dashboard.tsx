@@ -1,14 +1,5 @@
-import {
-  HiCalendarDays,
-  HiMapPin,
-  HiCalculator,
-  HiChatBubbleLeftRight,
-  HiCreditCard,
-  HiDocumentText
-} from "react-icons/hi2";
 import PropertySearch from "./PropertySearch";
 import Catalog from "./home/Catalog";
-import { Button } from "./ui/button";
 import React from "react";
 
 function Dashboard() {

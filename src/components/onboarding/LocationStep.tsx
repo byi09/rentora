@@ -65,7 +65,7 @@ const LocationStep: React.FC<StepProps> = ({ data, onUpdate, onComplete, onPrevi
         <div className="bg-green-50 p-4 rounded-lg">
           <h4 className="font-medium text-green-900 mb-2">Almost done!</h4>
           <p className="text-sm text-green-800">
-            You're all set! Click "Complete Setup" to start exploring properties and connecting with others.
+            You&apos;re all set! Click &quot;Complete Setup&quot; to start exploring properties and connecting with others.
           </p>
         </div>
       </div>
