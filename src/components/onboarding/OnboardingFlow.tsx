@@ -166,7 +166,7 @@ const OnboardingFlow: React.FC = () => {
       </div>
       
       {/* Modal content - responsive height */}
-      <div className="relative bg-white/95 backdrop-blur-md rounded-3xl shadow-2xl border border-white/60 w-full max-w-2xl lg:max-w-4xl xl:max-w-5xl overflow-hidden max-h-[90vh] overflow-y-auto">
+      <div className="relative bg-white/95 backdrop-blur-md rounded-3xl shadow-2xl border border-white/60 w-full max-w-lg sm:max-w-xl md:max-w-2xl lg:max-w-4xl xl:max-w-5xl overflow-hidden max-h-[90vh] overflow-y-auto">
         {/* Header - Enhanced */}
         <div className="px-8 lg:px-12 pt-8 lg:pt-10 pb-6 lg:pb-8 text-center border-b border-gray-100 relative bg-white/90 backdrop-blur-sm">
           {/* Sign-out link */}
@@ -179,11 +179,11 @@ const OnboardingFlow: React.FC = () => {
 
           {/* Welcome message - Enhanced */}
           <div className="mb-6 lg:mb-8">
-            <h1 className="text-3xl lg:text-4xl xl:text-5xl font-bold mb-3 lg:mb-4 text-gray-800 leading-tight">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-3 sm:mb-4 text-gray-800 leading-tight">
               Welcome to Livaro!
             </h1>
-            <p className="text-lg lg:text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
-              Let&apos;s set up your profile to find the perfect rental for you
+            <p className="text-base sm:text-lg md:text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
+              Let&apos;s set up your profile to find the perfect rental or tenant for you
             </p>
           </div>
 
