@@ -109,9 +109,7 @@ const Header = ({ toggleSidebar, user }: HeaderProps) => {
                 </button>
               )}
               <Link href="/" className="flex items-center group">
-                <div className="w-10 h-10 mr-3 transition-transform duration-200 group-hover:scale-110 flex items-center justify-center">
-                  <img src="/logo.png" alt="Livaro Logo" className="w-8 h-8 object-contain" />
-                </div>
+                <img src="/logo.png" alt="Livaro Logo" className="w-9 h-9 mr-3 object-contain transition-transform duration-200 group-hover:scale-110" />
                 <span className="text-2xl font-bold text-white tracking-tight">Livaro</span>
               </Link>
             </div>
@@ -138,15 +136,13 @@ const Header = ({ toggleSidebar, user }: HeaderProps) => {
 
   // Header for logged in users (white style)
   return (
-    <header className="bg-white border-b border-gray-200 sticky top-0 z-50 w-full">
+    <header className="sticky top-0 z-50 w-full border-b border-gray-200 bg-white/70 backdrop-blur-md">
       <div className="w-full px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-20">
           {/* Logo */}
           <Link href="/" className="flex items-center">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 flex items-center justify-center">
-                <img src="/logo.png" alt="Livaro Logo" className="w-8 h-8 object-contain" />
-              </div>
+              <img src="/logo.png" alt="Livaro Logo" className="w-9 h-9 mr-3 object-contain transition-transform duration-200 group-hover:scale-110" />
               <span className="text-2xl font-bold text-gray-900">Livaro</span>
             </div>
           </Link>

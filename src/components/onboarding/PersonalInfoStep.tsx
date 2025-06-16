@@ -77,15 +77,15 @@ const PersonalInfoStep: React.FC<StepProps> = ({ data, onUpdate, onNext }) => {
   };
 
   return (
-    <div className="space-y-8 lg:space-y-10">
-      <div className="text-center mb-8 lg:mb-12">
+    <div className="space-y-6 md:space-y-8">
+      <div className="text-center mb-6 md:mb-8">
         <h3 className="text-2xl lg:text-3xl font-bold text-gray-800 mb-3 lg:mb-4">Tell us about yourself</h3>
         <p className="text-base lg:text-lg text-gray-600 max-w-md mx-auto leading-relaxed">
           We need some basic information to create your personalized profile
         </p>
       </div>
 
-      <div className="space-y-6 lg:space-y-8 max-w-2xl mx-auto">
+      <div className="space-y-5 md:space-y-6 max-w-2xl mx-auto">
         <div className="relative">
           <Label htmlFor="username" className="text-base lg:text-lg font-medium text-gray-700 mb-2 block">
             Username *
@@ -204,7 +204,7 @@ const PersonalInfoStep: React.FC<StepProps> = ({ data, onUpdate, onNext }) => {
         </div>
       </div>
 
-      <div className="flex justify-center pt-8 lg:pt-12">
+      <div className="flex justify-center pt-6 md:pt-8">
         <Button 
           onClick={handleNext} 
           className="h-12 lg:h-14 px-8 lg:px-12 text-base lg:text-lg font-semibold rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"

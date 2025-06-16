@@ -213,8 +213,8 @@ const OnboardingFlow: React.FC = () => {
           </div>
         </div>
 
-        {/* Step content - Much larger and better spaced */}
-        <div className="px-8 lg:px-12 xl:px-16 py-8 lg:py-12 xl:py-16 bg-white/90 backdrop-blur-sm min-h-[400px] lg:min-h-[500px] flex items-center">
+        {/* Step content - responsive spacing */}
+        <div className="px-5 sm:px-8 lg:px-12 xl:px-16 py-6 sm:py-8 lg:py-12 xl:py-16 bg-white/90 backdrop-blur-sm min-h-[360px] lg:min-h-[500px] flex items-center">
           <div className="w-full max-w-3xl mx-auto">
             <CurrentStepComponent
               data={data}
