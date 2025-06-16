@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import Footer from "./ui/Footer";
+
 import Header from "./ui/Header";
 import { createClient } from "@/utils/supabase/client";
 import type { User } from "@supabase/supabase-js";
@@ -15,8 +15,6 @@ interface ClientLayoutProps {
 interface UserWithUsername extends User {
   username?: string;
 }
-
-const excludeFooterPaths = ["/map", "/"];
 
 export default function ClientLayout({ children }: ClientLayoutProps) {
   const [user, setUser] = useState<UserWithUsername | null>(null);
@@ -103,8 +101,7 @@ export default function ClientLayout({ children }: ClientLayoutProps) {
 
       {children}
 
-      {/* Footer */}
-      {!excludeFooterPaths.includes(pathname) && <Footer />}
+      {/* Footer removed as per design update */}
     </div>
   );
 }

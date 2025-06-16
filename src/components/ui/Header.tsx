@@ -1,12 +1,14 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { HiUser, HiChevronDown, HiCog, HiChat} from 'react-icons/hi';
 import { HiArrowRightOnRectangle } from 'react-icons/hi2';
 import { createClient } from '@/utils/supabase/client';
 import type { User } from '@supabase/supabase-js';
 import dynamic from 'next/dynamic';
+import Spinner from '@/src/components/ui/Spinner';
+import { createRoot } from 'react-dom/client';
 
 interface UserWithUsername extends User {
   username?: string;
@@ -22,20 +24,30 @@ const NotificationBell = dynamic(() => import('@/src/components/ui/NotificationB
 const Header = ({ toggleSidebar, user }: HeaderProps) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const isScrolled = window.scrollY > 50;
+      setScrolled(isScrolled);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const handleSignOut = async () => {
     try {
       // Immediately show full-page loading overlay
-      const loadingOverlay = document.createElement('div');
-      loadingOverlay.id = 'signout-overlay';
-      loadingOverlay.className = 'fixed inset-0 bg-white z-[9999] flex items-center justify-center';
-      loadingOverlay.innerHTML = `
-        <div class="text-center">
-          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          <p class="mt-4 text-gray-600">Signing out...</p>
+      const container = document.createElement('div');
+      container.id = 'signout-overlay';
+      document.body.appendChild(container);
+      const root = createRoot(container);
+      root.render(
+        <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-white">
+          <Spinner size={32} label="Signing out…" />
         </div>
-      `;
-      document.body.appendChild(loadingOverlay);
+      );
       
       // Set signing out state to prevent header re-renders
       setIsSigningOut(true);
@@ -90,42 +102,29 @@ const Header = ({ toggleSidebar, user }: HeaderProps) => {
 
   // Different header styles based on user authentication
   if (!user) {
-    // Header for non-logged in users (dark glass style)
+    // Header for non-logged in users (transparent, transforms to dark on scroll)
     return (
-      <header className="sticky top-0 z-50 w-full">
-        <div className="absolute inset-0 bg-gray-900/90 backdrop-blur-md border-b border-gray-800"></div>
+      <header className={`fixed top-0 z-50 w-full transition-all duration-300 pointer-events-none select-none
+        ${scrolled ? 'bg-gray-900/90 text-white backdrop-blur-md shadow-lg border-b border-gray-800 pointer-events-auto select-auto' : 'bg-white/95 text-gray-900 shadow-sm border-b border-gray-200'}
+      `}>
         <div className="relative w-full px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-20">
             <div className="flex items-center">
-              {toggleSidebar && (
-                <button
-                  className="text-white p-1 focus:outline-none mr-2 md:hidden"
-                  onClick={toggleSidebar}
-                  aria-label="Toggle menu"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                  </svg>
-                </button>
-              )}
               <Link href="/" className="flex items-center group">
-                <img src="/logo.png" alt="Livaro Logo" className="w-9 h-9 mr-3 object-contain transition-transform duration-200 group-hover:scale-110" />
-                <span className="text-2xl font-bold text-white tracking-tight">Livaro</span>
+                <img src="/logo.png" alt="Livaro Logo" className="w-9 h-9 object-contain transition-transform duration-200 group-hover:scale-110" />
+                <span className="hidden sm:inline text-xl font-bold ml-2">Livaro</span>
               </Link>
             </div>
-
-            <div className="flex items-center space-x-3 pr-1">
+            <div className="flex items-center">
               <Link
                 href="/sign-in"
-                className="inline-flex items-center px-4 py-2.5 text-sm font-medium text-white hover:bg-gray-800 transition-colors duration-200 rounded-md"
+                className={`px-6 py-2 rounded-lg transition-all duration-200 font-medium border pointer-events-auto select-auto
+                  ${scrolled 
+                    ? 'bg-blue-600 text-white hover:bg-blue-700 border-blue-600' 
+                    : 'bg-blue-600 text-white hover:bg-blue-700 border-blue-600'}
+                `}
               >
                 Log in
-              </Link>
-              <Link
-                href="/sign-up"
-                className="inline-flex items-center px-4 py-2.5 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-all duration-200 focus:outline-none"
-              >
-                Sign Up
               </Link>
             </div>
           </div>
@@ -134,26 +133,30 @@ const Header = ({ toggleSidebar, user }: HeaderProps) => {
     );
   }
 
-  // Header for logged in users (white style)
+  // Header for logged in users (white style with scroll effect)
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-gray-200 bg-white/70 backdrop-blur-md">
+    <header className={`fixed top-0 z-50 w-full transition-all duration-300 ${
+      scrolled 
+        ? 'bg-gray-900/90 text-white backdrop-blur-md shadow-lg border-b border-gray-800' 
+        : 'bg-white/80 text-gray-900 backdrop-blur-sm border-b border-gray-200/50'
+    }`}>
       <div className="w-full px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-20">
           {/* Logo */}
           <Link href="/" className="flex items-center">
             <div className="flex items-center space-x-3">
               <img src="/logo.png" alt="Livaro Logo" className="w-9 h-9 mr-3 object-contain transition-transform duration-200 group-hover:scale-110" />
-              <span className="text-2xl font-bold text-gray-900">Livaro</span>
+              <span className="text-2xl font-bold">Livaro</span>
             </div>
           </Link>
 
           {/* Navigation */}
           <nav className="hidden md:flex items-center space-x-10">
           
-            <Link href="/map" className="text-gray-700 hover:text-gray-900 font-medium transition-colors text-base">
+            <Link href="/map" className={`font-medium transition-colors text-base ${scrolled ? 'text-gray-100 hover:text-white' : 'text-gray-700 hover:text-gray-900'}`}>
               Rent
             </Link>
-            <Link href="/sell" className="text-gray-700 hover:text-gray-900 font-medium transition-colors text-base">
+            <Link href="/sell" className={`font-medium transition-colors text-base ${scrolled ? 'text-gray-100 hover:text-white' : 'text-gray-700 hover:text-gray-900'}`}>
               Upload Property
             </Link>
           </nav>

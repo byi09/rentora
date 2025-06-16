@@ -3,24 +3,31 @@ import React from 'react';
 interface SpinnerProps {
   /** Diameter in pixels */
   size?: number;
-  /** Tailwind color class or hex string (applied to border-t color) */
+  /** Tailwind color class or hex string (applied to border-top) */
   colorClass?: string;
-  /** Additional classes */
+  /** Optional text shown next to the spinner */
+  label?: string;
+  /** Extra classes */
   className?: string;
 }
 
 /**
- * Reusable loading spinner built purely with CSS so it needs no extra assets.
- * Defaults to a 32 px blue spinner but can be resized / recoloured.
+ * Re-usable CSS spinner.
+ * Use <Spinner /> or <Spinner label="Loading000" />
  */
-const Spinner: React.FC<SpinnerProps> = ({ size = 32, colorClass = 'border-blue-600', className = '' }) => {
+export default function Spinner({
+  size = 32,
+  colorClass = 'border-blue-600',
+  label,
+  className = '',
+}: SpinnerProps) {
   return (
-    <div
-      role="status"
-      className={`inline-block animate-spin rounded-full border-2 border-solid border-transparent border-t-current ${colorClass} ${className}`.trim()}
-      style={{ width: size, height: size, color: 'currentColor' }}
-    />
+    <span className={`inline-flex items-center gap-2 ${className}`.trim()} role="status">
+      <span
+        className={`animate-spin rounded-full border-2 border-solid border-transparent border-t-current ${colorClass}`}
+        style={{ width: size, height: size }}
+      />
+      {label && <span className="text-sm text-gray-600">{label}</span>}
+    </span>
   );
-};
-
-export default Spinner; 
+} 
