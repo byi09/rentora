@@ -5,6 +5,8 @@ import { createClient } from '@/utils/supabase/client';
 import { useToast } from '@/src/components/ui/Toast';
 import InteractiveProgressBar from '@/src/components/ui/InteractiveProgressBar';
 
+/* eslint-disable @next/next/no-img-element */
+
 interface UploadedFile {
   file: File;
   url?: string | null;
@@ -182,16 +184,6 @@ export default function MediaPage() {
           return photo;
         }));
 
-        // Add to existing images list
-        const newImage: ExistingImage = {
-          id: '', // Will be set when we refetch
-          s3_key: s3Key,
-          image_order: existingImages.length + i,
-          alt_text: `Property photo ${existingImages.length + i + 1}`,
-          is_primary: existingImages.length === 0 && i === 0,
-          url: publicUrl
-        };
-        
         // Refresh existing images from database to get the correct ID
         const supabaseRefresh = createClient();
         const { data: refreshedImages } = await supabaseRefresh
