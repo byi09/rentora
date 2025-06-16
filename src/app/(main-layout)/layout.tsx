@@ -1,5 +1,7 @@
 import { createClient } from '@/utils/supabase/server';
 import ClientLayout from "@/src/components/ClientLayout";
+import { Analytics } from "@vercel/analytics/next"
+
 
 export default async function MainLayout({
   children,
