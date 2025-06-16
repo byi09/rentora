@@ -15,6 +15,7 @@ export default async function MainLayout({
   return (
     <ClientLayout>
       {children}
+      <Analytics />
     </ClientLayout>
   );
 }
