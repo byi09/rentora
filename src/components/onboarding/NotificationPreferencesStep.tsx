@@ -14,15 +14,15 @@ interface ToggleRowProps {
 }
 
 const ToggleRow: React.FC<ToggleRowProps> = ({ label, description, email, push, disablePush, onChange }) => (
-  <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 lg:p-6 border border-gray-100 shadow-sm">
-    <div className="mb-4">
-      <h4 className="text-base lg:text-lg font-semibold text-gray-900 mb-1">{label}</h4>
-      <p className="text-sm text-gray-600 leading-relaxed">{description}</p>
+  <div className="bg-white/80 backdrop-blur-sm rounded-lg p-3 lg:p-4 border border-gray-100 shadow-sm">
+    <div className="mb-3">
+      <h4 className="text-sm lg:text-base font-semibold text-gray-900 mb-1">{label}</h4>
+      <p className="text-xs lg:text-sm text-gray-600 leading-relaxed">{description}</p>
     </div>
     
-    <div className="space-y-3">
+    <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <span className="text-sm lg:text-base font-medium text-gray-700">Email notifications</span>
+        <span className="text-xs lg:text-sm font-medium text-gray-700">Email notifications</span>
         <Switch 
           checked={email} 
           onCheckedChange={(v) => onChange('email', v)}
@@ -31,7 +31,7 @@ const ToggleRow: React.FC<ToggleRowProps> = ({ label, description, email, push, 
       </div>
       
       <div className="flex items-center justify-between">
-        <span className={`text-sm lg:text-base font-medium ${
+        <span className={`text-xs lg:text-sm font-medium ${
           disablePush ? 'text-gray-400' : 'text-gray-700'
         }`}>
           SMS notifications
@@ -94,15 +94,15 @@ const NotificationPreferencesStep: React.FC<StepProps> = ({ data, onUpdate, onNe
   ];
 
   return (
-    <div className="space-y-6 lg:space-y-8">
-      <div className="text-center mb-6 lg:mb-8">
-        <h3 className="text-2xl lg:text-3xl font-bold text-gray-800 mb-3 lg:mb-4">Notification Preferences</h3>
-        <p className="text-base lg:text-lg text-gray-600 max-w-lg mx-auto leading-relaxed">
+    <div className="space-y-4 lg:space-y-5">
+      <div className="text-center mb-4 lg:mb-5">
+        <h3 className="text-lg lg:text-xl font-bold text-gray-800 mb-2 lg:mb-3">Notification Preferences</h3>
+        <p className="text-sm lg:text-base text-gray-600 max-w-lg mx-auto leading-relaxed">
           Choose how you&apos;d like to stay updated with the latest property information and platform news
         </p>
       </div>
 
-      <div className="max-w-2xl mx-auto space-y-4 lg:space-y-6">
+      <div className="max-w-xl mx-auto space-y-3 lg:space-y-4">
         {notificationTypes.map((type) => (
           <ToggleRow
             key={type.key}
@@ -116,18 +116,18 @@ const NotificationPreferencesStep: React.FC<StepProps> = ({ data, onUpdate, onNe
         ))}
       </div>
 
-      <div className="flex justify-between items-center pt-6 lg:pt-8 max-w-md mx-auto">
+      <div className="flex justify-between items-center pt-4 lg:pt-5 max-w-lg mx-auto">
         <Button 
           variant="outline" 
           onClick={onPrevious}
-          className="h-12 lg:h-14 px-6 lg:px-8 text-base lg:text-lg font-medium rounded-xl border-2 hover:bg-gray-50 transition-all duration-200"
+          className="h-9 md:h-10 lg:h-11 px-4 lg:px-6 text-sm lg:text-base font-medium rounded-lg border-2 hover:bg-gray-50 transition-all duration-200"
         >
           <span className="mr-2">←</span>
           Back
         </Button>
         <Button 
           onClick={handleNext}
-          className="h-12 lg:h-14 px-8 lg:px-12 text-base lg:text-lg font-semibold rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
+          className="h-9 md:h-10 lg:h-11 px-6 lg:px-8 text-sm lg:text-base font-semibold rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105"
         >
           Continue
           <span className="ml-2">→</span>

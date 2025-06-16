@@ -166,37 +166,37 @@ const OnboardingFlow: React.FC = () => {
       </div>
       
       {/* Modal content - responsive height */}
-      <div className="relative bg-white/95 backdrop-blur-md rounded-3xl shadow-2xl border border-white/60 w-full max-w-lg sm:max-w-xl md:max-w-2xl lg:max-w-4xl xl:max-w-5xl overflow-hidden max-h-[90vh] overflow-y-auto">
+      <div className="relative bg-white/95 backdrop-blur-md rounded-3xl shadow-2xl border border-white/60 w-full max-w-md sm:max-w-lg md:max-w-xl lg:max-w-2xl xl:max-w-3xl overflow-hidden max-h-[85vh] overflow-y-auto">
         {/* Header - Enhanced */}
-        <div className="px-6 lg:px-8 pt-4 lg:pt-6 pb-4 lg:pb-6 text-center border-b border-gray-100 relative bg-white/90 backdrop-blur-sm">
+        <div className="px-4 sm:px-6 lg:px-8 pt-3 sm:pt-4 lg:pt-5 pb-3 sm:pb-4 lg:pb-5 text-center border-b border-gray-100 relative bg-white/90 backdrop-blur-sm">
           {/* Sign-out link */}
           <button
             onClick={handleSignOut}
-            className="absolute right-6 lg:right-8 top-6 lg:top-8 text-sm text-gray-500 hover:text-red-600 focus:outline-none transition-colors font-medium"
+            className="absolute right-4 sm:right-6 lg:right-8 top-4 sm:top-6 lg:top-8 text-sm text-gray-500 hover:text-red-600 focus:outline-none transition-colors font-medium"
           >
             Sign out
           </button>
 
           {/* Welcome message - Enhanced */}
-          <div className="mb-4 lg:mb-6">
-            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-3 sm:mb-4 text-gray-800 leading-tight">
+          <div className="mb-3 sm:mb-4 lg:mb-5">
+            <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold mb-2 sm:mb-3 text-gray-800 leading-tight">
               Welcome to Livaro!
             </h1>
-            <p className="text-base sm:text-lg md:text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
+            <p className="text-sm sm:text-base md:text-lg text-gray-600 max-w-xl mx-auto leading-relaxed">
               Let&apos;s set up your profile to find the perfect rental or tenant for you
             </p>
           </div>
 
           {/* Step info - Enhanced */}
-          <div className="flex justify-between items-center text-sm lg:text-base mb-3 text-gray-600 font-medium max-w-md mx-auto">
+          <div className="flex justify-between items-center text-xs sm:text-sm lg:text-base mb-2 sm:mb-3 text-gray-600 font-medium max-w-sm mx-auto">
             <span>{`Step ${stepNumber} of ${steps.length}`}</span>
             <span>{Math.round(progress)}% complete</span>
           </div>
 
           {/* Progress bar - Enhanced */}
-          <div className="w-full max-w-md mx-auto bg-gray-200 rounded-full h-2 lg:h-3 shadow-inner">
+          <div className="w-full max-w-sm mx-auto bg-gray-200 rounded-full h-1.5 sm:h-2 lg:h-3 shadow-inner">
             <div
-              className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 h-2 lg:h-3 rounded-full transition-all duration-700 ease-out shadow-lg relative overflow-hidden"
+              className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 h-1.5 sm:h-2 lg:h-3 rounded-full transition-all duration-700 ease-out shadow-lg relative overflow-hidden"
               style={{ width: `${progress}%` }}
             >
               {/* Animated shine effect */}
@@ -205,17 +205,17 @@ const OnboardingFlow: React.FC = () => {
           </div>
 
           {/* Section label - Enhanced */}
-          <div className="mt-4 lg:mt-6">
-            <h2 className="text-xl lg:text-2xl font-semibold text-gray-800 mb-2">
+          <div className="mt-3 sm:mt-4 lg:mt-5">
+            <h2 className="text-lg sm:text-xl lg:text-2xl font-semibold text-gray-800 mb-1 sm:mb-2">
               {steps[currentStep].label}
             </h2>
-            <div className="w-16 h-1 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full mx-auto"></div>
+            <div className="w-12 sm:w-16 h-0.5 sm:h-1 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full mx-auto"></div>
           </div>
         </div>
 
         {/* Step content - responsive spacing */}
-        <div className="px-5 sm:px-8 lg:px-12 xl:px-16 py-4 sm:py-6 lg:py-8 xl:py-12 bg-white/90 backdrop-blur-sm min-h-[280px] lg:min-h-[400px] flex items-center">
-          <div className="w-full max-w-3xl mx-auto">
+        <div className="px-4 sm:px-6 lg:px-8 xl:px-12 py-3 sm:py-4 lg:py-6 xl:py-8 bg-white/90 backdrop-blur-sm min-h-[240px] lg:min-h-[320px] flex items-center">
+          <div className="w-full max-w-2xl mx-auto">
             <CurrentStepComponent
               data={data}
               onUpdate={handleUpdate}

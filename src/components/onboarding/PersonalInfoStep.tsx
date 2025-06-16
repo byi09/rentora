@@ -77,17 +77,17 @@ const PersonalInfoStep: React.FC<StepProps> = ({ data, onUpdate, onNext }) => {
   };
 
   return (
-    <div className="space-y-6 md:space-y-8">
-      <div className="text-center mb-4 md:mb-6">
-        <h3 className="text-xl md:text-2xl font-bold text-gray-800 mb-2 md:mb-3">Tell us about yourself</h3>
-        <p className="text-base lg:text-lg text-gray-600 max-w-md mx-auto leading-relaxed">
+    <div className="space-y-4 md:space-y-5">
+      <div className="text-center mb-3 md:mb-4">
+        <h3 className="text-lg md:text-xl font-bold text-gray-800 mb-1 md:mb-2">Tell us about yourself</h3>
+        <p className="text-sm md:text-base text-gray-600 max-w-md mx-auto leading-relaxed">
           We need some basic information to create your personalized profile
         </p>
       </div>
 
-      <div className="space-y-4 md:space-y-5 max-w-2xl mx-auto">
+      <div className="space-y-3 md:space-y-4 max-w-xl mx-auto">
         <div className="relative">
-          <Label htmlFor="username" className="text-base lg:text-lg font-medium text-gray-700 mb-2 block">
+          <Label htmlFor="username" className="text-sm md:text-base font-medium text-gray-700 mb-1.5 block">
             Username *
           </Label>
           <div className="relative">
@@ -97,29 +97,29 @@ const PersonalInfoStep: React.FC<StepProps> = ({ data, onUpdate, onNext }) => {
               onChange={(e) => handleInputChange("username", e.target.value)}
               placeholder="Choose a unique username"
               className={cn(
-                "h-12 lg:h-14 text-base lg:text-lg px-4 lg:px-5 rounded-xl border-2 transition-all duration-200 focus:ring-4 focus:ring-blue-100",
+                "h-9 md:h-10 lg:h-11 text-sm md:text-base px-3 md:px-4 rounded-lg border-2 transition-all duration-200 focus:ring-2 focus:ring-blue-100",
                 errors.username 
                   ? "border-red-400 focus:border-red-500" 
                   : "border-gray-200 focus:border-blue-500 hover:border-gray-300"
               )}
             />
             {checkingUsername && (
-              <div className="absolute right-4 top-1/2 -translate-y-1/2">
-                <Spinner size={20} />
+              <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                <Spinner size={16} />
               </div>
             )}
           </div>
           {errors.username && (
-            <p className="text-sm lg:text-base text-red-500 mt-2 flex items-center">
+            <p className="text-xs md:text-sm text-red-500 mt-1.5 flex items-center">
               <span className="mr-1">!</span>
               {errors.username}
             </p>
           )}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
           <div>
-            <Label htmlFor="firstName" className="text-base lg:text-lg font-medium text-gray-700 mb-2 block">
+            <Label htmlFor="firstName" className="text-sm md:text-base font-medium text-gray-700 mb-1.5 block">
               First Name *
             </Label>
             <Input
@@ -128,21 +128,21 @@ const PersonalInfoStep: React.FC<StepProps> = ({ data, onUpdate, onNext }) => {
               onChange={(e) => handleInputChange("firstName", e.target.value)}
               placeholder="Enter your first name"
               className={cn(
-                "h-12 lg:h-14 text-base lg:text-lg px-4 lg:px-5 rounded-xl border-2 transition-all duration-200 focus:ring-4 focus:ring-blue-100",
+                "h-9 md:h-10 lg:h-11 text-sm md:text-base px-3 md:px-4 rounded-lg border-2 transition-all duration-200 focus:ring-2 focus:ring-blue-100",
                 errors.firstName 
                   ? "border-red-400 focus:border-red-500" 
                   : "border-gray-200 focus:border-blue-500 hover:border-gray-300"
               )}
             />
             {errors.firstName && (
-              <p className="text-sm lg:text-base text-red-500 mt-2 flex items-center">
+              <p className="text-xs md:text-sm text-red-500 mt-1.5 flex items-center">
                 <span className="mr-1">!</span>
                 {errors.firstName}
               </p>
             )}
           </div>
           <div>
-            <Label htmlFor="lastName" className="text-base lg:text-lg font-medium text-gray-700 mb-2 block">
+            <Label htmlFor="lastName" className="text-sm md:text-base font-medium text-gray-700 mb-1.5 block">
               Last Name *
             </Label>
             <Input
@@ -151,14 +151,14 @@ const PersonalInfoStep: React.FC<StepProps> = ({ data, onUpdate, onNext }) => {
               onChange={(e) => handleInputChange("lastName", e.target.value)}
               placeholder="Enter your last name"
               className={cn(
-                "h-12 lg:h-14 text-base lg:text-lg px-4 lg:px-5 rounded-xl border-2 transition-all duration-200 focus:ring-4 focus:ring-blue-100",
+                "h-9 md:h-10 lg:h-11 text-sm md:text-base px-3 md:px-4 rounded-lg border-2 transition-all duration-200 focus:ring-2 focus:ring-blue-100",
                 errors.lastName 
                   ? "border-red-400 focus:border-red-500" 
                   : "border-gray-200 focus:border-blue-500 hover:border-gray-300"
               )}
             />
             {errors.lastName && (
-              <p className="text-sm lg:text-base text-red-500 mt-2 flex items-center">
+              <p className="text-xs md:text-sm text-red-500 mt-1.5 flex items-center">
                 <span className="mr-1">!</span>
                 {errors.lastName}
               </p>
@@ -167,7 +167,7 @@ const PersonalInfoStep: React.FC<StepProps> = ({ data, onUpdate, onNext }) => {
         </div>
 
         <div>
-          <Label className="text-base lg:text-lg font-medium text-gray-700 mb-2 block">
+          <Label className="text-sm md:text-base font-medium text-gray-700 mb-1.5 block">
             Date of Birth *
           </Label>
           <div className="relative w-full">
@@ -187,16 +187,16 @@ const PersonalInfoStep: React.FC<StepProps> = ({ data, onUpdate, onNext }) => {
               dropdownMode="select"
               wrapperClassName="w-full"
               className={cn(
-                "w-full h-12 lg:h-14 text-base lg:text-lg px-4 lg:px-5 rounded-xl border-2 transition-all duration-200 focus:ring-4 focus:ring-blue-100",
+                "w-full h-9 md:h-10 lg:h-11 text-sm md:text-base px-3 md:px-4 rounded-lg border-2 transition-all duration-200 focus:ring-2 focus:ring-blue-100",
                 errors.dateOfBirth 
                   ? "border-red-400 focus:border-red-500" 
                   : "border-gray-200 focus:border-blue-500 hover:border-gray-300"
               )}
             />
-            <CalendarIcon className="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 lg:h-6 lg:w-6 text-gray-400 pointer-events-none" />
+            <CalendarIcon className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 md:h-5 md:w-5 text-gray-400 pointer-events-none" />
           </div>
           {errors.dateOfBirth && (
-            <p className="text-sm lg:text-base text-red-500 mt-2 flex items-center">
+            <p className="text-xs md:text-sm text-red-500 mt-1.5 flex items-center">
               <span className="mr-1">!</span>
               {errors.dateOfBirth}
             </p>
@@ -204,15 +204,15 @@ const PersonalInfoStep: React.FC<StepProps> = ({ data, onUpdate, onNext }) => {
         </div>
       </div>
 
-      <div className="flex justify-center pt-6 md:pt-8">
+      <div className="flex justify-center pt-4 md:pt-5">
         <Button 
           onClick={handleNext} 
-          className="h-12 lg:h-14 px-8 lg:px-12 text-base lg:text-lg font-semibold rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
+          className="h-9 md:h-10 lg:h-11 px-6 md:px-8 text-sm md:text-base font-semibold rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105"
           disabled={checkingUsername}
         >
           {checkingUsername ? (
             <>
-              <Spinner size={20} className="mr-2" />
+              <Spinner size={16} className="mr-2" />
               Checking...
             </>
           ) : (
