@@ -7,13 +7,12 @@ export default async function MainLayout({
   children: React.ReactNode;
 }) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+
+  await supabase.auth.getUser();
 
   return (
     <ClientLayout>
       {children}
     </ClientLayout>
   );
-} 
+}

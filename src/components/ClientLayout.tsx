@@ -12,22 +12,43 @@ interface ClientLayoutProps {
   children: React.ReactNode;
 }
 
+interface UserWithUsername extends User {
+  username?: string;
+}
+
 const excludeFooterPaths = ["/map"];
 
 export default function ClientLayout({ children }: ClientLayoutProps) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<UserWithUsername | null>(null);
   const [loading, setLoading] = useState(true);
   const pathname = usePathname();
 
   useEffect(() => {
     const supabase = createClient();
 
-    // Get initial user
+    // Get initial user with username
     const getUser = async () => {
       const {
         data: { user }
       } = await supabase.auth.getUser();
-      setUser(user);
+      
+      if (user) {
+        // Fetch username from profile API
+        try {
+          const response = await fetch('/api/profile');
+          if (response.ok) {
+            const profile = await response.json();
+            setUser({ ...user, username: profile.username });
+          } else {
+            setUser(user);
+          }
+        } catch (error) {
+          console.error('Error fetching username:', error);
+          setUser(user);
+        }
+      } else {
+        setUser(null);
+      }
       setLoading(false);
     };
 
@@ -36,8 +57,24 @@ export default function ClientLayout({ children }: ClientLayoutProps) {
     // Listen for auth changes
     const {
       data: { subscription }
-    } = supabase.auth.onAuthStateChange((event, session) => {
-      setUser(session?.user ?? null);
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session?.user) {
+        // Fetch username for new session
+        try {
+          const response = await fetch('/api/profile');
+          if (response.ok) {
+            const profile = await response.json();
+            setUser({ ...session.user, username: profile.username });
+          } else {
+            setUser(session.user);
+          }
+        } catch (error) {
+          console.error('Error fetching username:', error);
+          setUser(session.user);
+        }
+      } else {
+        setUser(null);
+      }
       setLoading(false);
     });
 

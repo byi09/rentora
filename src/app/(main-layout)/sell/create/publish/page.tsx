@@ -352,7 +352,7 @@ export default function PublishPage() {
         <div className="max-w-4xl mx-auto">
           {/* What's Unique Section */}
           <section className="mb-12">
-            <h2 className="text-2xl font-semibold text-blue-700 mb-4">What's Unique</h2>
+            <h2 className="text-2xl font-semibold text-blue-700 mb-4">What&apos;s Unique</h2>
             <p className="text-lg mb-2">
               {listing?.listing_title || `${propertyData.property_type.charAt(0).toUpperCase() + propertyData.property_type.slice(1)} for Rent`}
             </p>

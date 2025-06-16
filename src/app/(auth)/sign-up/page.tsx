@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { signUpNewUser } from '@/utils/supabase/actions';
 import { useState } from 'react';
 import { createClient } from '@/utils/supabase/client';
-import { useRouter } from 'next/navigation';
 
 // Password validation utility
 const validatePassword = (password: string) => {
@@ -28,7 +27,7 @@ export default function SignUpPage() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPasswordRequirements, setShowPasswordRequirements] = useState(false);
-  const router = useRouter();
+  
 
   const { requirements, isValid: isPasswordValid } = validatePassword(password);
   const passwordsMatch = password === confirmPassword;
@@ -63,7 +62,7 @@ export default function SignUpPage() {
     
     try {
       await signUpNewUser(formData);
-    } catch (error) {
+    } catch {
       setLoading(false);
       setErrorMessage('An error occurred during sign up. Please try again.');
     }
@@ -187,9 +186,9 @@ export default function SignUpPage() {
           </div>
           <button 
             type="submit" 
-            disabled={loading || (password && !isPasswordValid) || (confirmPassword && !passwordsMatch)}
+            disabled={loading || !!(password && !isPasswordValid) || !!(confirmPassword && !passwordsMatch)}
             className={`w-full font-semibold py-3 px-4 rounded mt-2 transition-all duration-200 ${
-              loading || (password && !isPasswordValid) || (confirmPassword && !passwordsMatch)
+              loading || !!(password && !isPasswordValid) || !!(confirmPassword && !passwordsMatch)
                 ? 'bg-gray-400 cursor-not-allowed text-white'
                 : 'bg-blue-600 hover:bg-blue-700 text-white'
             }`}
@@ -205,7 +204,7 @@ export default function SignUpPage() {
         </div>
         <div className="mt-6 text-center">
           <p className="text-xs text-gray-500">
-            By submitting, I accept Rentora's <a href="/terms" className="text-blue-600 hover:text-blue-800">terms of use</a>
+            By submitting, I accept Rentora&apos;s <a href="/terms" className="text-blue-600 hover:text-blue-800">terms of use</a>
           </p>
         </div>
       </div>

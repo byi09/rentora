@@ -36,7 +36,7 @@ export default function PropertyDashboard() {
       // TODO: Replace with actual user's landlord_id from auth
       const landlordId = 'b7ee8ae5-686c-48a7-9a45-df7fb9b2ab3f';
 
-      const { data, error } = await supabase
+      const {error } = await supabase
         .from('properties')
         .select(`
           id,

@@ -8,11 +8,14 @@ import { createClient } from '@/utils/supabase/client';
 import { useRouter } from 'next/navigation';
 import type { User } from '@supabase/supabase-js';
 import dynamic from 'next/dynamic';
-import { useProfile } from '@/src/hooks/useProfile';
+
+interface UserWithUsername extends User {
+  username?: string;
+}
 
 interface HeaderProps {
   toggleSidebar?: () => void;
-  user?: User | null;
+  user?: UserWithUsername | null;
 }
 
 const NotificationBell = dynamic(() => import('@/src/components/ui/NotificationBell'), { ssr: false });
@@ -21,7 +24,6 @@ const Header = ({ toggleSidebar, user }: HeaderProps) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
   const router = useRouter();
-  const { profile } = useProfile();
 
   const handleSignOut = async () => {
     try {
@@ -80,6 +82,14 @@ const Header = ({ toggleSidebar, user }: HeaderProps) => {
     return null;
   }
 
+  // Get display name - prioritize username from user, then fallback to user metadata
+  const getDisplayName = () => {
+    if (user?.username) {
+      return user.username;
+    }
+    return user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User';
+  };
+
   // Different header styles based on user authentication
   if (!user) {
     // Header for non-logged in users (dark glass style)
@@ -127,14 +137,6 @@ const Header = ({ toggleSidebar, user }: HeaderProps) => {
       </header>
     );
   }
-
-  // Get display name - prioritize username from profile, then fallback to user metadata
-  const getDisplayName = () => {
-    if (profile?.username) {
-      return profile.username;
-    }
-    return user.user_metadata?.full_name || user.email?.split('@')[0] || 'User';
-  };
 
   // Header for logged in users (white style)
   return (
