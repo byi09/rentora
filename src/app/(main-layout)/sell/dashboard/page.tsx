@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
+import Spinner from '@/src/components/ui/Spinner';
 
 interface PropertyListing {
   id: string;
@@ -315,7 +316,7 @@ export default function PropertyDashboard() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <Spinner size={48} className="mx-auto text-blue-600" />
           <p className="mt-4 text-gray-600">Loading your properties...</p>
         </div>
       </div>
@@ -464,7 +465,7 @@ export default function PropertyDashboard() {
                           </p>
                           <p className="text-xs text-blue-600 font-medium mt-1 flex items-center gap-1">
                             {clickingPropertyId === property.id && (
-                              <div className="w-3 h-3 border border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                              <Spinner size={12} colorClass="border-blue-600" />
                             )}
                             {clickingPropertyId === property.id ? 'Loading...' : getActionText(property)}
                           </p>

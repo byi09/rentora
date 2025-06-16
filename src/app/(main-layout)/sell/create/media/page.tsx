@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import { useToast } from '@/src/components/ui/Toast';
 import InteractiveProgressBar from '@/src/components/ui/InteractiveProgressBar';
+import Spinner from '@/src/components/ui/Spinner';
 
 /* eslint-disable @next/next/no-img-element */
 
@@ -372,7 +373,7 @@ export default function MediaPage() {
             {/* Loading State */}
             {loading && (
               <div className="flex items-center justify-center py-4">
-                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                <Spinner size={24} className="text-blue-600" />
                 <span className="ml-2 text-sm text-gray-600">Loading existing images...</span>
               </div>
             )}
@@ -424,7 +425,7 @@ export default function MediaPage() {
                           title="Delete image"
                         >
                           {deleting === image.id ? (
-                            <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin"></div>
+                            <Spinner size={12} colorClass="border-white" />
                           ) : (
                             '×'
                           )}
