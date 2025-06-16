@@ -9,7 +9,12 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "Livaro - Student Renting Made Social",
   description:
-    "Find your perfect student housing with Livaro. Connect with fellow students and find your ideal living space."
+    "Find your perfect student housing with Livaro. Connect with fellow students and find your ideal living space.",
+  icons: {
+    icon: "/favicon.ico",
+    shortcut: "/favicon.ico",
+    apple: "/favicon.ico",
+  },
 };
 
 export const viewport = {

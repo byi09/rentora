@@ -165,8 +165,8 @@ const OnboardingFlow: React.FC = () => {
         <div className="absolute inset-0 bg-white/15 backdrop-blur-sm"></div>
       </div>
       
-      {/* Modal content - Much larger now */}
-      <div className="relative bg-white/95 backdrop-blur-md rounded-3xl shadow-2xl border border-white/60 w-full max-w-2xl lg:max-w-4xl xl:max-w-5xl overflow-hidden">
+      {/* Modal content - responsive height */}
+      <div className="relative bg-white/95 backdrop-blur-md rounded-3xl shadow-2xl border border-white/60 w-full max-w-2xl lg:max-w-4xl xl:max-w-5xl overflow-hidden max-h-[90vh] overflow-y-auto">
         {/* Header - Enhanced */}
         <div className="px-8 lg:px-12 pt-8 lg:pt-10 pb-6 lg:pb-8 text-center border-b border-gray-100 relative bg-white/90 backdrop-blur-sm">
           {/* Sign-out link */}
