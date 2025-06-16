@@ -12,6 +12,17 @@ interface UploadedFile {
   error?: string;
 }
 
+interface ExistingImage {
+  id: string;
+  s3_key: string;
+  image_order: number;
+  alt_text?: string;
+  is_primary: boolean;
+  image_type?: string;
+  room_type?: string;
+  url: string;
+}
+
 export default function MediaPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -19,8 +30,11 @@ export default function MediaPage() {
   const { success, error: showError } = useToast();
   
   const [photos, setPhotos] = useState<UploadedFile[]>([]);
+  const [existingImages, setExistingImages] = useState<ExistingImage[]>([]);
   const [tourFile, setTourFile] = useState<UploadedFile | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [deleting, setDeleting] = useState<string | null>(null);
 
   // Initialize Supabase Storage buckets
   useEffect(() => {
@@ -44,6 +58,51 @@ export default function MediaPage() {
 
     initializeStorage();
   }, []);
+
+  // Load existing images from database
+  useEffect(() => {
+    const loadExistingImages = async () => {
+      if (!propertyId) return;
+      
+      try {
+        const supabase = createClient();
+        
+        // Fetch existing images
+        const { data: images, error } = await supabase
+          .from('property_images')
+          .select('*')
+          .eq('property_id', propertyId)
+          .order('image_order', { ascending: true });
+
+        if (error) {
+          console.error('Error loading existing images:', error);
+          showError('Failed to load existing images', error.message);
+          return;
+        }
+
+        // Generate public URLs for existing images
+        const imagesWithUrls = images?.map(image => {
+          const { data: { publicUrl } } = supabase.storage
+            .from('property-images')
+            .getPublicUrl(image.s3_key);
+          
+          return {
+            ...image,
+            url: publicUrl
+          };
+        }) || [];
+
+        setExistingImages(imagesWithUrls);
+      } catch (error) {
+        console.error('Unexpected error loading images:', error);
+        showError('Failed to load images', 'An unexpected error occurred');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadExistingImages();
+  }, [propertyId, showError]);
 
   const uploadFile = async (file: File, bucketName: string, folder: string): Promise<{ publicUrl: string; s3Key: string } | null> => {
     try {
@@ -123,6 +182,38 @@ export default function MediaPage() {
           return photo;
         }));
 
+        // Add to existing images list
+        const newImage: ExistingImage = {
+          id: '', // Will be set when we refetch
+          s3_key: s3Key,
+          image_order: existingImages.length + i,
+          alt_text: `Property photo ${existingImages.length + i + 1}`,
+          is_primary: existingImages.length === 0 && i === 0,
+          url: publicUrl
+        };
+        
+        // Refresh existing images from database to get the correct ID
+        const supabaseRefresh = createClient();
+        const { data: refreshedImages } = await supabaseRefresh
+          .from('property_images')
+          .select('*')
+          .eq('property_id', propertyId)
+          .order('image_order', { ascending: true });
+
+        if (refreshedImages) {
+          const imagesWithUrls = refreshedImages.map(image => {
+            const { data: { publicUrl } } = supabaseRefresh.storage
+              .from('property-images')
+              .getPublicUrl(image.s3_key);
+            
+            return {
+              ...image,
+              url: publicUrl
+            };
+          });
+          setExistingImages(imagesWithUrls);
+        }
+
         success('Image uploaded successfully!');
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Upload failed';
@@ -139,7 +230,8 @@ export default function MediaPage() {
     }
 
     setUploading(false);
-    // Clear the input
+    // Clear the uploaded photos list and input after successful upload
+    setPhotos([]);
     e.target.value = '';
   };
 
@@ -184,6 +276,44 @@ export default function MediaPage() {
 
   const removeTour = () => {
     setTourFile(null);
+  };
+
+  const deleteExistingImage = async (imageId: string, s3Key: string) => {
+    try {
+      setDeleting(imageId);
+      const supabase = createClient();
+
+      // Delete from storage
+      const { error: storageError } = await supabase.storage
+        .from('property-images')
+        .remove([s3Key]);
+
+      if (storageError) {
+        console.error('Error deleting from storage:', storageError);
+        // Continue with database deletion even if storage fails
+      }
+
+      // Delete from database
+      const { error: dbError } = await supabase
+        .from('property_images')
+        .delete()
+        .eq('id', imageId);
+
+      if (dbError) {
+        console.error('Error deleting from database:', dbError);
+        throw new Error('Failed to delete image record');
+      }
+
+      // Update local state
+      setExistingImages(prev => prev.filter(img => img.id !== imageId));
+      success('Image deleted successfully');
+      
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to delete image';
+      showError('Delete failed', errorMessage);
+    } finally {
+      setDeleting(null);
+    }
   };
 
   // Redirect if no property ID
@@ -247,10 +377,90 @@ export default function MediaPage() {
               </p>
             </div>
 
-            {/* Uploaded Photos */}
+            {/* Loading State */}
+            {loading && (
+              <div className="flex items-center justify-center py-4">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                <span className="ml-2 text-sm text-gray-600">Loading existing images...</span>
+              </div>
+            )}
+
+            {/* Empty State */}
+            {!loading && existingImages.length === 0 && photos.length === 0 && (
+              <div className="text-center py-6">
+                <svg className="mx-auto h-12 w-12 text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 48 48">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6 6l-3.5 3.5a2 2 0 01-2.83 0L4 20m16 20l4.586-4.586a2 2 0 012.828 0L32 40m-2-2l1.586-1.586a2 2 0 012.828 0L36 34m-6 6l-3.5 3.5a2 2 0 01-2.83 0L20 36"/>
+                </svg>
+                <p className="text-sm text-gray-500">No images uploaded yet</p>
+                <p className="text-xs text-gray-400 mt-1">Upload some photos to showcase your property</p>
+              </div>
+            )}
+
+            {/* Existing Images */}
+            {!loading && existingImages.length > 0 && (
+              <div className="space-y-3 mb-6">
+                <h3 className="font-medium text-gray-700">
+                  Uploaded Images ({existingImages.length})
+                </h3>
+                <div className="grid grid-cols-2 gap-3">
+                  {existingImages.map((image) => (
+                    <div key={image.id} className="relative border rounded-lg overflow-hidden bg-white">
+                      {/* Image Thumbnail */}
+                      <div className="aspect-video relative">
+                        <img
+                          src={image.url}
+                          alt={image.alt_text || 'Property image'}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yMCAyNkM5LjUwNjU5IDI2IDEgMTcuNzMzIDEgNy43MzNWNkg0MFY3LjczM0M0MCAxNy43MzMgMzAuNDkzNCAyNiAyMCAyNloiIGZpbGw9IiM5Q0E0QUYiLz4KPC9zdmc+Cg==';
+                          }}
+                        />
+                        
+                        {/* Primary Badge */}
+                        {image.is_primary && (
+                          <div className="absolute top-2 left-2 bg-blue-600 text-white px-2 py-1 rounded text-xs font-medium">
+                            Primary
+                          </div>
+                        )}
+                        
+                        {/* Delete Button */}
+                        <button
+                          onClick={() => deleteExistingImage(image.id, image.s3_key)}
+                          disabled={deleting === image.id}
+                          className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center transition-colors disabled:bg-gray-400"
+                          title="Delete image"
+                        >
+                          {deleting === image.id ? (
+                            <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin"></div>
+                          ) : (
+                            '×'
+                          )}
+                        </button>
+                      </div>
+                      
+                      {/* Image Info */}
+                      <div className="p-2">
+                        <p className="text-xs text-gray-600 truncate">
+                          {image.room_type ? 
+                            image.room_type.charAt(0).toUpperCase() + image.room_type.slice(1).replace('_', ' ') : 
+                            'Property Image'
+                          }
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          Order: {image.image_order + 1}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Currently Uploading Photos */}
             {photos.length > 0 && (
               <div className="space-y-3">
-                <h3 className="font-medium text-gray-700">Uploaded Photos ({photos.length})</h3>
+                <h3 className="font-medium text-gray-700">Currently Uploading ({photos.length})</h3>
                 <div className="grid grid-cols-2 gap-3">
                   {photos.map((photo, index) => (
                     <div key={index} className="relative border rounded-lg p-3 bg-white">
