@@ -75,7 +75,7 @@ export default function SignUpPage() {
         <div className="flex items-center justify-center mb-8">
           <div className="relative w-10 h-10 mr-2">
             <Image
-              src="/rentora-logo.svg"
+              src="/logo.png"
               alt="Livaro Logo"
               fill
               className="object-contain"

@@ -77,7 +77,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
             <Link href="/" className="flex items-center">
               <div className="relative w-8 h-8 mr-3">
                 <Image
-                  src="/rentora-logo.svg"
+                  src="/logo.png"
                   alt="Livaro Logo"
                   fill
                   className="transition-transform duration-200"
