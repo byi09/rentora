@@ -7,7 +7,7 @@ import { ENABLE_CATALOG } from "@/lib/config";
 import NearbyProperties from "./NearbyProperties";
 
 export default function Catalog() {
-  const { location } = useGeolocationContext();
+  
 
   return (
     <>
