@@ -16,7 +16,7 @@ interface UserWithUsername extends User {
   username?: string;
 }
 
-const excludeFooterPaths = ["/map"];
+const excludeFooterPaths = ["/map", "/"];
 
 export default function ClientLayout({ children }: ClientLayoutProps) {
   const [user, setUser] = useState<UserWithUsername | null>(null);
