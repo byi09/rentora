@@ -33,8 +33,35 @@ export default function PropertyDashboard() {
     try {
       const supabase = createClient();
       
-      // TODO: Replace with actual user's landlord_id from auth
-      const landlordId = 'b7ee8ae5-686c-48a7-9a45-df7fb9b2ab3f';
+      // Get the authenticated user
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError || !user) {
+        setError('Please sign in to view your properties');
+        setIsLoading(false);
+        return;
+      }
+
+      // Get the landlord_id by joining users -> customers -> landlords
+      const { data: landlordData, error: landlordError } = await supabase
+        .from('users')
+        .select(`
+          customers!inner(
+            landlords!inner(
+              id
+            )
+          )
+        `)
+        .eq('id', user.id)
+        .single();
+
+      if (landlordError || !landlordData?.customers?.[0]?.landlords?.[0]?.id) {
+        setError('Landlord profile not found. Please complete your onboarding.');
+        setIsLoading(false);
+        return;
+      }
+
+      const landlordId = landlordData.customers[0].landlords[0].id;
 
       const { data, error } = await supabase
         .from('properties')
