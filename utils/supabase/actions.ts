@@ -118,10 +118,37 @@ export async function createProperty(formData: FormData) {
   const supabase = await createClient()
   
   try {
+    // Get the authenticated user
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    
+    if (authError || !user) {
+      console.error('Authentication error:', authError);
+      redirect('/error?type=auth');
+    }
+
+    // Get the landlord_id by joining users -> customers -> landlords
+    const { data: landlordData, error: landlordError } = await supabase
+      .from('users')
+      .select(`
+        customers!inner(
+          landlords!inner(
+            id
+          )
+        )
+      `)
+      .eq('id', user.id)
+      .single();
+
+    if (landlordError || !landlordData?.customers?.[0]?.landlords?.[0]?.id) {
+      console.error('Landlord profile not found:', landlordError);
+      redirect('/error?type=profile');
+    }
+
+    const landlordId = landlordData.customers[0].landlords[0].id;
+
     // Extract form data
     const propertyData = {
-      // Using existing landlord_id - you'll need to replace this with actual user's landlord_id
-      landlord_id: 'b7ee8ae5-686c-48a7-9a45-df7fb9b2ab3f', // TODO: Get from current user
+      landlord_id: landlordId,
       address_line_1: formData.get('address_line_1') as string,
       address_line_2: formData.get('address_line_2') as string || null,
       city: formData.get('city') as string,
