@@ -102,10 +102,10 @@ const Header = ({ toggleSidebar, user }: HeaderProps) => {
 
   // Different header styles based on user authentication
   if (!user) {
-    // Header for non-logged in users (transparent, transforms to dark on scroll)
+    // Header for non-logged in users (translucent, transforms to dark on scroll)
     return (
-      <header className={`fixed top-0 z-50 w-full transition-all duration-300 pointer-events-none select-none
-        ${scrolled ? 'bg-gray-900/90 text-white backdrop-blur-md shadow-lg border-b border-gray-800 pointer-events-auto select-auto' : 'bg-white/95 text-gray-900 shadow-sm border-b border-gray-200'}
+      <header className={`fixed top-0 z-50 w-full transition-all duration-300
+        ${scrolled ? 'bg-gray-900/90 text-white backdrop-blur-md shadow-lg border-b border-gray-800' : 'bg-transparent text-white'}
       `}>
         <div className="relative w-full px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-20">
@@ -118,10 +118,8 @@ const Header = ({ toggleSidebar, user }: HeaderProps) => {
             <div className="flex items-center">
               <Link
                 href="/sign-in"
-                className={`px-6 py-2 rounded-lg transition-all duration-200 font-medium border pointer-events-auto select-auto
-                  ${scrolled 
-                    ? 'bg-blue-600 text-white hover:bg-blue-700 border-blue-600' 
-                    : 'bg-blue-600 text-white hover:bg-blue-700 border-blue-600'}
+                className={`px-6 py-2 rounded-lg transition-all duration-200 font-medium border
+                  ${scrolled ? 'bg-blue-600 text-white hover:bg-blue-700 border-blue-600' : 'bg-blue-600 text-white hover:bg-blue-700 border-blue-600'}
                 `}
               >
                 Log in

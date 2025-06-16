@@ -5,6 +5,7 @@ import Dashboard from '@/src/components/Dashboard';
 import OnboardingFlow from '@/src/components/onboarding/OnboardingFlow';
 import OnboardingChecker from '@/src/components/OnboardingChecker';
 import Link from 'next/link';
+import ContactForm from '@/src/components/ContactForm';
 
 // Calendar Component
 const LaunchCalendar = () => {
@@ -107,26 +108,34 @@ export default async function Home() {
   // Otherwise, show improved landing page
   return (
     <main className="min-h-screen font-sans antialiased">
-      {/* Hero Section - Light background */}
-      <section className="hero-section relative pt-28 pb-10 flex flex-col items-start justify-center bg-white" style={{backgroundImage:'none', minHeight:'auto'}}>
-        <div className="relative z-10 max-w-7xl mx-auto px-8 sm:px-12 lg:px-16 w-full">
-          <div className="max-w-4xl mx-0 flex flex-col items-start justify-center min-h-[20vh]">
-            <h1 className="text-3xl sm:text-4xl font-extrabold mb-3 leading-snug tracking-tight text-left text-blue-700">
-              We&apos;re excited to
-              <span className="block text-blue-700 mt-2">
-                share our pre-launch with you
-              </span>
-            </h1>
-            <p className="max-w-3xl text-base sm:text-lg text-gray-800 mb-4 leading-relaxed font-normal tracking-wide text-left">
-              Livaro helps landlords quickly find the best tenants through smart referrals and high-quality applications.
-            </p>
-            <Link
-              href="/sign-up"
-              className="inline-flex px-5 py-2.5 rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 transition-all duration-300 shadow-md text-sm font-semibold transform hover:scale-105 hover:shadow-blue-500/25 tracking-wide text-left"
-            >
-              Sign up 🥳
-            </Link>
-          </div>
+      {/* Hero Section */}
+      <section
+        id="hero-landing"
+        className="relative pt-32 pb-12 flex flex-col items-start justify-center h-[66vh]"
+        style={{
+          backgroundImage:
+            "linear-gradient(rgba(0,0,0,0.75), rgba(0,0,0,0.75)), url('https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=1980&q=80')",
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat'
+        }}
+      >
+        <div className="relative z-10 max-w-4xl px-8 sm:px-12 lg:px-16 w-full flex flex-col items-start">
+          <h1 className="text-4xl sm:text-5xl font-extrabold mb-4 leading-snug tracking-tight text-white text-left">
+            We&apos;re excited to
+            <span className="block mt-2 bg-clip-text text-transparent bg-gradient-to-r from-white via-white to-white">
+              share our pre-launch with you
+            </span>
+          </h1>
+          <p className="max-w-3xl text-base sm:text-lg text-white/90 leading-relaxed font-normal tracking-wide text-left mb-6">
+            Livaro helps landlords quickly find the best tenants through smart referrals and high-quality applications.
+          </p>
+          <Link
+            href="/sign-up"
+            className="inline-flex px-6 py-2.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-all duration-200 shadow-md text-sm font-semibold transform hover:scale-105"
+          >
+            Sign up 🥳
+          </Link>
         </div>
       </section>
 
@@ -297,70 +306,7 @@ export default async function Home() {
               </p>
             </div>
 
-            <div className="bg-gray-50 rounded-2xl p-6 border border-gray-200 shadow-sm">
-              <form action="mailto:byi09@berkeley.edu" method="post" encType="text/plain" className="space-y-6">
-                <div>
-                  <label htmlFor="name" className="block text-sm font-medium text-gray-900 mb-2">
-                    Name
-                  </label>
-                  <input
-                    type="text"
-                    id="name"
-                    name="name"
-                    className="w-full px-4 py-3 rounded-xl bg-gray-100 border border-gray-300 text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Your name"
-                    required
-                  />
-                </div>
-                
-                <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-gray-900 mb-2">
-                    Email
-                  </label>
-                  <input
-                    type="email"
-                    id="email"
-                    name="email"
-                    className="w-full px-4 py-3 rounded-xl bg-gray-100 border border-gray-300 text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="your@email.com"
-                    required
-                  />
-                </div>
-                
-                <div>
-                  <label htmlFor="message" className="block text-sm font-medium text-gray-900 mb-2">
-                    Message
-                  </label>
-                  <textarea
-                    id="message"
-                    name="message"
-                    rows={4}
-                    className="w-full px-4 py-3 rounded-xl bg-gray-100 border border-gray-300 text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                    placeholder="Tell us about your rental needs..."
-                    required
-                  ></textarea>
-                </div>
-                
-                <button
-                  type="submit"
-                  className="w-full px-8 py-4 rounded-xl bg-blue-600 text-white hover:bg-blue-700 transition-all duration-300 font-semibold text-lg transform hover:scale-105 shadow-lg"
-                >
-                  Send Message
-                </button>
-              </form>
-              
-              <div className="mt-8 pt-8 border-t border-gray-200 text-center">
-                <p className="text-gray-500 text-sm">
-                  Or email us directly at{' '}
-                  <a 
-                    href="mailto:byi09@berkeley.edu" 
-                    className="font-semibold text-blue-600 hover:underline"
-                  >
-                    byi09@berkeley.edu
-                  </a>
-                </p>
-              </div>
-            </div>
+            <ContactForm />
           </div>
         </div>
       </section>
