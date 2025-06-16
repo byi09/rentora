@@ -37,10 +37,12 @@ interface PropertyData {
   description?: string;
   available_date?: string;
   property_listings?: {
+    id: string;
     monthly_rent: number;
     listing_title?: string;
     listing_description?: string;
     available_date?: string;
+    listing_status: string;
   }[];
   property_features?: PropertyFeature[];
   property_images?: PropertyImage[];
@@ -65,6 +67,7 @@ export default function PublishPage() {
   const propertyId = searchParams.get('property_id');
   const [propertyData, setPropertyData] = useState<PropertyData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isPublishing, setIsPublishing] = useState(false);
 
   useEffect(() => {
     const fetchPropertyData = async () => {
@@ -82,10 +85,12 @@ export default function PublishPage() {
           .select(`
             *,
             property_listings (
+              id,
               monthly_rent,
               listing_title,
               listing_description,
-              available_date
+              available_date,
+              listing_status
             ),
             property_features (
               id,
@@ -134,6 +139,52 @@ export default function PublishPage() {
 
     fetchPropertyData();
   }, [propertyId, router]);
+
+  const handlePublishListing = async () => {
+    if (!propertyData?.property_listings?.[0]) {
+      alert('No listing found to publish. Please complete the listing setup first.');
+      return;
+    }
+
+    const listing = propertyData.property_listings[0];
+    
+    // Check if listing is already active
+    if (listing.listing_status === 'active') {
+      alert('This listing is already published and active!');
+      return;
+    }
+
+    setIsPublishing(true);
+
+    try {
+      const supabase = createClient();
+
+      // Update the listing status to 'active'
+      const { error } = await supabase
+        .from('property_listings')
+        .update({ 
+          listing_status: 'active',
+          list_date: new Date().toISOString().split('T')[0] // Set today as list date
+        })
+        .eq('id', listing.id);
+
+      if (error) {
+        console.error('Error publishing listing:', error);
+        alert('Error publishing listing. Please try again.');
+        setIsPublishing(false);
+        return;
+      }
+
+      // Success! Redirect to dashboard
+      alert('🎉 Listing published successfully!');
+      router.push('/sell/dashboard');
+      
+    } catch (error) {
+      console.error('Unexpected error:', error);
+      alert('An unexpected error occurred. Please try again.');
+      setIsPublishing(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -336,7 +387,23 @@ export default function PublishPage() {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-2xl font-semibold">Publish Listing</h1>
+          <div>
+            <h1 className="text-2xl font-semibold">Publish Listing</h1>
+            {listing && (
+              <div className="mt-2 flex items-center gap-2">
+                <span className="text-sm text-gray-600">Status:</span>
+                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                  listing.listing_status === 'active' 
+                    ? 'bg-green-100 text-green-800'
+                    : listing.listing_status === 'pending'
+                    ? 'bg-yellow-100 text-yellow-800' 
+                    : 'bg-gray-100 text-gray-800'
+                }`}>
+                  {listing.listing_status.charAt(0).toUpperCase() + listing.listing_status.slice(1)}
+                </span>
+              </div>
+            )}
+          </div>
           <button 
             onClick={() => router.push('/')}
             className="px-6 py-2 text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
@@ -530,9 +597,20 @@ export default function PublishPage() {
               Go Back
             </button>
             <button 
-              className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              onClick={handlePublishListing}
+              disabled={isPublishing || listing?.listing_status === 'active'}
+              className={`px-8 py-3 text-white rounded-lg transition-colors ${
+                isPublishing || listing?.listing_status === 'active'
+                  ? 'bg-gray-400 cursor-not-allowed' 
+                  : 'bg-blue-600 hover:bg-blue-700'
+              }`}
             >
-              Publish Listing
+              {isPublishing 
+                ? 'Publishing...' 
+                : listing?.listing_status === 'active' 
+                ? 'Already Published' 
+                : 'Publish Listing'
+              }
             </button>
           </div>
         </div>

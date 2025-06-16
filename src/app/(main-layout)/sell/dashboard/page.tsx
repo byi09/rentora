@@ -24,6 +24,7 @@ export default function PropertyDashboard() {
   const [properties, setProperties] = useState<PropertyListing[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [clickingPropertyId, setClickingPropertyId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchProperties();
@@ -160,11 +161,80 @@ export default function PropertyDashboard() {
     }).format(price);
   };
 
+  const determineNextStep = async (property: PropertyListing) => {
+    try {
+      const supabase = createClient();
+      
+      // Check if property has basic info (bedrooms, bathrooms should be set from rent-details)
+      if (!property.bedrooms || !property.bathrooms) {
+        return `/sell/create/rent-details?property_id=${property.id}`;
+      }
+
+      // Check if listing exists
+      if (!property.listing_status) {
+        return `/sell/create/rent-details?property_id=${property.id}`;
+      }
+
+      // Check for media (images)
+      const { data: images, error: imageError } = await supabase
+        .from('property_images')
+        .select('id')
+        .eq('property_id', property.id)
+        .limit(1);
+
+      if (imageError || !images || images.length === 0) {
+        return `/sell/create/media?property_id=${property.id}`;
+      }
+
+      // Check for amenities/features
+      const { data: features, error: featureError } = await supabase
+        .from('property_features')
+        .select('id')
+        .eq('property_id', property.id)
+        .limit(1);
+
+      if (featureError || !features || features.length === 0) {
+        return `/sell/create/amenities?property_id=${property.id}`;
+      }
+
+      // If listing is active, go to publish page to view/manage
+      if (property.listing_status === 'active') {
+        return `/sell/create/publish?property_id=${property.id}`;
+      }
+
+      // If listing is pending/draft, go to review page
+      return `/sell/create/review?property_id=${property.id}`;
+      
+    } catch (error) {
+      console.error('Error determining next step:', error);
+      // Default to rent details if there's an error
+      return `/sell/create/rent-details?property_id=${property.id}`;
+    }
+  };
+
+  const handlePropertyClick = async (property: PropertyListing) => {
+    try {
+      setClickingPropertyId(property.id);
+      const nextStep = await determineNextStep(property);
+      router.push(nextStep);
+    } catch (error) {
+      console.error('Error navigating to property:', error);
+      // Fallback navigation
+      if (property.listing_status) {
+        router.push(`/sell/create/review?property_id=${property.id}`);
+      } else {
+        router.push(`/sell/create/rent-details?property_id=${property.id}`);
+      }
+    } finally {
+      setClickingPropertyId(null);
+    }
+  };
+
   const getStatusBadge = (status?: string) => {
     if (!status) {
       return (
         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-          Draft
+          In Progress
         </span>
       );
     }
@@ -173,13 +243,51 @@ export default function PropertyDashboard() {
       active: 'bg-green-100 text-green-800',
       inactive: 'bg-red-100 text-red-800',
       pending: 'bg-yellow-100 text-yellow-800',
+      rented: 'bg-blue-100 text-blue-800',
+      expired: 'bg-gray-100 text-gray-800',
+    };
+
+    const statusLabels = {
+      active: 'Published',
+      inactive: 'Inactive',
+      pending: 'Ready to Publish',
+      rented: 'Rented',
+      expired: 'Expired',
     };
 
     return (
       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusConfig[status as keyof typeof statusConfig] || 'bg-gray-100 text-gray-800'}`}>
-        {status?.charAt(0).toUpperCase() + status?.slice(1) || 'Unknown'}
+        {statusLabels[status as keyof typeof statusLabels] || status?.charAt(0).toUpperCase() + status?.slice(1) || 'Unknown'}
       </span>
     );
+  };
+
+  const getActionText = (property: PropertyListing): string => {
+    // If no bedrooms/bathrooms set, need to continue setup
+    if (!property.bedrooms || !property.bathrooms) {
+      return "Click to continue setup";
+    }
+
+    // If no listing created yet
+    if (!property.listing_status) {
+      return "Click to continue setup";
+    }
+
+    // Based on listing status
+    switch (property.listing_status) {
+      case 'active':
+        return "Click to manage listing";
+      case 'pending':
+        return "Click to review & publish";
+      case 'rented':
+        return "Click to view details";
+      case 'expired':
+        return "Click to renew listing";
+      case 'inactive':
+        return "Click to reactivate";
+      default:
+        return "Click to edit";
+    }
   };
 
   if (isLoading) {
@@ -272,7 +380,7 @@ export default function PropertyDashboard() {
                 </div>
                 <div className="ml-5 w-0 flex-1">
                   <dl>
-                    <dt className="text-sm font-medium text-gray-500 truncate">Draft Listings</dt>
+                    <dt className="text-sm font-medium text-gray-500 truncate">In Progress</dt>
                     <dd className="text-lg font-medium text-gray-900">
                       {properties.filter(p => !p.listing_status || p.listing_status !== 'active').length}
                     </dd>
@@ -288,7 +396,7 @@ export default function PropertyDashboard() {
           <div className="px-4 py-5 sm:px-6 border-b border-gray-200">
             <h3 className="text-lg leading-6 font-medium text-gray-900">Your Properties</h3>
             <p className="mt-1 max-w-2xl text-sm text-gray-500">
-              Click on a property to edit or continue setting it up
+              Click on any property to edit details, continue setup, or manage your listing
             </p>
           </div>
 
@@ -303,16 +411,13 @@ export default function PropertyDashboard() {
           ) : (
             <ul className="divide-y divide-gray-200">
               {properties.map((property) => (
-                <li key={property.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => {
-                  // If the property has a listing, go to edit mode, otherwise continue creation
-                  if (property.listing_status) {
-                    // TODO: Navigate to edit/view page
-                    console.log('Edit property', property.id);
-                  } else {
-                    // Continue creation flow
-                    router.push(`/sell/create/rent-details?property_id=${property.id}`);
-                  }
-                }}>
+                <li 
+                  key={property.id} 
+                  className={`hover:bg-gray-50 cursor-pointer transition-colors ${
+                    clickingPropertyId === property.id ? 'bg-blue-50' : ''
+                  }`} 
+                  onClick={() => handlePropertyClick(property)}
+                >
                   <div className="px-4 py-4 sm:px-6">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center">
@@ -335,6 +440,12 @@ export default function PropertyDashboard() {
                           <p className="text-sm text-gray-500">
                             {formatAddress(property)} • {property.bedrooms} bed, {property.bathrooms} bath
                             {property.square_footage && ` • ${property.square_footage} sq ft`}
+                          </p>
+                          <p className="text-xs text-blue-600 font-medium mt-1 flex items-center gap-1">
+                            {clickingPropertyId === property.id && (
+                              <div className="w-3 h-3 border border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                            )}
+                            {clickingPropertyId === property.id ? 'Loading...' : getActionText(property)}
                           </p>
                         </div>
                       </div>

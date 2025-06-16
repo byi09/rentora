@@ -18,13 +18,64 @@ export default function RentDetailsPage() {
   const [availableDate, setAvailableDate] = useState('');
   const [listingTitle, setListingTitle] = useState('');
   const [listingDescription, setListingDescription] = useState('');
+  const [bedrooms, setBedrooms] = useState('1');
+  const [bathrooms, setBathrooms] = useState('1');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Redirect if no property ID
+  // Load existing property data if available
   useEffect(() => {
     if (!propertyId) {
       router.push('/sell/create');
+      return;
     }
+
+    const loadPropertyData = async () => {
+      try {
+        const supabase = createClient();
+        
+        // Fetch existing property data
+        const { data: property, error: propertyError } = await supabase
+          .from('properties')
+          .select('bedrooms, bathrooms')
+          .eq('id', propertyId)
+          .single();
+
+        if (propertyError) {
+          console.error('Error loading property data:', propertyError);
+          return;
+        }
+
+        // Load existing values if they exist
+        if (property) {
+          if (property.bedrooms !== null) setBedrooms(property.bedrooms.toString());
+          if (property.bathrooms !== null) setBathrooms(property.bathrooms.toString());
+        }
+
+        // Fetch existing listing data if available
+        const { data: listing, error: listingError } = await supabase
+          .from('property_listings')
+          .select('*')
+          .eq('property_id', propertyId)
+          .single();
+
+        if (!listingError && listing) {
+          // Load existing listing values
+          if (listing.monthly_rent) setRent(listing.monthly_rent.toString());
+          if (listing.security_deposit) setSecurityDeposit(listing.security_deposit.toString());
+          if (listing.pet_deposit) setPetDeposit(listing.pet_deposit.toString());
+          if (listing.application_fee) setApplicationFee(listing.application_fee.toString());
+          if (listing.minimum_lease_term) setMinLeaseTerm(listing.minimum_lease_term.toString());
+          if (listing.maximum_lease_term) setMaxLeaseTerm(listing.maximum_lease_term.toString());
+          if (listing.available_date) setAvailableDate(listing.available_date);
+          if (listing.listing_title) setListingTitle(listing.listing_title);
+          if (listing.listing_description) setListingDescription(listing.listing_description);
+        }
+      } catch (error) {
+        console.error('Unexpected error loading property data:', error);
+      }
+    };
+
+    loadPropertyData();
   }, [propertyId, router]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -35,7 +86,23 @@ export default function RentDetailsPage() {
       const formData = new FormData(e.currentTarget);
       const supabase = createClient();
       
-      // Extract form data
+      // First, update the properties table with bedroom and bathroom info
+      const { error: propertyError } = await supabase
+        .from('properties')
+        .update({
+          bedrooms: parseInt(formData.get('bedrooms') as string),
+          bathrooms: parseFloat(formData.get('bathrooms') as string),
+        })
+        .eq('id', propertyId);
+
+      if (propertyError) {
+        console.error('Error updating property details:', propertyError);
+        alert('Error updating property details. Please try again.');
+        setIsSubmitting(false);
+        return;
+      }
+      
+      // Extract form data for listing
       const listingData = {
         property_id: propertyId,
         monthly_rent: parseFloat(formData.get('monthly_rent') as string),
@@ -47,23 +114,40 @@ export default function RentDetailsPage() {
         available_date: formData.get('available_date') as string || null,
         listing_title: formData.get('listing_title') as string || null,
         listing_description: formData.get('listing_description') as string || null,
-        listing_status: 'active',
+        listing_status: 'pending',
       };
 
-      // Insert the property listing
-      const { data, error } = await supabase
+      // Check if listing already exists
+      const { data: existingListing, error: checkError } = await supabase
         .from('property_listings')
-        .insert([listingData])
-        .select();
+        .select('id')
+        .eq('property_id', propertyId)
+        .single();
 
-      if (error) {
-        console.error('Error creating property listing:', error);
-        alert('Error creating property listing. Please try again.');
+      let listingOperation;
+      if (existingListing && !checkError) {
+        // Update existing listing
+        listingOperation = await supabase
+          .from('property_listings')
+          .update(listingData)
+          .eq('property_id', propertyId)
+          .select();
+      } else {
+        // Create new listing
+        listingOperation = await supabase
+          .from('property_listings')
+          .insert([listingData])
+          .select();
+      }
+
+      if (listingOperation.error) {
+        console.error('Error saving property listing:', listingOperation.error);
+        alert('Error saving property listing. Please try again.');
         setIsSubmitting(false);
         return;
       }
 
-      console.log('Property listing created successfully:', data);
+      console.log('Property listing saved successfully:', listingOperation.data);
       
       // Client-side redirect
       router.push(`/sell/create/media?property_id=${propertyId}`);
@@ -134,6 +218,55 @@ export default function RentDetailsPage() {
                 required
                 disabled={isSubmitting}
               />
+            </div>
+
+            {/* Property Details */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-lg font-medium text-gray-700 mb-3">
+                  Number of Bedrooms *
+                </label>
+                <select
+                  name="bedrooms"
+                  value={bedrooms}
+                  onChange={(e) => setBedrooms(e.target.value)}
+                  className="block w-full px-4 py-3 text-base border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 rounded-lg bg-white"
+                  required
+                  disabled={isSubmitting}
+                >
+                  <option value="0">Studio (0 bedroom)</option>
+                  <option value="1">1 bedroom</option>
+                  <option value="2">2 bedrooms</option>
+                  <option value="3">3 bedrooms</option>
+                  <option value="4">4 bedrooms</option>
+                  <option value="5">5 bedrooms</option>
+                  <option value="6">6+ bedrooms</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-lg font-medium text-gray-700 mb-3">
+                  Number of Bathrooms *
+                </label>
+                <select
+                  name="bathrooms"
+                  value={bathrooms}
+                  onChange={(e) => setBathrooms(e.target.value)}
+                  className="block w-full px-4 py-3 text-base border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 rounded-lg bg-white"
+                  required
+                  disabled={isSubmitting}
+                >
+                  <option value="0.5">0.5 bathroom</option>
+                  <option value="1">1 bathroom</option>
+                  <option value="1.5">1.5 bathrooms</option>
+                  <option value="2">2 bathrooms</option>
+                  <option value="2.5">2.5 bathrooms</option>
+                  <option value="3">3 bathrooms</option>
+                  <option value="3.5">3.5 bathrooms</option>
+                  <option value="4">4 bathrooms</option>
+                  <option value="4.5">4.5 bathrooms</option>
+                  <option value="5">5+ bathrooms</option>
+                </select>
+              </div>
             </div>
             
             {/* Monthly Rent */}
