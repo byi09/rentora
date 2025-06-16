@@ -112,7 +112,7 @@ const Header = ({ toggleSidebar, user }: HeaderProps) => {
                 <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center mr-3 transition-transform duration-200 group-hover:scale-110">
                   <span className="text-white font-bold text-xl">R</span>
                 </div>
-                <span className="text-2xl font-bold text-white tracking-tight">Rentora</span>
+                <span className="text-2xl font-bold text-white tracking-tight">Livaro</span>
               </Link>
             </div>
 
@@ -147,7 +147,7 @@ const Header = ({ toggleSidebar, user }: HeaderProps) => {
               <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-xl">R</span>
               </div>
-              <span className="text-2xl font-bold text-gray-900">Rentora</span>
+              <span className="text-2xl font-bold text-gray-900">Livaro</span>
             </div>
           </Link>
 
