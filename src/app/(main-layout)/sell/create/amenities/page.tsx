@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import InteractiveProgressBar from '@/src/components/ui/InteractiveProgressBar';
@@ -11,7 +11,6 @@ export default function AmenitiesPage() {
   
   const [customAmenities, setCustomAmenities] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [selectedFeatures, setSelectedFeatures] = useState<Record<string, string>>({});
   const formRef = useRef<HTMLFormElement>(null);
 
   // Enhanced navigation with auto-save
@@ -28,7 +27,7 @@ export default function AmenitiesPage() {
   };
 
   // Function to save current form data
-  const saveCurrentFormData = async () => {
+  const saveCurrentFormData = useCallback(async () => {
     if (!propertyId) return;
 
     try {
@@ -52,7 +51,7 @@ export default function AmenitiesPage() {
           const valid=['interior','exterior','building_amenities','appliances','utilities'];
           if (!valid.includes(category)) continue;
           const cleanName=name.replace(/([A-Z])/g,' $1').toLowerCase().replace(/^./,s=>s.toUpperCase()).replace(/\b\w/g,l=>l.toUpperCase());
-          features.push({property_id:propertyId!,feature_name:cleanName,feature_category:category as any,feature_value:String(value)});
+          features.push({property_id:propertyId!,feature_name:cleanName,feature_category:category as 'interior'|'exterior'|'building_amenities'|'appliances'|'utilities',feature_value:String(value)});
         }
       }
 
@@ -76,7 +75,7 @@ export default function AmenitiesPage() {
       console.error('Error in saveCurrentFormData:', error);
       throw error;
     }
-  };
+  }, [propertyId, customAmenities]);
 
   // Load existing features on mount
   useEffect(() => {
@@ -96,35 +95,34 @@ export default function AmenitiesPage() {
         }
 
         if (features) {
-          const featureMap: Record<string, string> = {};
           const customAmenitiesList: string[] = [];
 
           features.forEach(feature => {
-            // Convert feature back to form field name
-            const fieldName = `feature_${feature.feature_category}_${feature.feature_name.toLowerCase().replace(/\s+/g, '_')}`;
-            featureMap[fieldName] = feature.feature_value;
-
             // Collect custom amenities (those not in standard categories)
             if (feature.feature_category === 'building_amenities' && feature.feature_value === 'available') {
               customAmenitiesList.push(feature.feature_name);
             }
           });
 
-          setSelectedFeatures(featureMap);
           if (customAmenitiesList.length > 0) {
             setCustomAmenities(customAmenitiesList.join(', '));
           }
 
           // Imperatively check inputs to reflect loaded data
           setTimeout(() => {
-            Object.entries(featureMap).forEach(([field,val])=>{
-              const inputs=document.getElementsByName(field);
-              inputs.forEach((el:any)=>{
-                if(el.type==='checkbox') el.checked=true;
-                else if(el.type==='radio' && el.value===val) el.checked=true;
+            features.forEach(f => {
+              const fieldName = `feature_${f.feature_category}_${f.feature_name.toLowerCase().replace(/\s+/g, '_')}`;
+              const nodeList = document.getElementsByName(fieldName);
+              nodeList.forEach(node => {
+                const input = node as HTMLInputElement;
+                if (input.type === 'checkbox') {
+                  input.checked = true;
+                } else if (input.type === 'radio') {
+                  input.checked = input.value === f.feature_value;
+                }
               });
             });
-          },0);
+          }, 0);
         }
       } catch (error) {
         console.error('Error loading existing features:', error);
