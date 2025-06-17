@@ -13,7 +13,7 @@ export default function ScreeningPage() {
   const incomeRatioOptions = ['1.5X', '2X', '2.5X', '3X'];
 
   return (
-    <main className="min-h-screen bg-white p-8">
+    <main className="min-h-screen bg-white pt-28 pb-8 px-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
