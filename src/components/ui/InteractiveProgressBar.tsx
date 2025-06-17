@@ -48,9 +48,9 @@ const InteractiveProgressBar: React.FC<InteractiveProgressBarProps> = ({
     const completedArr = steps.map((_, idx) => idx < currentStep);
     setCompletedSteps(completedArr);
 
-    // Allowed: sequential unlock; after reaching Review (index 7) unlock all
+    // Allowed: allow access to current step and any step up to the furthest reached
     const allowedArr = steps.map((_, idx) => {
-      if (furthestStep >= 7) return true;
+      // Always allow access to steps up to and including the furthest step reached
       return idx <= furthestStep;
     });
     setAllowedSteps(allowedArr);
@@ -83,8 +83,10 @@ const InteractiveProgressBar: React.FC<InteractiveProgressBarProps> = ({
     if (stepIndex === currentStep) {
       return 'bg-blue-600 cursor-pointer';
     }
-    if (completedSteps[stepIndex]) {
-      return 'bg-green-500 hover:bg-green-600 transition-colors cursor-pointer';
+    if (allowedSteps[stepIndex]) {
+      return completedSteps[stepIndex] 
+        ? 'bg-green-500 hover:bg-green-600 transition-colors cursor-pointer'
+        : 'bg-gray-400 hover:bg-gray-500 transition-colors cursor-pointer';
     }
     return 'bg-gray-300 cursor-not-allowed';
   };
@@ -93,8 +95,10 @@ const InteractiveProgressBar: React.FC<InteractiveProgressBarProps> = ({
     if (stepIndex === currentStep) {
       return 'text-gray-800 font-semibold';
     }
-    if (completedSteps[stepIndex]) {
-      return 'text-gray-800 font-medium';
+    if (allowedSteps[stepIndex]) {
+      return completedSteps[stepIndex] 
+        ? 'text-gray-800 font-medium'
+        : 'text-gray-600 font-medium';
     }
     return 'text-gray-500';
   };
@@ -104,6 +108,14 @@ const InteractiveProgressBar: React.FC<InteractiveProgressBarProps> = ({
 
   return (
     <div className="mb-12 relative sticky top-24 z-20 bg-white/80 backdrop-blur">
+      {/* Progress Bar Background - positioned to go through circle centers */}
+      <div className="absolute left-0 right-0 top-[10px] sm:top-[12px] h-0.5 bg-blue-100">
+        <div
+          className="h-full bg-blue-600 transition-all duration-300 ease-in-out"
+          style={{ width: `${progressWidth}%` }}
+        />
+      </div>
+      
       {/* Step Circles */}
       <div className="flex justify-between relative w-full">
         {steps.map((step, index) => (
@@ -111,8 +123,8 @@ const InteractiveProgressBar: React.FC<InteractiveProgressBarProps> = ({
             <button
               onClick={() => handleStepClick(index)}
               className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full transition-all duration-200 ${getStepClassName(index)} relative z-10`}
-              title={completedSteps[index] || index === currentStep ? `Go to ${step.label}` : `Complete previous steps to unlock ${step.label}`}
-              disabled={!completedSteps[index] && index !== currentStep}
+              title={allowedSteps[index] ? `Go to ${step.label}` : `Complete previous steps to unlock ${step.label}`}
+              disabled={!allowedSteps[index]}
             >
               {/* Add checkmark for completed steps */}
               {completedSteps[index] && index !== currentStep && (
@@ -130,14 +142,6 @@ const InteractiveProgressBar: React.FC<InteractiveProgressBarProps> = ({
             </div>
           </div>
         ))}
-      </div>
-      
-      {/* Progress Bar Background - centered behind circles */}
-      <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-0.5 bg-blue-100">
-        <div
-          className="h-full bg-blue-600 transition-all duration-300 ease-in-out"
-          style={{ width: `${progressWidth}%` }}
-        />
       </div>
     </div>
   );

@@ -142,6 +142,7 @@ export default function MediaPage() {
     const imageFiles = files.filter(file => file.type.startsWith('image/'));
     
     if (imageFiles.length > 0) {
+      // Start upload immediately
       handleFileUpload(imageFiles);
     }
   };
@@ -178,46 +179,71 @@ export default function MediaPage() {
   const handleFileUpload = async (files: File[]) => {
     if (!propertyId || files.length === 0) return;
 
-    let processedFiles: File[] = files;
-    
-    // Optional client-side compression for better performance
-    try {
-      const { default: imageCompression } = await import('browser-image-compression');
-      processedFiles = await Promise.all(
-        files.map((file) =>
-          imageCompression(file, {
-            maxSizeMB: 1,
-            maxWidthOrHeight: 1920,
-            useWebWorker: true,
-          })
-        )
-      );
-    } catch (compressionErr) {
-      console.warn('Image compression skipped:', compressionErr);
-    }
-
-    // Add local previews immediately
+    // Add local previews immediately for instant feedback
     const startOrder = existingImages.length;
-    const previewPhotos: UploadedFile[] = processedFiles.map((file) => ({
+    const previewPhotos: UploadedFile[] = files.map((file) => ({
       file,
       url: URL.createObjectURL(file),
       uploading: true,
       progress: 0,
     }));
 
+    // Update UI immediately
     setPhotos(previewPhotos);
     setUploading(true);
 
-    // Upload files with progress tracking
-    const uploadPromises = processedFiles.map((file, index) =>
-      uploadFile(file, 'property-images', 'listings').then(result => {
-        // Update progress for this specific file
+    let processedFiles: File[] = files;
+    
+    // Optional client-side compression for better performance
+    try {
+      const { default: imageCompression } = await import('browser-image-compression');
+      
+      // Update progress to show compression is happening
+      setPhotos(prev => prev.map(photo => ({ ...photo, progress: 10 })));
+      
+      processedFiles = await Promise.all(
+        files.map(async (file, index) => {
+          const compressed = await imageCompression(file, {
+            maxSizeMB: 1,
+            maxWidthOrHeight: 1920,
+            useWebWorker: true,
+          });
+          
+          // Update progress for individual file compression
+          setPhotos(prev => prev.map((photo, idx) => 
+            idx === index ? { ...photo, progress: 20 } : photo
+          ));
+          
+          return compressed;
+        })
+      );
+    } catch (compressionErr) {
+      console.warn('Image compression skipped:', compressionErr);
+      // Set progress to 20% even if compression is skipped
+      setPhotos(prev => prev.map(photo => ({ ...photo, progress: 20 })));
+    }
+
+    // Upload files with real-time progress tracking
+    const uploadPromises = processedFiles.map((file, index) => {
+      // Start upload progress at 25%
+      setPhotos(prev => prev.map((photo, idx) => 
+        idx === index ? { ...photo, progress: 25 } : photo
+      ));
+      
+      return uploadFile(file, 'property-images', 'listings').then(result => {
+        // Update progress to 90% when upload completes
         setPhotos(prev => prev.map((photo, idx) => 
-          idx === index ? { ...photo, progress: 100 } : photo
+          idx === index ? { ...photo, progress: 90 } : photo
         ));
         return result;
-      })
-    );
+      }).catch(error => {
+        // Update with error state
+        setPhotos(prev => prev.map((photo, idx) => 
+          idx === index ? { ...photo, progress: 0, error: error.message } : photo
+        ));
+        throw error;
+      });
+    });
     
     const results = await Promise.allSettled(uploadPromises);
 
@@ -241,10 +267,10 @@ export default function MediaPage() {
           is_primary: startOrder === 0 && idx === 0,
           alt_text: `Property photo ${startOrder + idx + 1}`,
         });
-        return { ...p, url: publicUrl, uploading: false };
+        return { ...p, url: publicUrl, uploading: false, progress: 100 };
       } else {
         const errMsg = res.status === 'rejected' ? (res.reason?.message ?? 'Upload failed') : 'Upload failed';
-        return { ...p, uploading: false, error: errMsg };
+        return { ...p, uploading: false, error: errMsg, progress: 0 };
       }
     });
 
@@ -263,6 +289,20 @@ export default function MediaPage() {
           showError('Upload failed', insertErr.message);
         } else {
           success('Images uploaded successfully!');
+          
+          // Immediately update existing images without waiting for refresh
+          const newImages: ExistingImage[] = rowsToInsert.map((row, idx) => ({
+            id: `temp-${Date.now()}-${idx}`, // temporary ID
+            s3_key: row.s3_key,
+            image_order: row.image_order,
+            is_primary: row.is_primary,
+            alt_text: row.alt_text,
+            url: updatedPreview[idx].url || '',
+            image_type: 'listing',
+            room_type: undefined
+          }));
+          
+          setExistingImages(prev => [...prev, ...newImages]);
         }
       }
     } catch (err) {
@@ -270,22 +310,24 @@ export default function MediaPage() {
       showError('Upload failed', err instanceof Error ? err.message : 'Unknown error');
     }
 
-    // Refresh existing images list
-    await refreshExistingImages();
+    // Refresh existing images list to get proper IDs
+    setTimeout(() => refreshExistingImages(), 500);
 
     setUploading(false);
-    // Clear photos state and file input
-    setPhotos([]);
+    // Clear photos state after a brief delay to show success
+    setTimeout(() => setPhotos([]), 1000);
   };
 
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || !propertyId) return;
     
     const files = Array.from(e.target.files);
-    await handleFileUpload(files);
     
-    // Clear the input
+    // Clear the input immediately for better UX
     e.target.value = '';
+    
+    // Start upload process
+    await handleFileUpload(files);
   };
 
   // Helper to refresh existing images list (used by multiple places)
