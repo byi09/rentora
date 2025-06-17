@@ -1,8 +1,10 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import InteractiveProgressBar from '@/src/components/ui/InteractiveProgressBar';
+
+const FORM_STORAGE_KEY = 'sell-create-form-data';
 
 export default function CreateListingPage() {
   const router = useRouter();
@@ -11,6 +13,56 @@ export default function CreateListingPage() {
   const [squareFootage, setSquareFootage] = useState('1500');
   const [propertyType, setPropertyType] = useState('apartment');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Additional form fields for autosave
+  const [addressLine1, setAddressLine1] = useState('');
+  const [addressLine2, setAddressLine2] = useState('');
+  const [city, setCity] = useState('');
+  const [state, setState] = useState('');
+  const [zipCode, setZipCode] = useState('');
+  const [yearBuilt, setYearBuilt] = useState('');
+  const [description, setDescription] = useState('');
+
+  // Load form data from localStorage on mount
+  useEffect(() => {
+    const savedData = localStorage.getItem(FORM_STORAGE_KEY);
+    if (savedData) {
+      try {
+        const parsed = JSON.parse(savedData);
+        setBeds(parsed.beds || '1');
+        setBaths(parsed.baths || '1');
+        setSquareFootage(parsed.squareFootage || '1500');
+        setPropertyType(parsed.propertyType || 'apartment');
+        setAddressLine1(parsed.addressLine1 || '');
+        setAddressLine2(parsed.addressLine2 || '');
+        setCity(parsed.city || '');
+        setState(parsed.state || '');
+        setZipCode(parsed.zipCode || '');
+        setYearBuilt(parsed.yearBuilt || '');
+        setDescription(parsed.description || '');
+      } catch (error) {
+        console.error('Error loading saved form data:', error);
+      }
+    }
+  }, []);
+
+  // Auto-save form data to localStorage whenever it changes
+  useEffect(() => {
+    const formData = {
+      beds,
+      baths,
+      squareFootage,
+      propertyType,
+      addressLine1,
+      addressLine2,
+      city,
+      state,
+      zipCode,
+      yearBuilt,
+      description
+    };
+    localStorage.setItem(FORM_STORAGE_KEY, JSON.stringify(formData));
+  }, [beds, baths, squareFootage, propertyType, addressLine1, addressLine2, city, state, zipCode, yearBuilt, description]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -91,6 +143,9 @@ export default function CreateListingPage() {
 
       console.log('Property created successfully:', data);
       
+      // Clear saved form data on successful submission
+      localStorage.removeItem(FORM_STORAGE_KEY);
+      
       // Client-side redirect - much more reliable
       router.push(`/sell/create/rent-details?property_id=${data[0].id}`);
       
@@ -156,6 +211,8 @@ export default function CreateListingPage() {
                 <input
                   type="text"
                   name="address_line_1"
+                  value={addressLine1}
+                  onChange={(e) => setAddressLine1(e.target.value)}
                   className="block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 rounded-md bg-blue-50"
                   placeholder="Enter street address"
                   required
@@ -170,6 +227,8 @@ export default function CreateListingPage() {
                 <input
                   type="text"
                   name="address_line_2"
+                  value={addressLine2}
+                  onChange={(e) => setAddressLine2(e.target.value)}
                   className="block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 rounded-md bg-blue-50"
                   placeholder="Apt, suite, etc. (optional)"
                   disabled={isSubmitting}
@@ -184,6 +243,8 @@ export default function CreateListingPage() {
                   <input
                     type="text"
                     name="city"
+                    value={city}
+                    onChange={(e) => setCity(e.target.value)}
                     className="block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 rounded-md bg-blue-50"
                     placeholder="Enter city"
                     required
@@ -197,6 +258,8 @@ export default function CreateListingPage() {
                   <input
                     type="text"
                     name="state"
+                    value={state}
+                    onChange={(e) => setState(e.target.value)}
                     className="block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 rounded-md bg-blue-50"
                     placeholder="State"
                     required
@@ -212,6 +275,8 @@ export default function CreateListingPage() {
                 <input
                   type="text"
                   name="zip_code"
+                  value={zipCode}
+                  onChange={(e) => setZipCode(e.target.value)}
                   className="block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 rounded-md bg-blue-50"
                   placeholder="Enter ZIP code"
                   required
@@ -254,9 +319,16 @@ export default function CreateListingPage() {
                     required
                     disabled={isSubmitting}
                 >
-                  {[...Array(10)].map((_, i) => (
-                    <option key={i + 1} value={i + 1}>{i + 1}</option>
-                  ))}
+                  <option value="0.5">0.5 bathroom</option>
+                  <option value="1">1 bathroom</option>
+                  <option value="1.5">1.5 bathrooms</option>
+                  <option value="2">2 bathrooms</option>
+                  <option value="2.5">2.5 bathrooms</option>
+                  <option value="3">3 bathrooms</option>
+                  <option value="3.5">3.5 bathrooms</option>
+                  <option value="4">4 bathrooms</option>
+                  <option value="4.5">4.5 bathrooms</option>
+                  <option value="5">5+ bathrooms</option>
                 </select>
               </div>
             </div>
@@ -286,6 +358,8 @@ export default function CreateListingPage() {
                 <input
                   type="number"
                   name="year_built"
+                  value={yearBuilt}
+                  onChange={(e) => setYearBuilt(e.target.value)}
                   min="1800"
                   max={new Date().getFullYear()}
                   className="block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 rounded-md bg-blue-50"
@@ -301,6 +375,8 @@ export default function CreateListingPage() {
             <p className="text-gray-600 mb-4">What makes your place unique?</p>
             <textarea
                 name="description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
               className="w-full h-[250px] p-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white resize-none"
               placeholder="Describe your property..."
               disabled={isSubmitting}
