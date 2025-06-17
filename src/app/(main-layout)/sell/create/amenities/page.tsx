@@ -33,16 +33,6 @@ export default function AmenitiesPage() {
     try {
       const supabase = createClient();
       
-      // Delete existing amenity features for this property (only those we will overwrite)
-      const namesToReplace = features.map(f => f.feature_name);
-      if (namesToReplace.length) {
-        await supabase
-          .from('property_features')
-          .delete()
-          .eq('property_id', propertyId)
-          .in('feature_name', namesToReplace);
-      }
-
       const features: Array<{property_id:string;feature_name:string;feature_category:'interior'|'exterior'|'building_amenities'|'appliances'|'utilities';feature_value:string;}> = [];
 
       if (formRef.current) {
@@ -77,6 +67,16 @@ export default function AmenitiesPage() {
           console.error('Error saving features:', error);
           throw error;
         }
+      }
+
+      // Delete existing amenity features for this property (only those we will overwrite)
+      const namesToReplace = features.map(f => f.feature_name);
+      if (namesToReplace.length) {
+        await supabase
+          .from('property_features')
+          .delete()
+          .eq('property_id', propertyId)
+          .in('feature_name', namesToReplace);
       }
     } catch (error) {
       console.error('Error in saveCurrentFormData:', error);
