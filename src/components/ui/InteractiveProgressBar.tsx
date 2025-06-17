@@ -1,7 +1,6 @@
 'use client';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { createClient } from '@/utils/supabase/client';
 
 interface InteractiveProgressBarProps {
   currentStep: number;
@@ -31,67 +30,15 @@ const InteractiveProgressBar: React.FC<InteractiveProgressBarProps> = ({
   useEffect(() => {
     const checkCompletedSteps = async () => {
       if (!propertyId) {
-        // For new properties, only allow current step and previous steps
-        const newCompletedSteps = steps.map((_, index) => index <= currentStep);
-        setCompletedSteps(newCompletedSteps);
+        // No property yet – only allow current and previous
+        const restricted = steps.map((_, idx) => idx <= currentStep);
+        setCompletedSteps(restricted);
         return;
       }
 
-      try {
-        const supabase = createClient();
-        
-        // Check if property exists (step 0 completed)
-        const { data: property } = await supabase
-          .from('properties')
-          .select('id')
-          .eq('id', propertyId)
-          .single();
-
-        // Check if rent details exist (step 1 completed)
-        const { data: listing } = await supabase
-          .from('property_listings')
-          .select('id')
-          .eq('property_id', propertyId)
-          .single();
-
-        // Check if media exists (step 2 completed)
-        const { data: images } = await supabase
-          .from('property_images')
-          .select('id')
-          .eq('property_id', propertyId)
-          .limit(1);
-
-        // Check if amenities exist (step 3 completed)
-        const { data: amenities } = await supabase
-          .from('property_features')
-          .select('id')
-          .eq('property_id', propertyId)
-          .limit(1);
-
-        const stepCompletionStatus = [
-          !!property, // Step 0: Property Info
-          !!listing,  // Step 1: Rent Details
-          !!(images && images.length > 0), // Step 2: Media
-          !!(amenities && amenities.length > 0), // Step 3: Amenities
-          true, // Step 4: Screening (always allow once property exists)
-          true, // Step 5: Costs and Fees (always allow once property exists)
-          true, // Step 6: Final Details (always allow once property exists)
-          true, // Step 7: Review (always allow once property exists)
-          true  // Step 8: Publish (always allow once property exists)
-        ];
-
-        // Also allow current step and any step that's been reached
-        const finalCompletionStatus = stepCompletionStatus.map((completed, index) => 
-          completed || index <= currentStep
-        );
-
-        setCompletedSteps(finalCompletionStatus);
-      } catch (error) {
-        console.error('Error checking step completion:', error);
-        // Fallback: allow current step and previous steps
-        const fallbackSteps = steps.map((_, index) => index <= currentStep);
-        setCompletedSteps(fallbackSteps);
-      }
+      // Once a propertyId exists we unlock ALL steps so the user can jump freely.
+      // This avoids blocking navigation when they return to the first page.
+      setCompletedSteps(steps.map(() => true));
     };
 
     checkCompletedSteps();
