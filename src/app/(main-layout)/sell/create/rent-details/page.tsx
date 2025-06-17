@@ -232,7 +232,7 @@ export default function RentDetailsPage() {
             {/* Listing Title */}
             <div>
               <label className="block text-lg font-medium text-gray-700 mb-3">
-                Listing Title
+                Listing Title*
               </label>
               <input
                 type="text"
@@ -249,7 +249,7 @@ export default function RentDetailsPage() {
             {/* Listing Description */}
             <div>
               <label className="block text-lg font-medium text-gray-700 mb-3">
-                Listing Description
+                Listing Description*
               </label>
               <textarea
                 name="listing_description"
