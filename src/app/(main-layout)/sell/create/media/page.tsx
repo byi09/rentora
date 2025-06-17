@@ -15,6 +15,7 @@ interface UploadedFile {
   uploading: boolean;
   error?: string;
   progress?: number;
+  id: string; // Add unique ID for tracking
 }
 
 interface ExistingImage {
@@ -28,23 +29,24 @@ interface ExistingImage {
   url: string;
 }
 
-// Utility to limit concurrency of async tasks
-const withConcurrency = async <T,>(tasks: (() => Promise<T>)[], limit = 3): Promise<T[]> => {
-  const results: T[] = [];
-  const executing: Promise<void>[] = [];
-
-  for (const task of tasks) {
-    const p: Promise<void> = task().then((r) => {
-      results.push(r);
-    });
-    executing.push(p);
-    if (executing.length >= limit) {
-      await Promise.race(executing);
-      // remove resolved
-      executing.splice(executing.findIndex((e) => e === p), 1);
-    }
+// Improved concurrency utility
+const processWithConcurrency = async <T, R>(
+  items: T[],
+  processor: (item: T, index: number) => Promise<R>,
+  concurrency = 3
+): Promise<PromiseSettledResult<R>[]> => {
+  const results: PromiseSettledResult<R>[] = [];
+  
+  for (let i = 0; i < items.length; i += concurrency) {
+    const batch = items.slice(i, i + concurrency);
+    const batchPromises = batch.map((item, batchIndex) => 
+      processor(item, i + batchIndex)
+    );
+    
+    const batchResults = await Promise.allSettled(batchPromises);
+    results.push(...batchResults);
   }
-  await Promise.all(executing);
+  
   return results;
 };
 
@@ -67,8 +69,8 @@ export default function MediaPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const tourInputRef = useRef<HTMLInputElement>(null);
 
-  // Map of upload intervals for fake progress
-  const uploadIntervals = useRef<Record<string, ReturnType<typeof setInterval>>>({});
+  // Store active upload intervals with proper typing
+  const uploadIntervals = useRef<Map<string, number>>(new Map());
 
   // Initialize Supabase Storage buckets
   useEffect(() => {
@@ -138,6 +140,16 @@ export default function MediaPage() {
     loadExistingImages();
   }, [propertyId, showError]);
 
+  // Cleanup intervals on unmount
+  useEffect(() => {
+    return () => {
+      uploadIntervals.current.forEach(intervalId => {
+        window.clearInterval(intervalId);
+      });
+      uploadIntervals.current.clear();
+    };
+  }, []);
+
   // Drag and drop handlers
   const handleDragEnter = (e: React.DragEvent) => {
     e.preventDefault();
@@ -165,7 +177,6 @@ export default function MediaPage() {
     const imageFiles = files.filter(file => file.type.startsWith('image/'));
     
     if (imageFiles.length > 0) {
-      // Start upload immediately
       handleFileUpload(imageFiles);
     }
   };
@@ -199,153 +210,219 @@ export default function MediaPage() {
     }
   };
 
+  // Update photo progress by ID
+  const updatePhotoProgress = (photoId: string, progress: number) => {
+    setPhotos(prev => prev.map(photo => 
+      photo.id === photoId ? { ...photo, progress } : photo
+    ));
+  };
+
+  // Start smooth progress animation for a photo
+  const startProgressAnimation = (photoId: string) => {
+    const intervalId = window.setInterval(() => {
+      setPhotos(prev => {
+        const photo = prev.find(p => p.id === photoId);
+        if (!photo || !photo.uploading || (photo.progress ?? 0) >= 85) {
+          // Stop if photo not found, not uploading, or reached 85%
+          const interval = uploadIntervals.current.get(photoId);
+          if (interval) {
+            window.clearInterval(interval);
+            uploadIntervals.current.delete(photoId);
+          }
+          return prev;
+        }
+        
+        return prev.map(p => 
+          p.id === photoId ? { ...p, progress: Math.min((p.progress ?? 0) + 1, 85) } : p
+        );
+      });
+    }, 100); // Slower, smoother animation
+
+    uploadIntervals.current.set(photoId, intervalId);
+  };
+
+  // Stop progress animation for a photo
+  const stopProgressAnimation = (photoId: string) => {
+    const intervalId = uploadIntervals.current.get(photoId);
+    if (intervalId) {
+      window.clearInterval(intervalId);
+      uploadIntervals.current.delete(photoId);
+    }
+  };
+
   const handleFileUpload = async (files: File[]) => {
     if (!propertyId || files.length === 0) return;
 
-    // Add local previews immediately for instant feedback
-    const startOrder = existingImages.length;
-    const previewPhotos: UploadedFile[] = files.map((file) => ({
+    setUploading(true);
+
+    // Create upload items with unique IDs
+    const uploadItems: UploadedFile[] = files.map((file) => ({
+      id: `${Date.now()}-${Math.random().toString(36).substring(2)}`,
       file,
       url: URL.createObjectURL(file),
       uploading: true,
       progress: 0,
     }));
 
-    setPhotos(previewPhotos);
-    setUploading(true);
+    setPhotos(uploadItems);
 
-    // start smooth fake progress for each file
-    previewPhotos.forEach((p, idx) => {
-      const key = p.file.name + idx;
-      uploadIntervals.current[key] = setInterval(() => {
-        setPhotos((prev) => prev.map((photo, i) => {
-          if (i === idx && photo.uploading && (photo.progress ?? 0) < 90) {
-            return { ...photo, progress: (photo.progress ?? 0) + 1 };
-          }
-          return photo;
-        }));
-      }, 120);
+    // Start progress animations for all files
+    uploadItems.forEach(item => {
+      startProgressAnimation(item.id);
     });
 
-    let processedFiles: File[] = files;
-    
     try {
-      const { default: imageCompression } = await import('browser-image-compression');
+      // Step 1: Compression (5-15%)
+      let processedFiles: File[] = files;
       
-      setPhotos(prev => prev.map(photo => ({ ...photo, progress: 5 })));
-      
-      processedFiles = await Promise.all(
-        files.map(async (file, index) => {
-          const compressed = await imageCompression(file, {
-            maxSizeMB: 1,
-            maxWidthOrHeight: 1920,
-            useWebWorker: true,
+      try {
+        const { default: imageCompression } = await import('browser-image-compression');
+        
+        // Set initial compression progress
+        uploadItems.forEach(item => updatePhotoProgress(item.id, 5));
+        
+        processedFiles = await Promise.all(
+          files.map(async (file, index) => {
+            const compressed = await imageCompression(file, {
+              maxSizeMB: 1,
+              maxWidthOrHeight: 1920,
+              useWebWorker: true,
+            });
+            
+            updatePhotoProgress(uploadItems[index].id, 15);
+            return compressed;
+          })
+        );
+      } catch (compressionErr) {
+        console.warn('Image compression skipped:', compressionErr);
+        uploadItems.forEach(item => updatePhotoProgress(item.id, 15));
+      }
+
+      // Step 2: Upload files with proper concurrency (15-90%)
+      const uploadResults = await processWithConcurrency(
+        processedFiles,
+        async (file, index) => {
+          const photoId = uploadItems[index].id;
+          
+          try {
+            // Stop the smooth animation and set to uploading progress
+            stopProgressAnimation(photoId);
+            updatePhotoProgress(photoId, 20);
+            
+            const result = await uploadFile(file, 'property-images', 'listings');
+            
+            // Set to 90% when upload completes
+            updatePhotoProgress(photoId, 90);
+            
+            return result;
+          } catch (error) {
+            stopProgressAnimation(photoId);
+            const message = error instanceof Error ? error.message : 'Upload failed';
+            
+            setPhotos(prev => prev.map(photo => 
+              photo.id === photoId 
+                ? { ...photo, error: message, uploading: false, progress: 0 }
+                : photo
+            ));
+            
+            throw error;
+          }
+        },
+        3 // Max 3 concurrent uploads
+      );
+
+      // Step 3: Database insertion (90-100%)
+      const successfulUploads = uploadResults
+        .map((result, index) => ({ result, index, photoId: uploadItems[index].id }))
+        .filter(({ result }) => result.status === 'fulfilled');
+
+      if (successfulUploads.length > 0) {
+        const startOrder = existingImages.length;
+        const rowsToInsert = successfulUploads
+          .map(({ result, index, photoId }) => {
+            if (result.status === 'fulfilled' && result.value) {
+              updatePhotoProgress(photoId, 95);
+              return {
+                property_id: propertyId,
+                s3_key: result.value.s3Key,
+                image_order: startOrder + index,
+                is_primary: startOrder === 0 && index === 0,
+                alt_text: `Property photo ${startOrder + index + 1}`,
+              };
+            }
+            return null;
+          })
+          .filter((row): row is NonNullable<typeof row> => row !== null);
+
+        // Insert into database
+        try {
+          const supabase = createClient();
+          const { error: insertErr } = await supabase
+            .from('property_images')
+            .insert(rowsToInsert);
+
+          if (insertErr) {
+            throw insertErr;
+          }
+
+          // Mark all as complete (100%)
+          successfulUploads.forEach(({ photoId }) => {
+            stopProgressAnimation(photoId);
+            updatePhotoProgress(photoId, 100);
+          });
+
+          // Update existing images immediately
+          const newImages: ExistingImage[] = rowsToInsert.map((row, idx) => {
+            const uploadResult = successfulUploads[idx];
+            const publicUrl = uploadResult.result.status === 'fulfilled' ? 
+              uploadResult.result.value?.publicUrl || '' : '';
+            
+            return {
+              id: `temp-${Date.now()}-${idx}`,
+              s3_key: row.s3_key,
+              image_order: row.image_order,
+              is_primary: row.is_primary,
+              alt_text: row.alt_text,
+              url: publicUrl,
+              image_type: 'listing',
+              room_type: undefined
+            };
           });
           
-          setPhotos(prev => prev.map((photo, idx) =>
-            idx === index ? { ...photo, progress: 15 } : photo));
-          return compressed;
-        })
-      );
-    } catch (compressionErr) {
-      console.warn('Image compression skipped:', compressionErr);
-      setPhotos(prev => prev.map(photo => ({ ...photo, progress: 15 })));
-    }
-
-    // Upload files with limited concurrency for smoother network usage
-    const tasks = processedFiles.map((file, index) => {
-      return async () => {
-        try {
-          const res = await uploadFile(file, 'property-images', 'listings');
-          // on complete set progress to 95; final 100 after DB
-          setPhotos(prev => prev.map((photo, idx) => idx === index ? { ...photo, progress: 95 } : photo));
-          return res;
-        } catch (error: unknown) {
-          let message = 'Upload failed';
-          if (error instanceof Error) message = error.message;
-          setPhotos(prev => prev.map((photo, idx) => idx === index ? { ...photo, error: message, uploading: false, progress: 0 } : photo));
-          throw error;
-        }
-      };
-    });
-
-    const resultsSettled = await Promise.allSettled(await withConcurrency(tasks, 3));
-    
-    const results = resultsSettled;
-
-    // Prepare rows for DB insert + UI updates
-    const rowsToInsert: {
-      property_id: string;
-      s3_key: string;
-      image_order: number;
-      is_primary: boolean;
-      alt_text: string;
-    }[] = [];
-
-    const updatedPreview = previewPhotos.map((p, idx) => {
-      const res = results[idx];
-      if (res.status === 'fulfilled' && res.value) {
-        const { publicUrl, s3Key } = res.value;
-        rowsToInsert.push({
-          property_id: propertyId,
-          s3_key: s3Key,
-          image_order: startOrder + idx,
-          is_primary: startOrder === 0 && idx === 0,
-          alt_text: `Property photo ${startOrder + idx + 1}`,
-        });
-        return { ...p, url: publicUrl, uploading: false, progress: 100 };
-      } else {
-        const errMsg = res.status === 'rejected' ? (res.reason?.message ?? 'Upload failed') : 'Upload failed';
-        return { ...p, uploading: false, error: errMsg, progress: 0 };
-      }
-    });
-
-    setPhotos(updatedPreview);
-
-    // Insert DB rows in one go
-    try {
-      if (rowsToInsert.length) {
-        const supabase = createClient();
-        const { error: insertErr } = await supabase
-          .from('property_images')
-          .insert(rowsToInsert);
-
-        if (insertErr) {
-          console.error('Error inserting image rows:', insertErr);
-          showError('Upload failed', insertErr.message);
-        } else {
-          success('Images uploaded successfully!');
-          
-          // Immediately update existing images without waiting for refresh
-          const newImages: ExistingImage[] = rowsToInsert.map((row, idx) => ({
-            id: `temp-${Date.now()}-${idx}`, // temporary ID
-            s3_key: row.s3_key,
-            image_order: row.image_order,
-            is_primary: row.is_primary,
-            alt_text: row.alt_text,
-            url: updatedPreview[idx].url || '',
-            image_type: 'listing',
-            room_type: undefined
-          }));
-          
           setExistingImages(prev => [...prev, ...newImages]);
+          success(`${successfulUploads.length} image(s) uploaded successfully!`);
+
+        } catch (dbError) {
+          console.error('Database insertion error:', dbError);
+          showError('Upload failed', dbError instanceof Error ? dbError.message : 'Database error');
         }
       }
-    } catch (err) {
-      console.error('Batch insert error:', err);
-      showError('Upload failed', err instanceof Error ? err.message : 'Unknown error');
+
+      // Handle failed uploads
+      const failedUploads = uploadResults.filter(result => result.status === 'rejected');
+      if (failedUploads.length > 0) {
+        showError('Some uploads failed', `${failedUploads.length} file(s) failed to upload`);
+      }
+
+    } catch (error) {
+      console.error('Upload process error:', error);
+      showError('Upload failed', error instanceof Error ? error.message : 'Unknown error');
+    } finally {
+      setUploading(false);
+      
+      // Clear all intervals
+      uploadIntervals.current.forEach(intervalId => {
+        window.clearInterval(intervalId);
+      });
+      uploadIntervals.current.clear();
+
+      // Clear photos after a delay
+      setTimeout(() => {
+        setPhotos([]);
+        // Refresh existing images to get proper IDs
+        refreshExistingImages();
+      }, 1500);
     }
-
-    // Refresh existing images list to get proper IDs
-    setTimeout(() => refreshExistingImages(), 500);
-
-    // Clear interval timers
-    Object.values(uploadIntervals.current).forEach((id) => clearInterval(id));
-    uploadIntervals.current = {};
-
-    setUploading(false);
-    // Keep last preview for a second then clear
-    setTimeout(() => setPhotos([]), 800);
   };
 
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -385,6 +462,7 @@ export default function MediaPage() {
 
     const file = e.target.files[0];
     const newTourFile: UploadedFile = {
+      id: `tour-${Date.now()}`,
       file,
       uploading: true
     };
@@ -415,8 +493,9 @@ export default function MediaPage() {
     e.target.value = '';
   };
 
-  const removePhoto = (index: number) => {
-    setPhotos(prev => prev.filter((_, i) => i !== index));
+  const removePhoto = (photoId: string) => {
+    stopProgressAnimation(photoId);
+    setPhotos(prev => prev.filter(photo => photo.id !== photoId));
   };
 
   const removeTour = () => {
@@ -502,13 +581,6 @@ export default function MediaPage() {
       showError('Save order failed', 'Could not save new image order');
     }
   };
-
-  // Cleanup any active intervals on component unmount
-  useEffect(() => {
-    return () => {
-      Object.values(uploadIntervals.current).forEach((id) => clearInterval(id));
-    };
-  }, []);
 
   if (!propertyId) {
     return <div>Loading...</div>;
@@ -696,15 +768,15 @@ export default function MediaPage() {
             {photos.length > 0 && (
               <div className="space-y-3">
                 <h3 className="text-lg font-semibold text-gray-800">Currently Uploading ({photos.length})</h3>
-                <div className="grid grid-cols-2 gap-3">
-                  {photos.map((photo, index) => (
-                    <div key={index} className="relative border border-gray-200 rounded-xl p-4 bg-white">
-                      <div className="flex items-center justify-between">
+                <div className="grid grid-cols-1 gap-3">
+                  {photos.map((photo) => (
+                    <div key={photo.id} className="relative border border-gray-200 rounded-xl p-4 bg-white">
+                      <div className="flex items-center justify-between mb-3">
                         <span className="text-sm font-medium text-gray-700 truncate flex-1">
                           {photo.file.name}
                         </span>
                         <button
-                          onClick={() => removePhoto(index)}
+                          onClick={() => removePhoto(photo.id)}
                           className="text-red-500 hover:text-red-700 ml-2 p-1 rounded-full hover:bg-red-50 transition-colors"
                           disabled={photo.uploading}
                         >
@@ -714,16 +786,20 @@ export default function MediaPage() {
                       
                       {/* Preview */}
                       {photo.url && (
-                        <img src={photo.url} alt="preview" className="w-full h-32 object-cover mt-3 rounded-lg" />
+                        <img src={photo.url} alt="preview" className="w-full h-32 object-cover mb-3 rounded-lg" />
                       )}
 
                       {photo.uploading && (
-                        <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/70 backdrop-blur-md rounded-lg">
-                          <Spinner size={20} className="text-blue-600 animate-spin" />
-                          <p className="mt-2 text-xs font-medium text-blue-700">Uploading {photo.progress || 0}%</p>
-                          <div className="mt-3 w-3/4 h-2 bg-gray-200 rounded-full overflow-hidden">
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-medium text-blue-700">
+                              Uploading {photo.progress || 0}%
+                            </span>
+                            <Spinner size={16} className="text-blue-600" />
+                          </div>
+                          <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
                             <div
-                              className="h-full bg-gradient-to-r from-blue-500 to-blue-700 transition-all duration-300"
+                              className="h-full bg-gradient-to-r from-blue-500 to-blue-700 transition-all duration-300 ease-out"
                               style={{ width: `${photo.progress || 0}%` }}
                             />
                           </div>
@@ -731,7 +807,7 @@ export default function MediaPage() {
                       )}
                       
                       {photo.error && (
-                        <div className="mt-3 flex items-center text-red-600">
+                        <div className="flex items-center text-red-600">
                           <AlertCircle className="w-4 h-4 mr-2" />
                           <p className="text-xs">{photo.error}</p>
                         </div>
