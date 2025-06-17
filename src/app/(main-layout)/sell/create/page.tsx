@@ -14,6 +14,7 @@ export default function CreateListingPage() {
   
   console.log('CreateListingPage - propertyId from URL:', propertyId);
   console.log('CreateListingPage - searchParams:', searchParams.toString());
+  console.log('CreateListingPage - current URL:', typeof window !== 'undefined' ? window.location.href : 'SSR');
   
   const [beds, setBeds] = useState('1');
   const [baths, setBaths] = useState('1');
@@ -145,6 +146,7 @@ export default function CreateListingPage() {
       
       if (propertyId) {
         // Update existing property
+        console.log('Updating existing property:', propertyId);
         const propertyData = {
           address_line_1: formData.get('address_line_1') as string,
           address_line_2: formData.get('address_line_2') as string || null,
@@ -159,6 +161,15 @@ export default function CreateListingPage() {
           year_built: formData.get('year_built') ? parseInt(formData.get('year_built') as string) : null,
         };
 
+        // Force save via autosave hook first
+        try {
+          await saveImmediately();
+          console.log('Auto-save completed successfully');
+        } catch (autoSaveError) {
+          console.error('Auto-save failed, trying direct update:', autoSaveError);
+        }
+
+        // Also do direct update to ensure data is saved
         const { error } = await supabase
           .from('properties')
           .update(propertyData)
@@ -171,7 +182,7 @@ export default function CreateListingPage() {
           return;
         }
 
-        console.log('Property updated successfully');
+        console.log('Property updated successfully, navigating to rent-details');
         router.push(`/sell/create/rent-details?property_id=${propertyId}`);
         
       } else {

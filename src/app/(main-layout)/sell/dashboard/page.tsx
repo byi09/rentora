@@ -224,15 +224,15 @@ export default function PropertyDashboard() {
     try {
       setClickingPropertyId(property.id);
       const nextStep = await determineNextStep(property);
+      console.log('Dashboard - navigating to:', nextStep);
+      console.log('Dashboard - property data:', property);
       router.push(nextStep);
     } catch (error) {
       console.error('Error navigating to property:', error);
       // Fallback navigation
-      if (property.listing_status) {
-        router.push(`/sell/create/review?property_id=${property.id}`);
-      } else {
-        router.push(`/sell/create/rent-details?property_id=${property.id}`);
-      }
+      const fallbackUrl = `/sell/create?property_id=${property.id}`;
+      console.log('Dashboard - fallback navigation to:', fallbackUrl);
+      router.push(fallbackUrl);
     } finally {
       setClickingPropertyId(null);
     }
