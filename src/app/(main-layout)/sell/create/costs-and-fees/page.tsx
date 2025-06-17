@@ -12,6 +12,7 @@ export default function CostsAndFeesPage() {
   const [parkingFee, setParkingFee] = useState('');
   const [utilitiesFee, setUtilitiesFee] = useState('');
   const [otherFee, setOtherFee] = useState('');
+  const FEATURE_CATEGORY = 'utilities' as const;
 
   // Enhanced navigation with auto-save
   const handleNavigation = async (path: string) => {
@@ -40,7 +41,7 @@ export default function CostsAndFeesPage() {
         features.push({
           property_id: propertyId,
           feature_name: 'Administrative Fee',
-          feature_category: 'fees' as const,
+          feature_category: FEATURE_CATEGORY,
           feature_value: administrativeFee
         });
       }
@@ -49,7 +50,7 @@ export default function CostsAndFeesPage() {
         features.push({
           property_id: propertyId,
           feature_name: 'Parking Fee',
-          feature_category: 'fees' as const,
+          feature_category: FEATURE_CATEGORY,
           feature_value: parkingFee
         });
       }
@@ -58,7 +59,7 @@ export default function CostsAndFeesPage() {
         features.push({
           property_id: propertyId,
           feature_name: 'Utilities Fee',
-          feature_category: 'fees' as const,
+          feature_category: FEATURE_CATEGORY,
           feature_value: utilitiesFee
         });
       }
@@ -67,7 +68,7 @@ export default function CostsAndFeesPage() {
         features.push({
           property_id: propertyId,
           feature_name: 'Other Fee',
-          feature_category: 'fees' as const,
+          feature_category: FEATURE_CATEGORY,
           feature_value: otherFee
         });
       }
@@ -77,7 +78,7 @@ export default function CostsAndFeesPage() {
         .from('property_features')
         .delete()
         .eq('property_id', propertyId)
-        .eq('feature_category', 'fees');
+        .eq('feature_category', FEATURE_CATEGORY);
 
       // Insert new fee features if any exist
       if (features.length > 0) {
@@ -107,7 +108,7 @@ export default function CostsAndFeesPage() {
           .from('property_features')
           .select('*')
           .eq('property_id', propertyId)
-          .eq('feature_category', 'fees');
+          .eq('feature_category', FEATURE_CATEGORY);
 
         if (error) {
           console.error('Error loading existing fees data:', error);

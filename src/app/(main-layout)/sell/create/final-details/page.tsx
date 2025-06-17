@@ -10,6 +10,7 @@ export default function FinalDetailsPage() {
   const propertyId = searchParams.get('property_id');
   const [leasePolicy, setLeasePolicy] = useState('');
   const [rentersInsurance, setRentersInsurance] = useState<'Yes' | 'No' | ''>('');
+  const FEATURE_CATEGORY = 'utilities' as const;
 
   // Enhanced navigation with auto-save
   const handleNavigation = async (path: string) => {
@@ -38,7 +39,7 @@ export default function FinalDetailsPage() {
         features.push({
           property_id: propertyId,
           feature_name: 'Lease Policy',
-          feature_category: 'policies' as const,
+          feature_category: FEATURE_CATEGORY,
           feature_value: leasePolicy
         });
       }
@@ -47,7 +48,7 @@ export default function FinalDetailsPage() {
         features.push({
           property_id: propertyId,
           feature_name: 'Renters Insurance Required',
-          feature_category: 'policies' as const,
+          feature_category: FEATURE_CATEGORY,
           feature_value: rentersInsurance
         });
       }
@@ -57,7 +58,7 @@ export default function FinalDetailsPage() {
         .from('property_features')
         .delete()
         .eq('property_id', propertyId)
-        .eq('feature_category', 'policies');
+        .eq('feature_category', FEATURE_CATEGORY);
 
       // Insert new policy features if any exist
       if (features.length > 0) {
@@ -87,7 +88,7 @@ export default function FinalDetailsPage() {
           .from('property_features')
           .select('*')
           .eq('property_id', propertyId)
-          .eq('feature_category', 'policies');
+          .eq('feature_category', FEATURE_CATEGORY);
 
         if (error) {
           console.error('Error loading existing final details data:', error);
