@@ -12,10 +12,6 @@ export default function CreateListingPage() {
   const searchParams = useSearchParams();
   const propertyId = searchParams.get('property_id');
   
-  console.log('CreateListingPage - propertyId from URL:', propertyId);
-  console.log('CreateListingPage - searchParams:', searchParams.toString());
-  console.log('CreateListingPage - current URL:', typeof window !== 'undefined' ? window.location.href : 'SSR');
-  
   const [beds, setBeds] = useState('1');
   const [baths, setBaths] = useState('1');
   const [squareFootage, setSquareFootage] = useState('1500');
@@ -57,16 +53,12 @@ export default function CreateListingPage() {
       if (propertyId) {
         // Load existing property data from database
         try {
-          console.log('Loading property data for ID:', propertyId);
           const supabase = createClient();
           const { data: property, error } = await supabase
             .from('properties')
             .select('*')
             .eq('id', propertyId)
             .single();
-          
-          console.log('Property data loaded:', property);
-          console.log('Property loading error:', error);
           
           if (!error && property) {
             setBeds(property.bedrooms?.toString() || '1');
@@ -80,7 +72,6 @@ export default function CreateListingPage() {
             setZipCode(property.zip_code || '');
             setYearBuilt(property.year_built?.toString() || '');
             setDescription(property.description || '');
-            console.log('Form state updated with property data');
           } else {
             console.log('No property data found or error occurred');
           }
@@ -273,7 +264,7 @@ export default function CreateListingPage() {
   };
 
   return (
-    <main className="min-h-screen bg-white pt-28 pb-8 px-8">
+    <main className="min-h-screen bg-gradient-to-br from-gray-50 to-white pt-28 pb-12 px-6 sm:px-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
@@ -290,7 +281,7 @@ export default function CreateListingPage() {
                   console.error('Error saving before exit:', error);
                 }
               }
-              router.push('/');
+              router.push('/sell/dashboard');
             }}
             className="px-6 py-2 text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
           >
@@ -299,10 +290,11 @@ export default function CreateListingPage() {
         </div>
 
         {/* Progress Bar */}
-        <InteractiveProgressBar currentStep={0} />
+        <InteractiveProgressBar currentStep={0} propertyId={propertyId} />
 
         {/* Form */}
         <form onSubmit={handleSubmit}>
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
           {/* Left Column - Basic Details */}
           <div>
@@ -525,6 +517,7 @@ export default function CreateListingPage() {
           >
             {isSubmitting ? (propertyId ? 'Updating Property...' : 'Creating Property...') : 'Next'}
           </button>
+        </div>
         </div>
         </form>
       </div>
