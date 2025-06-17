@@ -373,7 +373,7 @@ export default function MediaPage() {
             {/* Loading State */}
             {loading && (
               <div className="flex items-center justify-center py-4">
-                <Spinner size={24} className="text-blue-600" />
+                <Spinner size={16} className="text-blue-600" />
                 <span className="ml-2 text-sm text-gray-600">Loading existing images...</span>
               </div>
             )}
@@ -472,7 +472,7 @@ export default function MediaPage() {
                       
                       {photo.uploading && (
                         <div className="mt-2">
-                          <Spinner variant="progress" progress={100} size={16} className="w-full" />
+                          <Spinner size={16} className="text-blue-600" />
                           <p className="text-xs text-gray-500 mt-1">Uploading...</p>
                         </div>
                       )}
@@ -539,7 +539,7 @@ export default function MediaPage() {
                 
                 {tourFile.uploading && (
                   <div className="mt-2">
-                    <Spinner variant="progress" progress={100} size={16} className="w-full" />
+                    <Spinner size={16} className="text-blue-600" />
                     <p className="text-xs text-gray-500 mt-1">Uploading...</p>
                   </div>
                 )}
