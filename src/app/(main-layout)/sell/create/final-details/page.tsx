@@ -53,12 +53,13 @@ export default function FinalDetailsPage() {
         });
       }
 
-      // Delete existing policy features
+      // Delete existing policy features by name (handles legacy category values)
+      const names = ['Lease Policy', 'Renters Insurance Required'];
       await supabase
         .from('property_features')
         .delete()
         .eq('property_id', propertyId)
-        .eq('feature_category', FEATURE_CATEGORY);
+        .in('feature_name', names);
 
       // Insert new policy features if any exist
       if (features.length > 0) {
@@ -77,6 +78,25 @@ export default function FinalDetailsPage() {
     }
   };
 
+  const exitToDashboard = async () => {
+    try {
+      await saveCurrentFormData();
+    } catch (err) {
+      console.error('Error saving before exit:', err);
+    } finally {
+      router.push('/');
+    }
+  };
+
+  useEffect(() => {
+    if (!propertyId) return;
+    const handleBeforeUnload = () => { saveCurrentFormData(); };
+    const handlePopState = () => { saveCurrentFormData(); };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('popstate', handlePopState);
+    return () => { window.removeEventListener('beforeunload', handleBeforeUnload); window.removeEventListener('popstate', handlePopState); };
+  }, [propertyId, saveCurrentFormData]);
+
   // Load existing final details data on mount
   useEffect(() => {
     const loadExistingData = async () => {
@@ -88,7 +108,7 @@ export default function FinalDetailsPage() {
           .from('property_features')
           .select('*')
           .eq('property_id', propertyId)
-          .eq('feature_category', FEATURE_CATEGORY);
+          .in('feature_name', ['Lease Policy', 'Renters Insurance Required']);
 
         if (error) {
           console.error('Error loading existing final details data:', error);
@@ -119,7 +139,7 @@ export default function FinalDetailsPage() {
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-2xl font-semibold">Final Details</h1>
           <button 
-            onClick={() => router.push('/')}
+            onClick={exitToDashboard}
             className="px-6 py-2 text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
           >
             Save and Exit

@@ -73,12 +73,13 @@ export default function CostsAndFeesPage() {
         });
       }
 
-      // Delete existing fee features
+      // Delete existing fee features by their names (allows for legacy category values)
+      const feeNames = ['Administrative Fee', 'Parking Fee', 'Utilities Fee', 'Other Fee'];
       await supabase
         .from('property_features')
         .delete()
         .eq('property_id', propertyId)
-        .eq('feature_category', FEATURE_CATEGORY);
+        .in('feature_name', feeNames);
 
       // Insert new fee features if any exist
       if (features.length > 0) {
@@ -108,7 +109,7 @@ export default function CostsAndFeesPage() {
           .from('property_features')
           .select('*')
           .eq('property_id', propertyId)
-          .eq('feature_category', FEATURE_CATEGORY);
+          .in('feature_name', ['Administrative Fee', 'Parking Fee', 'Utilities Fee', 'Other Fee']);
 
         if (error) {
           console.error('Error loading existing fees data:', error);
@@ -141,6 +142,26 @@ export default function CostsAndFeesPage() {
     loadExistingData();
   }, [propertyId]);
 
+  const exitToDashboard = async () => {
+    try {
+      await saveCurrentFormData();
+    } catch (err) {
+      console.error('Error saving before exit:', err);
+    } finally {
+      router.push('/');
+    }
+  };
+
+  // Save on browser back/unload
+  useEffect(() => {
+    if (!propertyId) return;
+    const handleBeforeUnload = () => { saveCurrentFormData(); };
+    const handlePopState = () => { saveCurrentFormData(); };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('popstate', handlePopState);
+    return () => { window.removeEventListener('beforeunload', handleBeforeUnload); window.removeEventListener('popstate', handlePopState); };
+  }, [propertyId, saveCurrentFormData]);
+
   return (
     <main className="min-h-screen bg-white pt-28 pb-8 px-8">
       <div className="max-w-7xl mx-auto">
@@ -148,7 +169,7 @@ export default function CostsAndFeesPage() {
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-2xl font-semibold">Costs and Fees</h1>
           <button 
-            onClick={() => router.push('/')}
+            onClick={exitToDashboard}
             className="px-6 py-2 text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
           >
             Save and Exit

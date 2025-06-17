@@ -108,6 +108,34 @@ export default function ScreeningPage() {
     loadExistingData();
   }, [propertyId]);
 
+  const exitToDashboard = async () => {
+    try {
+      await saveCurrentFormData();
+    } catch (err) {
+      console.error('Error saving before exit:', err);
+    } finally {
+      router.push('/');
+    }
+  };
+
+  // Save on browser back/unload
+  useEffect(() => {
+    if (!propertyId) return;
+
+    const handleBeforeUnload = () => {
+      saveCurrentFormData();
+    };
+    const handlePopState = () => {
+      saveCurrentFormData();
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [propertyId, saveCurrentFormData]);
+
   return (
     <main className="min-h-screen bg-white pt-28 pb-8 px-8">
       <div className="max-w-7xl mx-auto">
@@ -115,7 +143,7 @@ export default function ScreeningPage() {
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-2xl font-semibold">Screening Requirements</h1>
           <button 
-            onClick={() => router.push('/')}
+            onClick={exitToDashboard}
             className="px-6 py-2 text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
           >
             Save and Exit
