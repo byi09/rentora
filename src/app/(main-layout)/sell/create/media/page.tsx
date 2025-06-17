@@ -639,14 +639,12 @@ export default function MediaPage() {
                       )}
 
                       {photo.uploading && (
-                        <div className="mt-3">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-xs font-medium text-blue-600">Uploading...</span>
-                            <span className="text-xs text-gray-500">{photo.progress || 0}%</span>
-                          </div>
-                          <div className="w-full bg-gray-200 rounded-full h-2">
-                            <div 
-                              className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                        <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/70 backdrop-blur-md rounded-lg">
+                          <Spinner size={20} className="text-blue-600 animate-spin" />
+                          <p className="mt-2 text-xs font-medium text-blue-700">Uploading {photo.progress || 0}%</p>
+                          <div className="mt-3 w-3/4 h-2 bg-gray-200 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-gradient-to-r from-blue-500 to-blue-700 animate-[pulse_1.5s_infinite]"
                               style={{ width: `${photo.progress || 0}%` }}
                             />
                           </div>

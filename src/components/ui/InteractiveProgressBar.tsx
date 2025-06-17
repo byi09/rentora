@@ -17,6 +17,11 @@ const InteractiveProgressBar: React.FC<InteractiveProgressBarProps> = ({
   const router = useRouter();
   const [completedSteps, setCompletedSteps] = useState<boolean[]>([]);
   const [allowedSteps, setAllowedSteps] = useState<boolean[]>([]);
+  const [furthestStep, setFurthestStep] = useState<number>(() => {
+    if (typeof window === 'undefined') return currentStep;
+    const stored = window.sessionStorage.getItem('furthestStep');
+    return stored ? Math.max(parseInt(stored, 10), currentStep) : currentStep;
+  });
 
   const steps = [
     { label: 'Property Info', path: '/sell/create' },
@@ -30,18 +35,26 @@ const InteractiveProgressBar: React.FC<InteractiveProgressBarProps> = ({
     { label: 'Publish', path: '/sell/create/publish' }
   ];
 
-  // Completed: any index less than currentStep is considered complete
   useEffect(() => {
+    // update furthest step if current exceeds it
+    if (currentStep > furthestStep) {
+      setFurthestStep(currentStep);
+      if (typeof window !== 'undefined') {
+        window.sessionStorage.setItem('furthestStep', currentStep.toString());
+      }
+    }
+
+    // Completed: any index less than currentStep is considered complete
     const completedArr = steps.map((_, idx) => idx < currentStep);
     setCompletedSteps(completedArr);
 
     // Allowed: sequential unlock; after reaching Review (index 7) unlock all
     const allowedArr = steps.map((_, idx) => {
-      if (currentStep >= 7) return true;
-      return idx <= currentStep;
+      if (furthestStep >= 7) return true;
+      return idx <= furthestStep;
     });
     setAllowedSteps(allowedArr);
-  }, [currentStep, steps.length]);
+  }, [currentStep, furthestStep, steps.length]);
 
   const handleStepClick = async (stepIndex: number) => {
     // Only allow navigation if allowedSteps true
