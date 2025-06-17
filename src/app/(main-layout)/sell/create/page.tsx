@@ -12,6 +12,9 @@ export default function CreateListingPage() {
   const searchParams = useSearchParams();
   const propertyId = searchParams.get('property_id');
   
+  console.log('CreateListingPage - propertyId from URL:', propertyId);
+  console.log('CreateListingPage - searchParams:', searchParams.toString());
+  
   const [beds, setBeds] = useState('1');
   const [baths, setBaths] = useState('1');
   const [squareFootage, setSquareFootage] = useState('1500');
@@ -53,12 +56,16 @@ export default function CreateListingPage() {
       if (propertyId) {
         // Load existing property data from database
         try {
+          console.log('Loading property data for ID:', propertyId);
           const supabase = createClient();
           const { data: property, error } = await supabase
             .from('properties')
             .select('*')
             .eq('id', propertyId)
             .single();
+          
+          console.log('Property data loaded:', property);
+          console.log('Property loading error:', error);
           
           if (!error && property) {
             setBeds(property.bedrooms?.toString() || '1');
@@ -72,11 +79,15 @@ export default function CreateListingPage() {
             setZipCode(property.zip_code || '');
             setYearBuilt(property.year_built?.toString() || '');
             setDescription(property.description || '');
+            console.log('Form state updated with property data');
+          } else {
+            console.log('No property data found or error occurred');
           }
         } catch (error) {
           console.error('Error loading property data:', error);
         }
       } else {
+        console.log('No propertyId, loading from localStorage');
         // Load from localStorage for new properties
         const savedData = localStorage.getItem(FORM_STORAGE_KEY);
         if (savedData) {

@@ -52,6 +52,9 @@ export function useAutoSave({
             if (value === '' && (key.includes('rent') || key.includes('deposit') || key.includes('fee') || 
                 key.includes('year_built') || key.includes('lease_term') || key.includes('score'))) {
               acc[key] = null;
+            } else if (value === '' && (key.includes('date') || key.includes('_at'))) {
+              // Convert empty strings to null for date fields
+              acc[key] = null;
             } else {
               acc[key] = value;
             }
