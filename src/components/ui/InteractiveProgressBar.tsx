@@ -25,31 +25,20 @@ const InteractiveProgressBar: React.FC<InteractiveProgressBarProps> = ({
   ];
 
   const handleStepClick = (stepIndex: number) => {
-    // Only allow navigation to completed steps and the current step
-    if (stepIndex <= currentStep) {
-      const step = steps[stepIndex];
-      let url = step.path;
-      
-      // Add property_id parameter for all steps except the first one
-      if (propertyId) {
-        url += `?property_id=${propertyId}`;
-      }
-      
-      router.push(url);
+    const step = steps[stepIndex];
+    let url = step.path;
+    if (propertyId) {
+      url += `?property_id=${propertyId}`;
     }
+    router.push(url);
   };
 
   const getStepClassName = (stepIndex: number) => {
-    if (stepIndex < currentStep) {
-      // Completed steps - blue
-      return 'bg-blue-500 cursor-pointer hover:bg-blue-600 transition-colors';
-    } else if (stepIndex === currentStep) {
-      // Current step - darker blue
+    if (stepIndex === currentStep) {
       return 'bg-blue-600 cursor-pointer';
-    } else {
-      // Future steps - gray, not clickable
-      return 'bg-blue-200 cursor-not-allowed';
     }
+    // Other steps
+    return 'bg-blue-500 hover:bg-blue-600 transition-colors cursor-pointer';
   };
 
   const getStepTextClassName = (stepIndex: number) => {
@@ -72,8 +61,7 @@ const InteractiveProgressBar: React.FC<InteractiveProgressBarProps> = ({
             <button
               onClick={() => handleStepClick(index)}
               className={`w-4 h-4 rounded-full transition-all duration-200 ${getStepClassName(index)} relative z-10`}
-              disabled={index > currentStep}
-              title={index > currentStep ? 'Complete previous steps first' : `Go to ${step.label}`}
+              title={`Go to ${step.label}`}
             >
               {/* Add checkmark for completed steps */}
               {index < currentStep && (

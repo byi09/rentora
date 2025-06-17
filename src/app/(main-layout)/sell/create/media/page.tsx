@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import { useToast } from '@/src/components/ui/Toast';
@@ -38,6 +38,9 @@ export default function MediaPage() {
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState<string | null>(null);
+
+  // Local drag state for image re-ordering
+  const dragItemIndex = useRef<number | null>(null);
 
   // Initialize Supabase Storage buckets
   useEffect(() => {
@@ -140,92 +143,98 @@ export default function MediaPage() {
     if (!e.target.files || !propertyId) return;
 
     const files = Array.from(e.target.files);
-    const newPhotos: UploadedFile[] = files.map(file => ({
+
+    // Add local previews immediately
+    const startOrder = existingImages.length;
+    const previewPhotos: UploadedFile[] = files.map((file) => ({
       file,
-      uploading: true
+      url: URL.createObjectURL(file),
+      uploading: true,
     }));
 
-    setPhotos(prev => [...prev, ...newPhotos]);
+    setPhotos(previewPhotos);
     setUploading(true);
 
-    // Upload files one by one
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      
-      try {
-        const uploadResult = await uploadFile(file, 'property-images', 'listings');
-        
-        if (!uploadResult) {
-          throw new Error('Failed to get upload URL');
-        }
-        
-        const { publicUrl, s3Key } = uploadResult;
-        
-        // Save image record to database
-        const supabase = createClient();
-        const { error: dbError } = await supabase
-          .from('property_images')
-          .insert({
-            property_id: propertyId,
-            s3_key: s3Key,
-            image_order: photos.length + i,
-            is_primary: photos.length === 0 && i === 0, // First image is primary
-            alt_text: `Property photo ${photos.length + i + 1}`
-          });
+    // ---- Batch upload concurrently ----
+    const uploadPromises = files.map(file => uploadFile(file, 'property-images', 'listings'));
+    const results = await Promise.allSettled(uploadPromises);
 
-        if (dbError) {
-          console.error('Error saving image to database:', dbError);
-          throw new Error('Failed to save image record');
-        }
-        
-        setPhotos(prev => prev.map((photo, index) => {
-          if (index === prev.length - files.length + i) {
-            return { ...photo, url: publicUrl, uploading: false };
-          }
-          return photo;
-        }));
+    // Prepare rows for DB insert + UI updates
+    const rowsToInsert: {
+      property_id: string;
+      s3_key: string;
+      image_order: number;
+      is_primary: boolean;
+      alt_text: string;
+    }[] = [];
 
-        // Refresh existing images from database to get the correct ID
-        const supabaseRefresh = createClient();
-        const { data: refreshedImages } = await supabaseRefresh
-          .from('property_images')
-          .select('*')
-          .eq('property_id', propertyId)
-          .order('image_order', { ascending: true });
-
-        if (refreshedImages) {
-          const imagesWithUrls = refreshedImages.map(image => {
-            const { data: { publicUrl } } = supabaseRefresh.storage
-              .from('property-images')
-              .getPublicUrl(image.s3_key);
-            
-            return {
-              ...image,
-              url: publicUrl
-            };
-          });
-          setExistingImages(imagesWithUrls);
-        }
-
-        success('Image uploaded successfully!');
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Upload failed';
-        
-        setPhotos(prev => prev.map((photo, index) => {
-          if (index === prev.length - files.length + i) {
-            return { ...photo, uploading: false, error: errorMessage };
-          }
-          return photo;
-        }));
-
-        showError('Upload failed', errorMessage);
+    const updatedPreview = previewPhotos.map((p, idx) => {
+      const res = results[idx];
+      if (res.status === 'fulfilled' && res.value) {
+        const { publicUrl, s3Key } = res.value;
+        rowsToInsert.push({
+          property_id: propertyId,
+          s3_key: s3Key,
+          image_order: startOrder + idx,
+          is_primary: startOrder === 0 && idx === 0,
+          alt_text: `Property photo ${startOrder + idx + 1}`,
+        });
+        return { ...p, url: publicUrl, uploading: false };
+      } else {
+        const errMsg = res.status === 'rejected' ? (res.reason?.message ?? 'Upload failed') : 'Upload failed';
+        return { ...p, uploading: false, error: errMsg };
       }
+    });
+
+    setPhotos(updatedPreview);
+
+    // Insert DB rows in one go
+    try {
+      if (rowsToInsert.length) {
+        const supabase = createClient();
+        const { error: insertErr } = await supabase
+          .from('property_images')
+          .insert(rowsToInsert);
+
+        if (insertErr) {
+          console.error('Error inserting image rows:', insertErr);
+          showError('Upload failed', insertErr.message);
+        } else {
+          success('Images uploaded successfully!');
+        }
+      }
+    } catch (err) {
+      console.error('Batch insert error:', err);
+      showError('Upload failed', err instanceof Error ? err.message : 'Unknown error');
     }
 
+    // Refresh existing images list
+    await refreshExistingImages();
+
     setUploading(false);
-    // Clear the uploaded photos list and input after successful upload
+    // Clear photos state and file input
     setPhotos([]);
     e.target.value = '';
+  };
+
+  // Helper to refresh existing images list (used by multiple places)
+  const refreshExistingImages = async () => {
+    if (!propertyId) return;
+    const supabase = createClient();
+    const { data: refreshedImages } = await supabase
+      .from('property_images')
+      .select('*')
+      .eq('property_id', propertyId)
+      .order('image_order', { ascending: true });
+    if (refreshedImages) {
+      const imagesWithUrls = refreshedImages.map((image) => {
+        const { data: { publicUrl } } = supabase.storage
+          .from('property-images')
+          .getPublicUrl(image.s3_key);
+        return { ...image, url: publicUrl };
+      });
+      setExistingImages(imagesWithUrls);
+    }
   };
 
   const handleTourUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -316,6 +325,41 @@ export default function MediaPage() {
     }
   }, [propertyId, router]);
 
+  // ---- Drag-and-drop re-ordering ----
+  const handleDragStart = (index: number) => {
+    dragItemIndex.current = index;
+  };
+
+  const handleDrop = async (index: number) => {
+    const from = dragItemIndex.current;
+    dragItemIndex.current = null;
+    if (from === null || from === index) return;
+
+    const reordered = [...existingImages];
+    const [moved] = reordered.splice(from, 1);
+    reordered.splice(index, 0, moved);
+
+    // Update local order numbers
+    const updated = reordered.map((img, idx) => ({ ...img, image_order: idx }));
+    setExistingImages(updated);
+
+    // Persist order to DB
+    try {
+      const supabase = createClient();
+      await Promise.all(
+        updated.map((img) =>
+          supabase
+            .from('property_images')
+            .update({ image_order: img.image_order })
+            .eq('id', img.id)
+        )
+      );
+    } catch (err) {
+      console.error('Failed to save new image order', err);
+      showError('Save order failed', 'Could not save new image order');
+    }
+  };
+
   if (!propertyId) {
     return <div>Loading...</div>;
   }
@@ -396,8 +440,16 @@ export default function MediaPage() {
                   Uploaded Images ({existingImages.length})
                 </h3>
                 <div className="grid grid-cols-2 gap-3">
-                  {existingImages.map((image) => (
-                    <div key={image.id} className="relative border rounded-lg overflow-hidden bg-white">
+                  {existingImages.map((image, idx) => (
+                    <div
+                      key={image.id}
+                      className="relative border rounded-lg overflow-hidden bg-white"
+                      draggable
+                      onDragStart={() => handleDragStart(idx)}
+                      onDragOver={(e) => e.preventDefault()}
+                      onDrop={() => handleDrop(idx)}
+                      title="Drag to reorder"
+                    >
                       {/* Image Thumbnail */}
                       <div className="aspect-video relative">
                         <img
@@ -441,7 +493,7 @@ export default function MediaPage() {
                           }
                         </p>
                         <p className="text-xs text-gray-500">
-                          Order: {image.image_order + 1}
+                          Order: {idx + 1}
                         </p>
                       </div>
                     </div>
@@ -470,19 +522,20 @@ export default function MediaPage() {
                         </button>
                       </div>
                       
+                      {/* Preview */}
+                      {photo.url && (
+                        <img src={photo.url} alt="preview" className="w-full h-28 object-cover mt-2 rounded" />
+                      )}
+
                       {photo.uploading && (
-                        <div className="mt-2">
+                        <div className="mt-2 flex items-center space-x-2">
                           <Spinner size={16} className="text-blue-600" />
-                          <p className="text-xs text-gray-500 mt-1">Uploading...</p>
+                          <p className="text-xs text-gray-500">Uploading...</p>
                         </div>
                       )}
                       
                       {photo.error && (
                         <p className="text-xs text-red-500 mt-1">{photo.error}</p>
-                      )}
-                      
-                      {photo.url && !photo.uploading && (
-                        <p className="text-xs text-green-600 mt-1">✓ Uploaded successfully</p>
                       )}
                     </div>
                   ))}
