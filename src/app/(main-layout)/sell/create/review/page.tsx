@@ -130,7 +130,7 @@ export default function ReviewPage() {
             <h3 className="text-2xl font-bold mb-8">Return to any previous sections</h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <Link 
-                href="/sell/create"
+                href={`/sell/create?property_id=${propertyId}`}
                 className="p-6 bg-white border-2 border-gray-200 rounded-xl hover:border-blue-500 transition-colors text-center font-semibold"
               >
                 Property Info

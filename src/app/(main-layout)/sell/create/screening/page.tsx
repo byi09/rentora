@@ -4,6 +4,9 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import InteractiveProgressBar from '@/src/components/ui/InteractiveProgressBar';
 
+// Valid feature category enum value to store screening info
+const SCREENING_CATEGORY = 'utilities' as const;
+
 export default function ScreeningPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -33,18 +36,17 @@ export default function ScreeningPage() {
     try {
       const supabase = createClient();
       
-      // Save screening requirements as property features
       const features = [
         {
           property_id: propertyId,
           feature_name: 'Income to Rent Ratio',
-          feature_category: 'screening' as const,
+          feature_category: SCREENING_CATEGORY,
           feature_value: incomeRatio
         },
         {
           property_id: propertyId,
           feature_name: 'Minimum Credit Score',
-          feature_category: 'screening' as const,
+          feature_category: SCREENING_CATEGORY,
           feature_value: creditScore
         }
       ];
@@ -54,7 +56,7 @@ export default function ScreeningPage() {
         .from('property_features')
         .delete()
         .eq('property_id', propertyId)
-        .eq('feature_category', 'screening');
+        .eq('feature_category', SCREENING_CATEGORY);
 
       // Insert new screening features
       const { error } = await supabase
@@ -82,7 +84,7 @@ export default function ScreeningPage() {
           .from('property_features')
           .select('*')
           .eq('property_id', propertyId)
-          .eq('feature_category', 'screening');
+          .eq('feature_category', SCREENING_CATEGORY);
 
         if (error) {
           console.error('Error loading existing screening data:', error);

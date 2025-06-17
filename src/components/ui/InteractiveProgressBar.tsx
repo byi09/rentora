@@ -31,7 +31,7 @@ const InteractiveProgressBar: React.FC<InteractiveProgressBarProps> = ({
       let url = step.path;
       
       // Add property_id parameter for all steps except the first one
-      if (stepIndex > 0 && propertyId) {
+      if (propertyId) {
         url += `?property_id=${propertyId}`;
       }
       
