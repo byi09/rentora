@@ -51,12 +51,12 @@ export default function ScreeningPage() {
         }
       ];
 
-      // Delete existing screening features
+      const screeningNames = ['Income to Rent Ratio', 'Minimum Credit Score'];
       await supabase
         .from('property_features')
         .delete()
         .eq('property_id', propertyId)
-        .eq('feature_category', SCREENING_CATEGORY);
+        .in('feature_name', screeningNames);
 
       // Insert new screening features
       const { error } = await supabase
@@ -84,7 +84,7 @@ export default function ScreeningPage() {
           .from('property_features')
           .select('*')
           .eq('property_id', propertyId)
-          .eq('feature_category', SCREENING_CATEGORY);
+          .in('feature_name', ['Income to Rent Ratio', 'Minimum Credit Score']);
 
         if (error) {
           console.error('Error loading existing screening data:', error);
