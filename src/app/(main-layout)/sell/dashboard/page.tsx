@@ -187,57 +187,36 @@ export default function PropertyDashboard() {
 
   const determineNextStep = async (property: PropertyListing) => {
     try {
-      const supabase = createClient();
-      
-      // Check if basic property information is missing (address, property type, etc.)
-      if (!property.address_line_1 || !property.city || !property.state || !property.property_type) {
+      // Always check basic property information first
+      // If any core property data is missing, go to the first page
+      if (!property.address_line_1 || !property.city || !property.state || 
+          !property.property_type || !property.bedrooms || !property.bathrooms) {
         return `/sell/create?property_id=${property.id}`;
       }
       
-      // Check if property has basic info (bedrooms, bathrooms should be set from rent-details)
-      if (!property.bedrooms || !property.bathrooms) {
-        return `/sell/create/rent-details?property_id=${property.id}`;
-      }
-
-      // Check if listing exists
+      // If basic property info is complete, check for listing data
       if (!property.listing_status) {
         return `/sell/create/rent-details?property_id=${property.id}`;
       }
 
-      // Check for media (images)
-      const { data: images, error: imageError } = await supabase
-        .from('property_images')
-        .select('id')
-        .eq('property_id', property.id)
-        .limit(1);
-
-      if (imageError || !images || images.length === 0) {
-        return `/sell/create/media?property_id=${property.id}`;
-      }
-
-      // Check for amenities/features
-      const { data: features, error: featureError } = await supabase
-        .from('property_features')
-        .select('id')
-        .eq('property_id', property.id)
-        .limit(1);
-
-      if (featureError || !features || features.length === 0) {
-        return `/sell/create/amenities?property_id=${property.id}`;
-      }
-
+      // For properties with listings, do minimal checks to avoid API errors
       // If listing is active, go to publish page to view/manage
       if (property.listing_status === 'active') {
         return `/sell/create/publish?property_id=${property.id}`;
       }
 
       // If listing is pending/draft, go to review page
-      return `/sell/create/review?property_id=${property.id}`;
+      if (property.listing_status === 'pending') {
+        return `/sell/create/review?property_id=${property.id}`;
+      }
+
+      // Default to rent details for any other case
+      return `/sell/create/rent-details?property_id=${property.id}`;
       
     } catch (error) {
       console.error('Error determining next step:', error);
-      // Default to rent details if there's an error
-      return `/sell/create/rent-details?property_id=${property.id}`;
+      // Always default to the first page on error
+      return `/sell/create?property_id=${property.id}`;
     }
   };
 
