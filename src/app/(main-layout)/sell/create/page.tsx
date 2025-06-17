@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import InteractiveProgressBar from '@/src/components/ui/InteractiveProgressBar';
+import { useAutoSave } from '@/src/hooks/useAutoSave';
 
 const FORM_STORAGE_KEY = 'sell-create-form-data';
 
@@ -25,6 +26,26 @@ export default function CreateListingPage() {
   const [zipCode, setZipCode] = useState('');
   const [yearBuilt, setYearBuilt] = useState('');
   const [description, setDescription] = useState('');
+
+  // Auto-save hook for existing properties (only when propertyId exists)
+  const { saveImmediately } = useAutoSave({
+    propertyId: propertyId, // Only auto-save when editing existing property
+    formData: {
+      address_line_1: addressLine1,
+      address_line_2: addressLine2,
+      city: city,
+      state: state,
+      zip_code: zipCode,
+      property_type: propertyType,
+      bedrooms: beds,
+      bathrooms: baths,
+      square_footage: squareFootage,
+      year_built: yearBuilt,
+      description: description,
+    },
+    tableName: 'properties',
+    debounceMs: 1500,
+  });
 
   // Load form data from localStorage on mount
   useEffect(() => {
@@ -238,7 +259,17 @@ export default function CreateListingPage() {
             {propertyId ? 'Edit Property Information' : 'Property Information'}
           </h1>
           <button 
-            onClick={() => router.push('/')}
+            onClick={async () => {
+              // Save data before exiting if editing existing property
+              if (propertyId) {
+                try {
+                  await saveImmediately();
+                } catch (error) {
+                  console.error('Error saving before exit:', error);
+                }
+              }
+              router.push('/');
+            }}
             className="px-6 py-2 text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
           >
             Save and Exit
