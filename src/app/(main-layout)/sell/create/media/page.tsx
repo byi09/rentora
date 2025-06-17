@@ -28,6 +28,26 @@ interface ExistingImage {
   url: string;
 }
 
+// Utility to limit concurrency of async tasks
+const withConcurrency = async <T,>(tasks: (() => Promise<T>)[], limit = 3): Promise<T[]> => {
+  const results: T[] = [];
+  const executing: Promise<void>[] = [];
+
+  for (const task of tasks) {
+    const p: Promise<void> = task().then((r) => {
+      results.push(r);
+    });
+    executing.push(p);
+    if (executing.length >= limit) {
+      await Promise.race(executing);
+      // remove resolved
+      executing.splice(executing.findIndex((e) => e === p), 1);
+    }
+  }
+  await Promise.all(executing);
+  return results;
+};
+
 export default function MediaPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -46,6 +66,9 @@ export default function MediaPage() {
   const dragItemIndex = useRef<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const tourInputRef = useRef<HTMLInputElement>(null);
+
+  // Map of upload intervals for fake progress
+  const uploadIntervals = useRef<Record<string, ReturnType<typeof setInterval>>>({});
 
   // Initialize Supabase Storage buckets
   useEffect(() => {
@@ -188,18 +211,28 @@ export default function MediaPage() {
       progress: 0,
     }));
 
-    // Update UI immediately
     setPhotos(previewPhotos);
     setUploading(true);
 
+    // start smooth fake progress for each file
+    previewPhotos.forEach((p, idx) => {
+      const key = p.file.name + idx;
+      uploadIntervals.current[key] = setInterval(() => {
+        setPhotos((prev) => prev.map((photo, i) => {
+          if (i === idx && photo.uploading && (photo.progress ?? 0) < 90) {
+            return { ...photo, progress: (photo.progress ?? 0) + 1 };
+          }
+          return photo;
+        }));
+      }, 120);
+    });
+
     let processedFiles: File[] = files;
     
-    // Optional client-side compression for better performance
     try {
       const { default: imageCompression } = await import('browser-image-compression');
       
-      // Update progress to show compression is happening
-      setPhotos(prev => prev.map(photo => ({ ...photo, progress: 10 })));
+      setPhotos(prev => prev.map(photo => ({ ...photo, progress: 5 })));
       
       processedFiles = await Promise.all(
         files.map(async (file, index) => {
@@ -209,43 +242,36 @@ export default function MediaPage() {
             useWebWorker: true,
           });
           
-          // Update progress for individual file compression
-          setPhotos(prev => prev.map((photo, idx) => 
-            idx === index ? { ...photo, progress: 20 } : photo
-          ));
-          
+          setPhotos(prev => prev.map((photo, idx) =>
+            idx === index ? { ...photo, progress: 15 } : photo));
           return compressed;
         })
       );
     } catch (compressionErr) {
       console.warn('Image compression skipped:', compressionErr);
-      // Set progress to 20% even if compression is skipped
-      setPhotos(prev => prev.map(photo => ({ ...photo, progress: 20 })));
+      setPhotos(prev => prev.map(photo => ({ ...photo, progress: 15 })));
     }
 
-    // Upload files with real-time progress tracking
-    const uploadPromises = processedFiles.map((file, index) => {
-      // Start upload progress at 25%
-      setPhotos(prev => prev.map((photo, idx) => 
-        idx === index ? { ...photo, progress: 25 } : photo
-      ));
-      
-      return uploadFile(file, 'property-images', 'listings').then(result => {
-        // Update progress to 90% when upload completes
-        setPhotos(prev => prev.map((photo, idx) => 
-          idx === index ? { ...photo, progress: 90 } : photo
-        ));
-        return result;
-      }).catch(error => {
-        // Update with error state
-        setPhotos(prev => prev.map((photo, idx) => 
-          idx === index ? { ...photo, progress: 0, error: error.message } : photo
-        ));
-        throw error;
-      });
+    // Upload files with limited concurrency for smoother network usage
+    const tasks = processedFiles.map((file, index) => {
+      return async () => {
+        try {
+          const res = await uploadFile(file, 'property-images', 'listings');
+          // on complete set progress to 95; final 100 after DB
+          setPhotos(prev => prev.map((photo, idx) => idx === index ? { ...photo, progress: 95 } : photo));
+          return res;
+        } catch (error: unknown) {
+          let message = 'Upload failed';
+          if (error instanceof Error) message = error.message;
+          setPhotos(prev => prev.map((photo, idx) => idx === index ? { ...photo, error: message, uploading: false, progress: 0 } : photo));
+          throw error;
+        }
+      };
     });
+
+    const resultsSettled = await Promise.allSettled(await withConcurrency(tasks, 3));
     
-    const results = await Promise.allSettled(uploadPromises);
+    const results = resultsSettled;
 
     // Prepare rows for DB insert + UI updates
     const rowsToInsert: {
@@ -313,9 +339,13 @@ export default function MediaPage() {
     // Refresh existing images list to get proper IDs
     setTimeout(() => refreshExistingImages(), 500);
 
+    // Clear interval timers
+    Object.values(uploadIntervals.current).forEach((id) => clearInterval(id));
+    uploadIntervals.current = {};
+
     setUploading(false);
-    // Clear photos state after a brief delay to show success
-    setTimeout(() => setPhotos([]), 1000);
+    // Keep last preview for a second then clear
+    setTimeout(() => setPhotos([]), 800);
   };
 
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -472,6 +502,13 @@ export default function MediaPage() {
       showError('Save order failed', 'Could not save new image order');
     }
   };
+
+  // Cleanup any active intervals on component unmount
+  useEffect(() => {
+    return () => {
+      Object.values(uploadIntervals.current).forEach((id) => clearInterval(id));
+    };
+  }, []);
 
   if (!propertyId) {
     return <div>Loading...</div>;
@@ -686,7 +723,7 @@ export default function MediaPage() {
                           <p className="mt-2 text-xs font-medium text-blue-700">Uploading {photo.progress || 0}%</p>
                           <div className="mt-3 w-3/4 h-2 bg-gray-200 rounded-full overflow-hidden">
                             <div
-                              className="h-full bg-gradient-to-r from-blue-500 to-blue-700 animate-[pulse_1.5s_infinite]"
+                              className="h-full bg-gradient-to-r from-blue-500 to-blue-700 transition-all duration-300"
                               style={{ width: `${photo.progress || 0}%` }}
                             />
                           </div>
