@@ -108,7 +108,7 @@ const Header = ({ toggleSidebar, user }: HeaderProps) => {
         ${scrolled ? 'bg-gray-900/90 text-white backdrop-blur-md shadow-lg border-b border-gray-800' : 'bg-transparent text-white'}
       `}>
         <div className="relative w-full px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-20">
+          <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
               <Link href="/" className="flex items-center group">
                 <img src="/logo.png" alt="Livaro Logo" className="w-9 h-9 object-contain transition-transform duration-200 group-hover:scale-110" />
@@ -135,7 +135,7 @@ const Header = ({ toggleSidebar, user }: HeaderProps) => {
   return (
     <header className="fixed top-0 z-50 w-full bg-white text-gray-900 shadow-sm border-b border-gray-200">
       <div className="w-full px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-20">
+        <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center">
             <div className="flex items-center space-x-3">
