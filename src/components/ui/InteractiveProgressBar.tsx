@@ -19,7 +19,8 @@ const InteractiveProgressBar: React.FC<InteractiveProgressBarProps> = ({
   const [allowedSteps, setAllowedSteps] = useState<boolean[]>([]);
   const [furthestStep, setFurthestStep] = useState<number>(() => {
     if (typeof window === 'undefined') return currentStep;
-    const stored = window.sessionStorage.getItem('furthestStep');
+    const storageKey = `furthestStep_${propertyId || 'default'}`;
+    const stored = window.localStorage.getItem(storageKey);
     return stored ? Math.max(parseInt(stored, 10), currentStep) : currentStep;
   });
 
@@ -37,24 +38,27 @@ const InteractiveProgressBar: React.FC<InteractiveProgressBarProps> = ({
 
   useEffect(() => {
     // update furthest step if current exceeds it
-    if (currentStep > furthestStep) {
-      setFurthestStep(currentStep);
+    const newFurthestStep = Math.max(furthestStep, currentStep);
+    if (newFurthestStep > furthestStep) {
+      setFurthestStep(newFurthestStep);
       if (typeof window !== 'undefined') {
-        window.sessionStorage.setItem('furthestStep', currentStep.toString());
+        const storageKey = `furthestStep_${propertyId || 'default'}`;
+        window.localStorage.setItem(storageKey, newFurthestStep.toString());
       }
     }
 
-    // Completed: any index less than currentStep is considered complete
-    const completedArr = steps.map((_, idx) => idx < currentStep);
+    // Completed: any step before the furthest reached step is considered complete
+    // This ensures that if you've reached step 3, steps 1 and 2 show as completed
+    const completedArr = steps.map((_, idx) => idx < newFurthestStep);
     setCompletedSteps(completedArr);
 
     // Allowed: allow access to current step and any step up to the furthest reached
     const allowedArr = steps.map((_, idx) => {
       // Always allow access to steps up to and including the furthest step reached
-      return idx <= furthestStep;
+      return idx <= newFurthestStep;
     });
     setAllowedSteps(allowedArr);
-  }, [currentStep, furthestStep, steps.length]);
+  }, [currentStep, furthestStep, propertyId, steps.length]);
 
   const handleStepClick = async (stepIndex: number) => {
     // Only allow navigation if allowedSteps true
@@ -103,8 +107,8 @@ const InteractiveProgressBar: React.FC<InteractiveProgressBarProps> = ({
     return 'text-gray-500';
   };
 
-  // Calculate progress bar width - only fill up to current step circle
-  const progressWidth = currentStep === 0 ? 0 : (currentStep / (steps.length - 1)) * 100;
+  // Calculate progress bar width based on furthest step reached, not current step
+  const progressWidth = furthestStep === 0 ? 0 : (furthestStep / (steps.length - 1)) * 100;
 
   return (
     <div className="mb-12 relative sticky top-24 z-20 bg-white/80 backdrop-blur">
