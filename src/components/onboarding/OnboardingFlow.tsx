@@ -1,7 +1,6 @@
 "use client";
 import React, { useState, useRef, useEffect } from 'react';
 import { createClient } from '@/utils/supabase/client';
-import { useRouter } from 'next/navigation';
 import PersonalInfoStep from './PersonalInfoStep';
 import { OnboardingData } from '@/src/types/onboarding';
 import ContactInfoStep from './ContactInfoStep';
@@ -9,6 +8,7 @@ import LocationInfoStep from './LocationInfoStep';
 import UserTypeStep from './UserTypeStep';
 import NotificationPreferencesStep from './NotificationPreferencesStep';
 import Spinner from '@/src/components/ui/Spinner';
+import { createRoot } from 'react-dom/client';
 
 // Step order: 1) Personal, 2) Account type, 3) Contact, 4) Notifications, 5) Location
 const steps = [
@@ -26,7 +26,6 @@ const OnboardingFlow: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
 
-  const router = useRouter();
 
   // Prevent body scrolling when modal is active
   useEffect(() => {
@@ -44,17 +43,16 @@ const OnboardingFlow: React.FC = () => {
 
   const handleSignOut = async () => {
     try {
-      // Immediately show full-page loading overlay, same as Header sign-out
-      const loadingOverlay = document.createElement('div');
-      loadingOverlay.id = 'signout-overlay';
-      loadingOverlay.className = 'fixed inset-0 bg-white z-[9999] flex items-center justify-center';
-      loadingOverlay.innerHTML = `
-        <div class="text-center">
-          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          <p class="mt-4 text-gray-600">Signing out...</p>
+      // Immediately show full-page loading overlay with React rendering for consistency
+      const container = document.createElement('div');
+      container.id = 'signout-overlay';
+      document.body.appendChild(container);
+      const root = createRoot(container);
+      root.render(
+        <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-white">
+          <Spinner size={32} label="Signing out…" />
         </div>
-      `;
-      document.body.appendChild(loadingOverlay);
+      );
 
       // Disable rendering of onboarding UI while we sign out
       setSigningOut(true);
@@ -112,16 +110,18 @@ const OnboardingFlow: React.FC = () => {
         body: JSON.stringify(payload),
       });
       if (res.ok) {
-        // Redirect to main page after successful onboarding
-        router.push('/');
+        // Use window.location.href for a clean page reload instead of router.push
+        // This prevents glitching and ensures the server renders the dashboard properly
+        window.location.href = '/';
       } else {
         console.error('Onboarding failed');
+        setSubmitting(false);
       }
     } catch (err) {
       console.error(err);
-    } finally {
       setSubmitting(false);
     }
+    // Don't set submitting to false on success - let the page reload handle it
   };
 
   const CurrentStepComponent = steps[currentStep].component;

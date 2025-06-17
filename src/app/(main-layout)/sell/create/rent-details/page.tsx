@@ -403,16 +403,19 @@ export default function RentDetailsPage() {
             </div>
           </div>
 
-          {/* Next Button */}
-          <div className="flex justify-end mt-12">
+          {/* Navigation Buttons */}
+          <div className="flex justify-between items-center mt-12">
+            <button 
+              onClick={() => router.push('/sell/create')}
+              className="px-6 py-3 text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors flex items-center"
+            >
+              <span className="mr-2">←</span>
+              Back
+            </button>
             <button 
               type="submit"
               disabled={isSubmitting}
-              className={`px-8 py-3 rounded-lg transition-colors ${
-                isSubmitting 
-                  ? 'bg-gray-400 cursor-not-allowed' 
-                  : 'bg-blue-600 hover:bg-blue-700'
-              } text-white`}
+              className={`px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors`}
             >
               {isSubmitting ? 'Saving Listing...' : 'Next'}
             </button>

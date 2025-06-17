@@ -3,6 +3,7 @@
 import { NotificationPreferences } from "@/lib/types";
 import Switch from "../../ui/switch";
 import { useNotificationSettingContext } from "@/src/contexts/NotificationSettingContext";
+import { Skeleton } from "../../ui/LoadingSkeleton";
 
 export default function PreferenceToggle({
   preference
@@ -13,7 +14,7 @@ export default function PreferenceToggle({
 
   if (!preferences)
     return (
-      <div className="bg-gray-200 rounded-full h-[20px] w-[40px] animate-pulse"></div>
+      <Skeleton className="h-[20px] w-[40px] rounded-full" />
     );
 
   return (

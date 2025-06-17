@@ -42,15 +42,13 @@ const OnboardingChecker: React.FC = () => {
           const data = await response.json();
           setIsOnboarded(data.onboarded);
           
-          // If user is onboarded, refresh the page so the server can render the dashboard
+          // If user is onboarded, redirect to dashboard with clean page reload
           if (data.onboarded) {
             refreshingRef.current = true;
             setRefreshing(true);
-            // Small delay to show the loading message
-            setTimeout(() => {
-              router.refresh();
-            }, 100);
-            return; // Don't set loading to false, let the refresh handle it
+            // Use window.location.href for clean reload without glitching
+            window.location.href = '/';
+            return; // Don't set loading to false, let the reload handle it
           }
         } else {
           // If API fails, assume not onboarded and show onboarding flow

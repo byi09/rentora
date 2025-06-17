@@ -472,9 +472,7 @@ export default function MediaPage() {
                       
                       {photo.uploading && (
                         <div className="mt-2">
-                          <div className="w-full bg-gray-200 rounded-full h-2">
-                            <div className="bg-blue-600 h-2 rounded-full animate-pulse w-full"></div>
-                          </div>
+                          <Spinner variant="progress" progress={100} size={16} className="w-full" />
                           <p className="text-xs text-gray-500 mt-1">Uploading...</p>
                         </div>
                       )}
@@ -541,9 +539,7 @@ export default function MediaPage() {
                 
                 {tourFile.uploading && (
                   <div className="mt-2">
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div className="bg-blue-600 h-2 rounded-full animate-pulse w-full"></div>
-                    </div>
+                    <Spinner variant="progress" progress={100} size={16} className="w-full" />
                     <p className="text-xs text-gray-500 mt-1">Uploading...</p>
                   </div>
                 )}
@@ -560,8 +556,15 @@ export default function MediaPage() {
           </div>
         </div>
 
-        {/* Next Button */}
-        <div className="flex justify-end mt-12">
+        {/* Navigation Buttons */}
+        <div className="flex justify-between items-center mt-12">
+          <button 
+            onClick={() => router.push(`/sell/create/rent-details?property_id=${propertyId}`)}
+            className="px-6 py-3 text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors flex items-center"
+          >
+            <span className="mr-2">←</span>
+            Back
+          </button>
           <button 
             onClick={() => router.push(`/sell/create/amenities?property_id=${propertyId}`)}
             className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"

@@ -1,6 +1,6 @@
 import { cn } from "@/utils/styles";
 import { Dialog } from "radix-ui";
-import { ImSpinner2 } from "react-icons/im";
+import Spinner from "../../ui/Spinner";
 
 export function EditDialog({
   children,
@@ -83,7 +83,7 @@ export function EditDialogSubmit({
       )}
       type="submit"
     >
-      {loading ? <ImSpinner2 className="animate-spin" /> : null}
+      {loading ? <Spinner size={16} /> : null}
       {value}
     </button>
   );

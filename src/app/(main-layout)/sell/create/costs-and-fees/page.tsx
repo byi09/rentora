@@ -101,8 +101,15 @@ export default function CostsAndFeesPage() {
             </div>
           </div>
 
-          {/* Next Button */}
-          <div className="flex justify-end">
+          {/* Navigation Buttons */}
+          <div className="flex justify-between items-center mt-12">
+            <button 
+              onClick={() => router.push(`/sell/create/screening?property_id=${propertyId}`)}
+              className="px-6 py-3 text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors flex items-center"
+            >
+              <span className="mr-2">←</span>
+              Back
+            </button>
             <button 
               onClick={() => router.push(`/sell/create/final-details?property_id=${propertyId}`)}
               className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
