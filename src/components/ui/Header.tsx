@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
-import { HiUser, HiChevronDown, HiCog, HiChat} from 'react-icons/hi';
+import { HiUser, HiChevronDown, HiCog} from 'react-icons/hi';
 import { HiArrowRightOnRectangle } from 'react-icons/hi2';
 import { createClient } from '@/utils/supabase/client';
 import type { User } from '@supabase/supabase-js';
@@ -189,14 +189,7 @@ const Header = ({ toggleSidebar, user }: HeaderProps) => {
                   {/* Dropdown Content */}
                   <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-20">
                     {/* Messages */}
-                    <Link
-                      href="/messages"
-                      className="flex items-center px-4 py-3 text-gray-700 hover:bg-gray-50 transition-colors"
-                      onClick={() => setIsDropdownOpen(false)}
-                    >
-                      <HiChat className="w-5 h-5 mr-3 text-gray-500" />
-                      <span className="font-medium">Messages</span>
-                    </Link>
+                
 
                     {/* Settings */}
                     <Link

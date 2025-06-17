@@ -61,7 +61,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         {loading && (
           <Spinner 
             size={size === 'sm' ? 16 : size === 'lg' ? 20 : 18} 
-            colorClass="border-current" 
+            colorClass="text-current" 
             className="mr-2" 
           />
         )}

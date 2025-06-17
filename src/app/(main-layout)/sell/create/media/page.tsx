@@ -425,7 +425,7 @@ export default function MediaPage() {
                           title="Delete image"
                         >
                           {deleting === image.id ? (
-                            <Spinner size={12} colorClass="border-white" />
+                            <Spinner size={12} colorClass="text-white" />
                           ) : (
                             '×'
                           )}

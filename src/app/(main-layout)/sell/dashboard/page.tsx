@@ -465,7 +465,7 @@ export default function PropertyDashboard() {
                           </p>
                           <p className="text-xs text-blue-600 font-medium mt-1 flex items-center gap-1">
                             {clickingPropertyId === property.id && (
-                              <Spinner size={12} colorClass="border-blue-600" />
+                              <Spinner size={12} colorClass="text-blue-600" />
                             )}
                             {clickingPropertyId === property.id ? 'Loading...' : getActionText(property)}
                           </p>

@@ -145,7 +145,7 @@ function EnableTwoFactorAction() {
                 </ol>
                 {isEnrolling && (
                   <div className="w-full h-[300px] grid place-items-center">
-                    <Spinner size={16} colorClass="border-blue-700" />
+                    <Spinner size={16} colorClass="text-blue-700" />
                   </div>
                 )}
 
