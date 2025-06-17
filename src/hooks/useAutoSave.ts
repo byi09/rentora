@@ -81,14 +81,26 @@ export function useAutoSave({
           .single();
 
         if (existingListing) {
+          // Only update existing listings
           result = await supabase
             .from('property_listings')
             .update({ ...cleanData, property_id: propertyId })
             .eq('property_id', propertyId);
         } else {
-          result = await supabase
-            .from('property_listings')
-            .insert([{ ...cleanData, property_id: propertyId, listing_status: 'pending' }]);
+          // Only create new listings if we have required fields with valid values
+          const hasRequiredFields = cleanData.monthly_rent && 
+                                   cleanData.monthly_rent !== null && 
+                                   cleanData.monthly_rent !== '';
+          
+          if (hasRequiredFields) {
+            result = await supabase
+              .from('property_listings')
+              .insert([{ ...cleanData, property_id: propertyId, listing_status: 'pending' }]);
+          } else {
+            // Skip saving if no existing listing and missing required fields
+            console.log('Skipping listing creation via autosave - missing required fields like monthly_rent');
+            return;
+          }
         }
       }
 
