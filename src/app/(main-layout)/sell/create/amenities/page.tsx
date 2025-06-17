@@ -117,17 +117,24 @@ export default function AmenitiesPage() {
 
           // Imperatively check inputs to reflect loaded data
           setTimeout(() => {
-            features.forEach(f => {
-              const fieldName = `feature_${f.feature_category}_${f.feature_name.toLowerCase().replace(/\s+/g, '_')}`;
-              const nodeList = document.getElementsByName(fieldName);
-              nodeList.forEach(node => {
-                const input = node as HTMLInputElement;
-                if (input.type === 'checkbox') {
-                  input.checked = true;
-                } else if (input.type === 'radio') {
-                  input.checked = input.value === f.feature_value;
-                }
-              });
+            const allInputs = Array.from(document.querySelectorAll<HTMLInputElement>('input[name^="feature_"]'));
+            allInputs.forEach(input => {
+              const parts = input.name.split('_');
+              if (parts.length < 3) return;
+              let cat:string;
+              let nameParts:string[];
+              if (parts[1]==='building' && parts[2]==='amenities') {
+                cat='building_amenities';
+                nameParts=parts.slice(3);
+              } else {
+                cat=parts[1];
+                nameParts=parts.slice(2);
+              }
+              const fname = nameParts.join('_').replace(/_/g,' ').replace(/\b\w/g,l=>l.toUpperCase());
+              const match = features.find(fe => fe.feature_category===cat && fe.feature_name===fname);
+              if (!match) return;
+              if (input.type==='checkbox') input.checked=true;
+              else if (input.type==='radio') input.checked = input.value === match.feature_value;
             });
           }, 0);
         }
