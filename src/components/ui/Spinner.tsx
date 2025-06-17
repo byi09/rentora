@@ -17,7 +17,7 @@ interface SpinnerProps {
  */
 export default function Spinner({
   size = 32,
-  colorClass = 'border-blue-600',
+  colorClass = 'text-blue-600',
   label,
   className = '',
 }: SpinnerProps) {

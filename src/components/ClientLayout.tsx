@@ -96,10 +96,14 @@ export default function ClientLayout({ children }: ClientLayoutProps) {
   }
 
   return (
-    <div className="h-[100svh] bg-white">
+    <div className="min-h-screen bg-white flex flex-col">
       {showHeader && <Header user={user} />}
 
-      {children}
+      {/*
+        Offset the main content by the height of the fixed header (h-16 = 4rem)
+        so that nothing gets tucked underneath it when the page first loads.
+      */}
+      <main className={`${showHeader ? 'pt-16' : ''} flex-1`}>{children}</main>
 
       {/* Footer removed as per design update */}
     </div>
