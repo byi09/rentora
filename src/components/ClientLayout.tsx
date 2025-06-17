@@ -100,10 +100,10 @@ export default function ClientLayout({ children }: ClientLayoutProps) {
       {showHeader && <Header user={user} />}
 
       {/*
-        Offset the main content by the height of the fixed header (h-16 = 4rem)
-        so that nothing gets tucked underneath it when the page first loads.
+        Only offset content when the header is the solid authenticated version (i.e., a user is logged in).
+        For guests we want the hero/landing sections to sit beneath the transparent header.
       */}
-      <main className={`${showHeader ? 'pt-16' : ''} flex-1`}>{children}</main>
+      <main className={`${user ? 'pt-16' : ''} flex-1`}>{children}</main>
 
       {/* Footer removed as per design update */}
     </div>
