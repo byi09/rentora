@@ -1,7 +1,6 @@
 'use client';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { createClient } from '@/utils/supabase/client';
 
 interface InteractiveProgressBarProps {
   currentStep: number;
@@ -31,76 +30,18 @@ const InteractiveProgressBar: React.FC<InteractiveProgressBarProps> = ({
     { label: 'Publish', path: '/sell/create/publish' }
   ];
 
-  // Check which steps have been completed
+  // Completed: any index less than currentStep is considered complete
   useEffect(() => {
-    const checkCompletedSteps = async () => {
-      if (!propertyId) {
-        // Before first DB insert only step 0 reachable
-        const completedArr = steps.map(() => false);
-        completedArr[0] = true; // property info treated as completed while filling
-        setCompletedSteps(completedArr);
-        const allowedArr = steps.map((_, idx) => idx <= currentStep); // current & previous
-        setAllowedSteps(allowedArr);
-        return;
-      }
+    const completedArr = steps.map((_, idx) => idx < currentStep);
+    setCompletedSteps(completedArr);
 
-      // With a propertyId, check DB to see which sections have data
-      try {
-        const supabase = createClient();
-
-        // basic presence of property means step0 complete
-        const { data: listing } = await supabase
-          .from('property_listings')
-          .select('id')
-          .eq('property_id', propertyId)
-          .single();
-
-        const { count: imageCount } = await supabase
-          .from('property_images')
-          .select('id', { count: 'exact', head: true })
-          .eq('property_id', propertyId);
-
-        const { count: featureCount } = await supabase
-          .from('property_features')
-          .select('id', { count: 'exact', head: true })
-          .eq('property_id', propertyId);
-
-        const completed = [
-          true, // property info exists by definition
-          !!listing, // rent details
-          (imageCount ?? 0) > 0, // media
-          (featureCount ?? 0) > 0, // amenities
-          false, // screening (placeholder)
-          false, // costs & fees
-          false, // final details
-          false, // review
-          false  // publish
-        ];
-
-        // determine allowed: a step is allowed if all previous completed OR it is currentStep
-        const allowed: boolean[] = [];
-        let allPrevComplete = true;
-        for (let i = 0; i < steps.length; i++) {
-          if (i === 0) {
-            allowed[i] = true;
-          } else {
-            allPrevComplete = allPrevComplete && completed[i - 1];
-            allowed[i] = allPrevComplete;
-          }
-        }
-
-        setCompletedSteps(completed);
-        setAllowedSteps(allowed);
-      } catch (err) {
-        console.error('Step completion check failed:', err);
-        // Fallback – only allow current & previous
-        const fallbackAllowed = steps.map((_, idx) => idx <= currentStep);
-        setAllowedSteps(fallbackAllowed);
-      }
-    };
-
-    checkCompletedSteps();
-  }, [propertyId, currentStep, steps.length]);
+    // Allowed: sequential unlock; after reaching Review (index 7) unlock all
+    const allowedArr = steps.map((_, idx) => {
+      if (currentStep >= 7) return true;
+      return idx <= currentStep;
+    });
+    setAllowedSteps(allowedArr);
+  }, [currentStep, steps.length]);
 
   const handleStepClick = async (stepIndex: number) => {
     // Only allow navigation if allowedSteps true
@@ -153,7 +94,7 @@ const InteractiveProgressBar: React.FC<InteractiveProgressBarProps> = ({
       {/* Step Circles */}
       <div className="flex justify-between relative w-full">
         {steps.map((step, index) => (
-          <div key={step.label} className="relative flex flex-col items-center">
+          <div key={step.label} className="flex-1 relative flex flex-col items-center">
             <button
               onClick={() => handleStepClick(index)}
               className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full transition-all duration-200 ${getStepClassName(index)} relative z-10`}
@@ -171,7 +112,7 @@ const InteractiveProgressBar: React.FC<InteractiveProgressBarProps> = ({
             </button>
             
             {/* Step Label */}
-            <div className={`text-xs mt-6 -ml-4 w-20 text-center transition-colors ${getStepTextClassName(index)}`}>
+            <div className={`text-xs mt-6 text-center whitespace-nowrap transition-colors ${getStepTextClassName(index)}`}>
               {step.label}
             </div>
           </div>
