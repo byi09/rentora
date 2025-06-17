@@ -17,12 +17,7 @@ const InteractiveProgressBar: React.FC<InteractiveProgressBarProps> = ({
   const router = useRouter();
   const [completedSteps, setCompletedSteps] = useState<boolean[]>([]);
   const [allowedSteps, setAllowedSteps] = useState<boolean[]>([]);
-  const [furthestStep, setFurthestStep] = useState<number>(() => {
-    if (typeof window === 'undefined') return currentStep;
-    const storageKey = `furthestStep_${propertyId || 'default'}`;
-    const stored = window.localStorage.getItem(storageKey);
-    return stored ? Math.max(parseInt(stored, 10), currentStep) : currentStep;
-  });
+  const [furthestStep, setFurthestStep] = useState<number>(currentStep);
 
   const steps = [
     { label: 'Property Info', path: '/sell/create' },
@@ -36,31 +31,56 @@ const InteractiveProgressBar: React.FC<InteractiveProgressBarProps> = ({
     { label: 'Publish', path: '/sell/create/publish' }
   ];
 
+  // Load furthest step from localStorage when propertyId is available
   useEffect(() => {
-    // update furthest step if current exceeds it
+    if (typeof window !== 'undefined' && propertyId) {
+      const storageKey = `furthestStep_${propertyId}`;
+      const stored = window.localStorage.getItem(storageKey);
+      const storedStep = stored ? parseInt(stored, 10) : 0;
+      const initialFurthestStep = Math.max(storedStep, currentStep);
+      
+      console.log('Loading progress:', { propertyId, storageKey, stored, storedStep, currentStep, initialFurthestStep });
+      
+      setFurthestStep(initialFurthestStep);
+    }
+  }, [propertyId, currentStep]);
+
+  useEffect(() => {
+    // Update furthest step if current exceeds it
     const newFurthestStep = Math.max(furthestStep, currentStep);
+    
     if (newFurthestStep > furthestStep) {
       setFurthestStep(newFurthestStep);
-      if (typeof window !== 'undefined') {
-        const storageKey = `furthestStep_${propertyId || 'default'}`;
+      
+      // Save to localStorage
+      if (typeof window !== 'undefined' && propertyId) {
+        const storageKey = `furthestStep_${propertyId}`;
         window.localStorage.setItem(storageKey, newFurthestStep.toString());
+        console.log('Saving progress:', { propertyId, storageKey, newFurthestStep });
       }
     }
 
     // Completed: any step before the furthest reached step is considered complete
-    // This ensures that if you've reached step 3, steps 1 and 2 show as completed
     const completedArr = steps.map((_, idx) => idx < newFurthestStep);
     setCompletedSteps(completedArr);
 
     // Allowed: allow access to current step and any step up to the furthest reached
-    const allowedArr = steps.map((_, idx) => {
-      // Always allow access to steps up to and including the furthest step reached
-      return idx <= newFurthestStep;
-    });
+    const allowedArr = steps.map((_, idx) => idx <= newFurthestStep);
     setAllowedSteps(allowedArr);
+    
+    console.log('Progress state:', { 
+      currentStep, 
+      furthestStep, 
+      newFurthestStep, 
+      completedArr, 
+      allowedArr,
+      propertyId 
+    });
   }, [currentStep, furthestStep, propertyId, steps.length]);
 
   const handleStepClick = async (stepIndex: number) => {
+    console.log('Step click:', { stepIndex, allowed: allowedSteps[stepIndex] });
+    
     // Only allow navigation if allowedSteps true
     if (!allowedSteps[stepIndex]) {
       return;
@@ -112,6 +132,13 @@ const InteractiveProgressBar: React.FC<InteractiveProgressBarProps> = ({
 
   return (
     <div className="mb-12 relative sticky top-24 z-20 bg-white/80 backdrop-blur">
+      {/* Debug info - remove in production */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="mb-4 p-2 bg-yellow-100 text-xs">
+          Debug: currentStep={currentStep}, furthestStep={furthestStep}, propertyId={propertyId}
+        </div>
+      )}
+      
       {/* Progress Bar Background - positioned to go through circle centers */}
       <div className="absolute left-0 right-0 top-[10px] sm:top-[12px] h-0.5 bg-blue-100">
         <div
