@@ -32,9 +32,10 @@ export function useAutoSave({
       isSavingRef.current = true;
       const supabase = createClient();
 
-      // Filter out empty values and prepare data for database
+      // Filter out null/undefined values but allow empty strings and prepare data for database
       const cleanData = Object.entries(data).reduce((acc, [key, value]) => {
-        if (value !== '' && value !== null && value !== undefined) {
+        // Allow empty strings but filter out null/undefined
+        if (value !== null && value !== undefined) {
           // Convert string numbers to actual numbers for numeric fields
           if (typeof value === 'string' && !isNaN(Number(value)) && value.trim() !== '') {
             const numValue = Number(value);
@@ -46,14 +47,20 @@ export function useAutoSave({
               acc[key] = value;
             }
           } else {
-            acc[key] = value;
+            // For empty strings or non-numeric strings, save as-is
+            // Convert empty strings to null for optional numeric fields to avoid database errors
+            if (value === '' && (key.includes('rent') || key.includes('deposit') || key.includes('fee') || 
+                key.includes('year_built') || key.includes('lease_term') || key.includes('score'))) {
+              acc[key] = null;
+            } else {
+              acc[key] = value;
+            }
           }
         }
         return acc;
       }, {} as Record<string, FormDataValue>);
 
-      if (Object.keys(cleanData).length === 0) return;
-
+      // Always attempt to save, even if only empty values (important for clearing fields)
       let result;
       
       if (tableName === 'properties') {
