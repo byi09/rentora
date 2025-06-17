@@ -31,32 +31,38 @@ const InteractiveProgressBar: React.FC<InteractiveProgressBarProps> = ({
     { label: 'Publish', path: '/sell/create/publish' }
   ];
 
-  // Load furthest step from localStorage when propertyId is available
+  // Load furthest step from localStorage when propertyId becomes available
   useEffect(() => {
-    if (typeof window !== 'undefined' && propertyId) {
-      const storageKey = `furthestStep_${propertyId}`;
-      const stored = window.localStorage.getItem(storageKey);
-      const storedStep = stored ? parseInt(stored, 10) : 0;
-      const initialFurthestStep = Math.max(storedStep, currentStep);
-      
-      console.log('Loading progress:', { propertyId, storageKey, stored, storedStep, currentStep, initialFurthestStep });
-      
-      setFurthestStep(initialFurthestStep);
+    if (typeof window !== 'undefined') {
+      const defaultKey = 'furthestStep_default';
+      const defaultStored = window.localStorage.getItem(defaultKey);
+      const defaultStep = defaultStored ? parseInt(defaultStored, 10) : 0;
+
+      let combinedStep = Math.max(defaultStep, currentStep);
+
+      if (propertyId) {
+        const propertyKey = `furthestStep_${propertyId}`;
+        const stored = window.localStorage.getItem(propertyKey);
+        const storedStep = stored ? parseInt(stored, 10) : 0;
+        combinedStep = Math.max(combinedStep, storedStep);
+        
+        // If default held newer progress, migrate it to property key
+        if (combinedStep > storedStep) {
+          window.localStorage.setItem(propertyKey, combinedStep.toString());
+        }
+      }
+
+      setFurthestStep(combinedStep);
     }
   }, [propertyId, currentStep]);
 
   useEffect(() => {
-    // Update furthest step if current exceeds it
     const newFurthestStep = Math.max(furthestStep, currentStep);
-    
     if (newFurthestStep > furthestStep) {
       setFurthestStep(newFurthestStep);
-      
-      // Save to localStorage
-      if (typeof window !== 'undefined' && propertyId) {
-        const storageKey = `furthestStep_${propertyId}`;
-        window.localStorage.setItem(storageKey, newFurthestStep.toString());
-        console.log('Saving progress:', { propertyId, storageKey, newFurthestStep });
+      if (typeof window !== 'undefined') {
+        const key = propertyId ? `furthestStep_${propertyId}` : 'furthestStep_default';
+        window.localStorage.setItem(key, newFurthestStep.toString());
       }
     }
 
