@@ -39,6 +39,10 @@ const Header = ({ toggleSidebar, user }: HeaderProps) => {
     };
 
     window.addEventListener('scroll', handleScroll);
+
+    // Run once on mount to set initial opacity correctly (important on page refresh deep down)
+    handleScroll();
+
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
@@ -111,8 +115,8 @@ const Header = ({ toggleSidebar, user }: HeaderProps) => {
     // Header for non-logged in users (translucent, transforms to dark on scroll)
     return (
       <header
-        className={`fixed top-0 z-50 w-full transition-all duration-300 text-white backdrop-blur-md ${
-          scrolled ? 'shadow-lg border-b border-gray-800' : ''
+        className={`fixed top-0 z-50 w-full transition-all duration-300 text-white ${
+          scrolled ? 'backdrop-blur-md shadow-lg border-b border-gray-800' : ''
         }`}
         style={{ backgroundColor: `rgba(17, 24, 39, ${bgOpacity})` }}
       >
