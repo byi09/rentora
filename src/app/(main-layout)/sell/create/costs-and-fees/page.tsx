@@ -1,16 +1,144 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { createClient } from '@/utils/supabase/client';
 import InteractiveProgressBar from '@/src/components/ui/InteractiveProgressBar';
 
 export default function CostsAndFeesPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const propertyId = searchParams.get('property_id');
-  const [administrativeFee, setAdministrativeFee] = useState('850');
-  const [parkingFee, setParkingFee] = useState('850');
-  const [utilitiesFee, setUtilitiesFee] = useState('850');
-  const [otherFee, setOtherFee] = useState('850');
+  const [administrativeFee, setAdministrativeFee] = useState('');
+  const [parkingFee, setParkingFee] = useState('');
+  const [utilitiesFee, setUtilitiesFee] = useState('');
+  const [otherFee, setOtherFee] = useState('');
+
+  // Enhanced navigation with auto-save
+  const handleNavigation = async (path: string) => {
+    try {
+      // Save current form data before navigating
+      await saveCurrentFormData();
+      router.push(path);
+    } catch (error) {
+      console.error('Error saving data before navigation:', error);
+      // Navigate anyway to prevent user from being stuck
+      router.push(path);
+    }
+  };
+
+  // Function to save current form data
+  const saveCurrentFormData = async () => {
+    if (!propertyId) return;
+
+    try {
+      const supabase = createClient();
+      
+      // Save fees as property features
+      const features = [];
+      
+      if (administrativeFee && administrativeFee.trim() !== '') {
+        features.push({
+          property_id: propertyId,
+          feature_name: 'Administrative Fee',
+          feature_category: 'fees' as const,
+          feature_value: administrativeFee
+        });
+      }
+      
+      if (parkingFee && parkingFee.trim() !== '') {
+        features.push({
+          property_id: propertyId,
+          feature_name: 'Parking Fee',
+          feature_category: 'fees' as const,
+          feature_value: parkingFee
+        });
+      }
+      
+      if (utilitiesFee && utilitiesFee.trim() !== '') {
+        features.push({
+          property_id: propertyId,
+          feature_name: 'Utilities Fee',
+          feature_category: 'fees' as const,
+          feature_value: utilitiesFee
+        });
+      }
+      
+      if (otherFee && otherFee.trim() !== '') {
+        features.push({
+          property_id: propertyId,
+          feature_name: 'Other Fee',
+          feature_category: 'fees' as const,
+          feature_value: otherFee
+        });
+      }
+
+      // Delete existing fee features
+      await supabase
+        .from('property_features')
+        .delete()
+        .eq('property_id', propertyId)
+        .eq('feature_category', 'fees');
+
+      // Insert new fee features if any exist
+      if (features.length > 0) {
+        const { error } = await supabase
+          .from('property_features')
+          .insert(features);
+
+        if (error) {
+          console.error('Error saving fees data:', error);
+          throw error;
+        }
+      }
+    } catch (error) {
+      console.error('Error in saveCurrentFormData:', error);
+      throw error;
+    }
+  };
+
+  // Load existing fees data on mount
+  useEffect(() => {
+    const loadExistingData = async () => {
+      if (!propertyId) return;
+
+      try {
+        const supabase = createClient();
+        const { data: features, error } = await supabase
+          .from('property_features')
+          .select('*')
+          .eq('property_id', propertyId)
+          .eq('feature_category', 'fees');
+
+        if (error) {
+          console.error('Error loading existing fees data:', error);
+          return;
+        }
+
+        if (features) {
+          features.forEach(feature => {
+            switch (feature.feature_name) {
+              case 'Administrative Fee':
+                setAdministrativeFee(feature.feature_value);
+                break;
+              case 'Parking Fee':
+                setParkingFee(feature.feature_value);
+                break;
+              case 'Utilities Fee':
+                setUtilitiesFee(feature.feature_value);
+                break;
+              case 'Other Fee':
+                setOtherFee(feature.feature_value);
+                break;
+            }
+          });
+        }
+      } catch (error) {
+        console.error('Error loading existing fees data:', error);
+      }
+    };
+
+    loadExistingData();
+  }, [propertyId]);
 
   return (
     <main className="min-h-screen bg-white pt-28 pb-8 px-8">
@@ -104,15 +232,17 @@ export default function CostsAndFeesPage() {
           {/* Navigation Buttons */}
           <div className="flex justify-between items-center mt-12">
             <button 
-              onClick={() => router.push(`/sell/create/screening?property_id=${propertyId}`)}
+              onClick={() => handleNavigation(`/sell/create/screening?property_id=${propertyId}`)}
               className="px-6 py-3 text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors flex items-center"
+              type="button"
             >
               <span className="mr-2">←</span>
               Back
             </button>
             <button 
-              onClick={() => router.push(`/sell/create/final-details?property_id=${propertyId}`)}
+              onClick={() => handleNavigation(`/sell/create/final-details?property_id=${propertyId}`)}
               className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              type="button"
             >
               Next
             </button>

@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import InteractiveProgressBar from '@/src/components/ui/InteractiveProgressBar';
+import { useAutoSave } from '@/src/hooks/useAutoSave';
 
 export default function RentDetailsPage() {
   const router = useRouter();
@@ -21,6 +22,48 @@ export default function RentDetailsPage() {
   const [bedrooms, setBedrooms] = useState('1');
   const [bathrooms, setBathrooms] = useState('1');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Auto-save hook for property data
+  const { saveImmediately: savePropertyData } = useAutoSave({
+    propertyId,
+    formData: { bedrooms, bathrooms },
+    tableName: 'properties',
+    debounceMs: 1500,
+  });
+
+  // Auto-save hook for listing data
+  const { saveImmediately: saveListingData } = useAutoSave({
+    propertyId,
+    formData: {
+      monthly_rent: rent,
+      security_deposit: securityDeposit,
+      pet_deposit: petDeposit,
+      application_fee: applicationFee,
+      minimum_lease_term: minLeaseTerm,
+      maximum_lease_term: maxLeaseTerm,
+      available_date: availableDate,
+      listing_title: listingTitle,
+      listing_description: listingDescription,
+    },
+    tableName: 'property_listings',
+    debounceMs: 1500,
+  });
+
+  // Enhanced navigation with auto-save
+  const handleNavigation = async (path: string) => {
+    try {
+      // Save all data immediately before navigating
+      await Promise.all([
+        savePropertyData(),
+        saveListingData()
+      ]);
+      router.push(path);
+    } catch (error) {
+      console.error('Error saving data before navigation:', error);
+      // Navigate anyway to prevent user from being stuck
+      router.push(path);
+    }
+  };
 
   // Load existing property data if available
   useEffect(() => {
@@ -406,8 +449,9 @@ export default function RentDetailsPage() {
           {/* Navigation Buttons */}
           <div className="flex justify-between items-center mt-12">
             <button 
-              onClick={() => router.push('/sell/create')}
+              onClick={() => handleNavigation('/sell/create')}
               className="px-6 py-3 text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors flex items-center"
+              type="button"
             >
               <span className="mr-2">←</span>
               Back

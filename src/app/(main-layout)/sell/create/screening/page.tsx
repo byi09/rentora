@@ -1,6 +1,7 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { createClient } from '@/utils/supabase/client';
 import InteractiveProgressBar from '@/src/components/ui/InteractiveProgressBar';
 
 export default function ScreeningPage() {
@@ -11,6 +12,99 @@ export default function ScreeningPage() {
   const [creditScore, setCreditScore] = useState('850');
 
   const incomeRatioOptions = ['1.5X', '2X', '2.5X', '3X'];
+
+  // Enhanced navigation with auto-save
+  const handleNavigation = async (path: string) => {
+    try {
+      // Save current form data before navigating
+      await saveCurrentFormData();
+      router.push(path);
+    } catch (error) {
+      console.error('Error saving data before navigation:', error);
+      // Navigate anyway to prevent user from being stuck
+      router.push(path);
+    }
+  };
+
+  // Function to save current form data
+  const saveCurrentFormData = async () => {
+    if (!propertyId) return;
+
+    try {
+      const supabase = createClient();
+      
+      // Save screening requirements as property features
+      const features = [
+        {
+          property_id: propertyId,
+          feature_name: 'Income to Rent Ratio',
+          feature_category: 'screening' as const,
+          feature_value: incomeRatio
+        },
+        {
+          property_id: propertyId,
+          feature_name: 'Minimum Credit Score',
+          feature_category: 'screening' as const,
+          feature_value: creditScore
+        }
+      ];
+
+      // Delete existing screening features
+      await supabase
+        .from('property_features')
+        .delete()
+        .eq('property_id', propertyId)
+        .eq('feature_category', 'screening');
+
+      // Insert new screening features
+      const { error } = await supabase
+        .from('property_features')
+        .insert(features);
+
+      if (error) {
+        console.error('Error saving screening data:', error);
+        throw error;
+      }
+    } catch (error) {
+      console.error('Error in saveCurrentFormData:', error);
+      throw error;
+    }
+  };
+
+  // Load existing screening data on mount
+  useEffect(() => {
+    const loadExistingData = async () => {
+      if (!propertyId) return;
+
+      try {
+        const supabase = createClient();
+        const { data: features, error } = await supabase
+          .from('property_features')
+          .select('*')
+          .eq('property_id', propertyId)
+          .eq('feature_category', 'screening');
+
+        if (error) {
+          console.error('Error loading existing screening data:', error);
+          return;
+        }
+
+        if (features) {
+          features.forEach(feature => {
+            if (feature.feature_name === 'Income to Rent Ratio') {
+              setIncomeRatio(feature.feature_value);
+            } else if (feature.feature_name === 'Minimum Credit Score') {
+              setCreditScore(feature.feature_value);
+            }
+          });
+        }
+      } catch (error) {
+        console.error('Error loading existing screening data:', error);
+      }
+    };
+
+    loadExistingData();
+  }, [propertyId]);
 
   return (
     <main className="min-h-screen bg-white pt-28 pb-8 px-8">
@@ -77,15 +171,17 @@ export default function ScreeningPage() {
           {/* Navigation Buttons */}
           <div className="flex justify-between items-center mt-12">
             <button 
-              onClick={() => router.push(`/sell/create/amenities?property_id=${propertyId}`)}
+              onClick={() => handleNavigation(`/sell/create/amenities?property_id=${propertyId}`)}
               className="px-6 py-3 text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors flex items-center"
+              type="button"
             >
               <span className="mr-2">←</span>
               Back
             </button>
             <button 
-              onClick={() => router.push(`/sell/create/costs-and-fees?property_id=${propertyId}`)}
+              onClick={() => handleNavigation(`/sell/create/costs-and-fees?property_id=${propertyId}`)}
               className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              type="button"
             >
               Next
             </button>

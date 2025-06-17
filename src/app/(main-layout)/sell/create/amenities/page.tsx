@@ -11,6 +11,152 @@ export default function AmenitiesPage() {
   
   const [customAmenities, setCustomAmenities] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedFeatures, setSelectedFeatures] = useState<Record<string, string>>({});
+
+  // Enhanced navigation with auto-save
+  const handleNavigation = async (path: string) => {
+    try {
+      // Save current form data before navigating
+      await saveCurrentFormData();
+      router.push(path);
+    } catch (error) {
+      console.error('Error saving data before navigation:', error);
+      // Navigate anyway to prevent user from being stuck
+      router.push(path);
+    }
+  };
+
+  // Function to save current form data
+  const saveCurrentFormData = async () => {
+    if (!propertyId) return;
+
+    try {
+      const supabase = createClient();
+      
+      // Delete existing features for this property to avoid duplicates
+      await supabase
+        .from('property_features')
+        .delete()
+        .eq('property_id', propertyId);
+
+      // Prepare features data
+      const features: Array<{
+        property_id: string;
+        feature_name: string;
+        feature_category: 'interior' | 'exterior' | 'building_amenities' | 'appliances' | 'utilities';
+        feature_value: string;
+      }> = [];
+      
+      // Add selected features
+      Object.entries(selectedFeatures).forEach(([key, value]) => {
+        if (value && value !== '' && propertyId) {
+          const parts = key.split('_');
+          if (parts.length >= 3) {
+            let category: string;
+            let name: string;
+            
+            if (parts[1] === 'building' && parts[2] === 'amenities') {
+              category = 'building_amenities';
+              name = parts.slice(3).join('_');
+            } else {
+              category = parts[1];
+              name = parts.slice(2).join('_');
+            }
+            
+            const validCategories = ['interior', 'exterior', 'building_amenities', 'appliances', 'utilities'];
+            if (validCategories.includes(category)) {
+              const cleanFeatureName = name
+                .replace(/([A-Z])/g, ' $1')
+                .toLowerCase()
+                .replace(/^./, str => str.toUpperCase())
+                .replace(/\b\w/g, l => l.toUpperCase());
+              
+              features.push({
+                property_id: propertyId,
+                feature_name: cleanFeatureName,
+                feature_category: category as 'interior' | 'exterior' | 'building_amenities' | 'appliances' | 'utilities',
+                feature_value: value
+              });
+            }
+          }
+        }
+      });
+
+      // Add custom amenities
+      if (customAmenities && customAmenities.trim() && propertyId) {
+        const customFeatures = customAmenities.split(/[,\n]/).map(amenity => amenity.trim()).filter(amenity => amenity);
+        
+        customFeatures.forEach(amenity => {
+          features.push({
+            property_id: propertyId,
+            feature_name: amenity,
+            feature_category: 'building_amenities' as const,
+            feature_value: 'available'
+          });
+        });
+      }
+
+      // Insert features if any exist
+      if (features.length > 0) {
+        const { error } = await supabase
+          .from('property_features')
+          .insert(features);
+
+        if (error) {
+          console.error('Error saving features:', error);
+          throw error;
+        }
+      }
+    } catch (error) {
+      console.error('Error in saveCurrentFormData:', error);
+      throw error;
+    }
+  };
+
+  // Load existing features on mount
+  useEffect(() => {
+    const loadExistingFeatures = async () => {
+      if (!propertyId) return;
+
+      try {
+        const supabase = createClient();
+        const { data: features, error } = await supabase
+          .from('property_features')
+          .select('*')
+          .eq('property_id', propertyId);
+
+        if (error) {
+          console.error('Error loading existing features:', error);
+          return;
+        }
+
+        if (features) {
+          const featureMap: Record<string, string> = {};
+          const customAmenitiesList: string[] = [];
+
+          features.forEach(feature => {
+            // Convert feature back to form field name
+            const fieldName = `feature_${feature.feature_category}_${feature.feature_name.toLowerCase().replace(/\s+/g, '_')}`;
+            featureMap[fieldName] = feature.feature_value;
+
+            // Collect custom amenities (those not in standard categories)
+            if (feature.feature_category === 'building_amenities' && feature.feature_value === 'available') {
+              customAmenitiesList.push(feature.feature_name);
+            }
+          });
+
+          setSelectedFeatures(featureMap);
+          if (customAmenitiesList.length > 0) {
+            setCustomAmenities(customAmenitiesList.join(', '));
+          }
+        }
+      } catch (error) {
+        console.error('Error loading existing features:', error);
+      }
+    };
+
+    loadExistingFeatures();
+  }, [propertyId]);
 
   // Redirect if no property ID
   useEffect(() => {
@@ -33,11 +179,16 @@ export default function AmenitiesPage() {
       console.log('Supabase client created successfully');
       
       // Extract features data - this will be an array of features
-      const features = [];
+      const features: Array<{
+        property_id: string;
+        feature_name: string;
+        feature_category: 'interior' | 'exterior' | 'building_amenities' | 'appliances' | 'utilities';
+        feature_value: string;
+      }> = [];
       
       // Get all form fields that start with 'feature_'
       for (const [key, value] of formData.entries()) {
-        if (key.startsWith('feature_') && value && value !== '') {
+        if (key.startsWith('feature_') && value && value !== '' && propertyId) {
           const parts = key.split('_');
           if (parts.length >= 3) {
             // Handle compound categories like "building_amenities"
@@ -81,7 +232,7 @@ export default function AmenitiesPage() {
 
       // Handle custom amenities
       const customAmenitiesText = formData.get('custom_amenities') as string;
-      if (customAmenitiesText && customAmenitiesText.trim()) {
+      if (customAmenitiesText && customAmenitiesText.trim() && propertyId) {
         // Split custom amenities by line or comma and add them as individual features
         const customFeatures = customAmenitiesText.split(/[,\n]/).map(amenity => amenity.trim()).filter(amenity => amenity);
         
@@ -550,15 +701,17 @@ export default function AmenitiesPage() {
           {/* Navigation Buttons */}
           <div className="flex justify-between items-center mt-12">
             <button 
-              onClick={() => router.push(`/sell/create/media?property_id=${propertyId}`)}
+              onClick={() => handleNavigation(`/sell/create/media?property_id=${propertyId}`)}
               className="px-6 py-3 text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors flex items-center"
+              type="button"
             >
               <span className="mr-2">←</span>
               Back
             </button>
             <button 
-              onClick={() => router.push(`/sell/create/screening?property_id=${propertyId}`)}
+              onClick={() => handleNavigation(`/sell/create/screening?property_id=${propertyId}`)}
               className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              type="button"
             >
               Next
             </button>
