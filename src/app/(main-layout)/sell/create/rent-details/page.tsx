@@ -99,7 +99,7 @@ export default function RentDetailsPage() {
           .from('property_listings')
           .select('*')
           .eq('property_id', propertyId)
-          .single();
+          .maybeSingle();
 
         if (!listingError && listing) {
           // Load existing listing values
@@ -165,7 +165,7 @@ export default function RentDetailsPage() {
         .from('property_listings')
         .select('id')
         .eq('property_id', propertyId)
-        .single();
+        .maybeSingle();
 
       let listingOperation;
       if (existingListing && !checkError) {
@@ -449,7 +449,7 @@ export default function RentDetailsPage() {
           {/* Navigation Buttons */}
           <div className="flex justify-between items-center mt-12">
             <button 
-              onClick={() => handleNavigation('/sell/create')}
+              onClick={() => handleNavigation(`/sell/create?property_id=${propertyId}`)}
               className="px-6 py-3 text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors flex items-center"
               type="button"
             >

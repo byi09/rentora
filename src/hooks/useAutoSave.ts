@@ -78,7 +78,7 @@ export function useAutoSave({
           .from('property_listings')
           .select('id')
           .eq('property_id', propertyId)
-          .single();
+          .maybeSingle();
 
         if (existingListing) {
           // Only update existing listings
