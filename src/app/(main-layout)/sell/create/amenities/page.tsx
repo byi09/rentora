@@ -57,26 +57,33 @@ export default function AmenitiesPage() {
         customAmenities.split(/[,\n]/).map(a=>a.trim()).filter(a=>a).forEach(a=>features.push({property_id:propertyId!,feature_name:a,feature_category:'building_amenities',feature_value:'available'}));
       }
       
-      // Insert features if any exist
-      if (features.length > 0) {
-        const { error } = await supabase
-          .from('property_features')
-          .insert(features);
-
-        if (error) {
-          console.error('Error saving features:', error);
-          throw error;
-        }
-      }
+      // Determine which existing feature rows need replacing
+      const namesToReplace = features.map(f => f.feature_name);
 
       // Delete existing amenity features for this property (only those we will overwrite)
-      const namesToReplace = features.map(f => f.feature_name);
       if (namesToReplace.length) {
-        await supabase
+        const { error: deleteError } = await supabase
           .from('property_features')
           .delete()
           .eq('property_id', propertyId)
           .in('feature_name', namesToReplace);
+
+        if (deleteError) {
+          console.error('Error deleting previous features:', deleteError);
+          throw deleteError;
+        }
+      }
+
+      // Insert features after previous versions (if any) have been removed
+      if (features.length > 0) {
+        const { error: insertError } = await supabase
+          .from('property_features')
+          .insert(features);
+
+        if (insertError) {
+          console.error('Error saving features:', insertError);
+          throw insertError;
+        }
       }
     } catch (error) {
       console.error('Error in saveCurrentFormData:', error);
@@ -237,16 +244,34 @@ export default function AmenitiesPage() {
       console.log('Features to be inserted:', features);
       
       if (features.length > 0) {
+        const namesToReplace = features.map(f => f.feature_name);
+
+        // Remove any existing rows for these features first to avoid unique-constraint conflicts
+        if (namesToReplace.length) {
+          const { error: deleteError } = await supabase
+            .from('property_features')
+            .delete()
+            .eq('property_id', propertyId)
+            .in('feature_name', namesToReplace);
+
+          if (deleteError) {
+            console.error('Error deleting previous amenities:', deleteError);
+            alert(`Error saving amenities: ${deleteError.message}. Please try again.`);
+            setIsSubmitting(false);
+            return;
+          }
+        }
+
         // Insert the property features
-        const { data, error } = await supabase
+        const { data, error: insertError } = await supabase
           .from('property_features')
           .insert(features)
           .select();
 
-        if (error) {
-          console.error('Error creating property features:', error);
+        if (insertError) {
+          console.error('Error creating property features:', insertError);
           console.error('Features that failed:', features);
-          alert(`Error saving amenities: ${error.message}. Please try again.`);
+          alert(`Error saving amenities: ${insertError.message}. Please try again.`);
           setIsSubmitting(false);
           return;
         }
