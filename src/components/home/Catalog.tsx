@@ -1,6 +1,6 @@
 "use client";
 
-import { useGeolocationContext } from "@/src/contexts/GeolocationContext";
+
 import CatalogComingSoon from "./CatalogComingSoon";
 import { FaCogs } from "react-icons/fa";
 import { ENABLE_CATALOG } from "@/lib/config";
