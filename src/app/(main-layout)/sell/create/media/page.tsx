@@ -411,7 +411,7 @@ export default function MediaPage() {
     reordered.splice(index, 0, moved);
 
     // Update local order numbers
-    const updated = reordered.map((img, idx) => ({ ...img, image_order: idx }));
+    const updated = reordered.map((img, idx) => ({ ...img, image_order: idx, is_primary: idx === 0 }));
     setExistingImages(updated);
 
     // Persist order to DB
@@ -421,7 +421,7 @@ export default function MediaPage() {
         updated.map((img) =>
           supabase
             .from('property_images')
-            .update({ image_order: img.image_order })
+            .update({ image_order: img.image_order, is_primary: img.is_primary })
             .eq('id', img.id)
         )
       );
