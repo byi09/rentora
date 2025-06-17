@@ -142,11 +142,31 @@ export default function MediaPage() {
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || !propertyId) return;
 
+    // Convert FileList to array for easier processing
     const files = Array.from(e.target.files);
+
+    // ---- Optional client-side compression to speed up uploads ----
+    // Dynamically import compression library
+    const { default: imageCompression } = await import('browser-image-compression');
+    let processedFiles: File[] = files;
+    try {
+      processedFiles = await Promise.all(
+        files.map((file) =>
+          imageCompression(file, {
+            maxSizeMB: 1, // target ≤1 MB
+            maxWidthOrHeight: 1920,
+            useWebWorker: true,
+          })
+        )
+      );
+    } catch (compressionErr) {
+      // If compression lib fails / not supported, fall back to original files
+      console.warn('Image compression skipped:', compressionErr);
+    }
 
     // Add local previews immediately
     const startOrder = existingImages.length;
-    const previewPhotos: UploadedFile[] = files.map((file) => ({
+    const previewPhotos: UploadedFile[] = processedFiles.map((file) => ({
       file,
       url: URL.createObjectURL(file),
       uploading: true,
@@ -156,7 +176,9 @@ export default function MediaPage() {
     setUploading(true);
 
     // ---- Batch upload concurrently ----
-    const uploadPromises = files.map(file => uploadFile(file, 'property-images', 'listings'));
+    const uploadPromises = processedFiles.map((file) =>
+      uploadFile(file, 'property-images', 'listings')
+    );
     const results = await Promise.allSettled(uploadPromises);
 
     // Prepare rows for DB insert + UI updates
@@ -436,9 +458,18 @@ export default function MediaPage() {
             {/* Existing Images */}
             {!loading && existingImages.length > 0 && (
               <div className="space-y-3 mb-6">
-                <h3 className="font-medium text-gray-700">
-                  Uploaded Images ({existingImages.length})
-                </h3>
+                <div className="flex justify-between items-center mb-1">
+                  <h3 className="font-medium text-gray-700">
+                    Uploaded Images ({existingImages.length})
+                  </h3>
+                  {/* Link to dedicated sort page */}
+                  <button
+                    onClick={() => router.push(`/sell/create/media/sort?property_id=${propertyId}`)}
+                    className="text-sm text-blue-600 hover:underline"
+                  >
+                    Reorder
+                  </button>
+                </div>
                 <div className="grid grid-cols-2 gap-3">
                   {existingImages.map((image, idx) => (
                     <div

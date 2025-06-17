@@ -184,7 +184,7 @@ const ToastContainer = ({ toasts, onRemove }: { toasts: Toast[]; onRemove: (id: 
   if (!mounted) return null;
 
   return createPortal(
-    <div className="fixed top-4 right-4 z-50 flex flex-col gap-2 pointer-events-none">
+    <div className="fixed top-4 right-4 z-[60] flex flex-col gap-2 pointer-events-none">
       {toasts.map((toast) => (
         <div key={toast.id} className="pointer-events-auto">
           <ToastComponent toast={toast} onRemove={onRemove} />
