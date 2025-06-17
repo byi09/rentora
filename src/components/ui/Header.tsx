@@ -25,11 +25,17 @@ const Header = ({ toggleSidebar, user }: HeaderProps) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [bgOpacity, setBgOpacity] = useState(0);
 
   useEffect(() => {
     const handleScroll = () => {
-      const isScrolled = window.scrollY > 50;
-      setScrolled(isScrolled);
+      const y = window.scrollY;
+      // Toggle simple boolean for other styling pieces
+      setScrolled(y > 50);
+
+      // Gradually increase the background opacity up to ~0.9 as we scroll down 0-300px
+      const opacity = Math.min(y / 300, 0.9);
+      setBgOpacity(opacity);
     };
 
     window.addEventListener('scroll', handleScroll);
@@ -104,9 +110,12 @@ const Header = ({ toggleSidebar, user }: HeaderProps) => {
   if (!user) {
     // Header for non-logged in users (translucent, transforms to dark on scroll)
     return (
-      <header className={`fixed top-0 z-50 w-full transition-all duration-300
-        ${scrolled ? 'bg-gray-900/90 text-white backdrop-blur-md shadow-lg border-b border-gray-800' : 'bg-transparent text-white'}
-      `}>
+      <header
+        className={`fixed top-0 z-50 w-full transition-all duration-300 text-white backdrop-blur-md ${
+          scrolled ? 'shadow-lg border-b border-gray-800' : ''
+        }`}
+        style={{ backgroundColor: `rgba(17, 24, 39, ${bgOpacity})` }}
+      >
         <div className="relative w-full px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
