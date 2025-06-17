@@ -5,6 +5,7 @@ import { createClient } from '@/utils/supabase/client';
 import { useToast } from '@/src/components/ui/Toast';
 import InteractiveProgressBar from '@/src/components/ui/InteractiveProgressBar';
 import Spinner from '@/src/components/ui/Spinner';
+import { Upload, Image as ImageIcon, Trash2, RotateCcw, CheckCircle, AlertCircle } from 'lucide-react';
 
 /* eslint-disable @next/next/no-img-element */
 
@@ -13,6 +14,7 @@ interface UploadedFile {
   url?: string | null;
   uploading: boolean;
   error?: string;
+  progress?: number;
 }
 
 interface ExistingImage {
@@ -38,9 +40,12 @@ export default function MediaPage() {
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [dragOver, setDragOver] = useState(false);
 
   // Local drag state for image re-ordering
   const dragItemIndex = useRef<number | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const tourInputRef = useRef<HTMLInputElement>(null);
 
   // Initialize Supabase Storage buckets
   useEffect(() => {
@@ -110,6 +115,37 @@ export default function MediaPage() {
     loadExistingImages();
   }, [propertyId, showError]);
 
+  // Drag and drop handlers
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOver(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOver(false);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOver(false);
+    
+    const files = Array.from(e.dataTransfer.files);
+    const imageFiles = files.filter(file => file.type.startsWith('image/'));
+    
+    if (imageFiles.length > 0) {
+      handleFileUpload(imageFiles);
+    }
+  };
+
   const uploadFile = async (file: File, bucketName: string, folder: string): Promise<{ publicUrl: string; s3Key: string } | null> => {
     try {
       const supabase = createClient();
@@ -139,28 +175,24 @@ export default function MediaPage() {
     }
   };
 
-  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files || !propertyId) return;
+  const handleFileUpload = async (files: File[]) => {
+    if (!propertyId || files.length === 0) return;
 
-    // Convert FileList to array for easier processing
-    const files = Array.from(e.target.files);
-
-    // ---- Optional client-side compression to speed up uploads ----
-    // Dynamically import compression library
-    const { default: imageCompression } = await import('browser-image-compression');
     let processedFiles: File[] = files;
+    
+    // Optional client-side compression for better performance
     try {
+      const { default: imageCompression } = await import('browser-image-compression');
       processedFiles = await Promise.all(
         files.map((file) =>
           imageCompression(file, {
-            maxSizeMB: 1, // target ≤1 MB
+            maxSizeMB: 1,
             maxWidthOrHeight: 1920,
             useWebWorker: true,
           })
         )
       );
     } catch (compressionErr) {
-      // If compression lib fails / not supported, fall back to original files
       console.warn('Image compression skipped:', compressionErr);
     }
 
@@ -170,15 +202,23 @@ export default function MediaPage() {
       file,
       url: URL.createObjectURL(file),
       uploading: true,
+      progress: 0,
     }));
 
     setPhotos(previewPhotos);
     setUploading(true);
 
-    // ---- Batch upload concurrently ----
-    const uploadPromises = processedFiles.map((file) =>
-      uploadFile(file, 'property-images', 'listings')
+    // Upload files with progress tracking
+    const uploadPromises = processedFiles.map((file, index) =>
+      uploadFile(file, 'property-images', 'listings').then(result => {
+        // Update progress for this specific file
+        setPhotos(prev => prev.map((photo, idx) => 
+          idx === index ? { ...photo, progress: 100 } : photo
+        ));
+        return result;
+      })
     );
+    
     const results = await Promise.allSettled(uploadPromises);
 
     // Prepare rows for DB insert + UI updates
@@ -236,6 +276,15 @@ export default function MediaPage() {
     setUploading(false);
     // Clear photos state and file input
     setPhotos([]);
+  };
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || !propertyId) return;
+    
+    const files = Array.from(e.target.files);
+    await handleFileUpload(files);
+    
+    // Clear the input
     e.target.value = '';
   };
 
@@ -352,7 +401,7 @@ export default function MediaPage() {
     dragItemIndex.current = index;
   };
 
-  const handleDrop = async (index: number) => {
+  const handleImageReorder = async (index: number) => {
     const from = dragItemIndex.current;
     dragItemIndex.current = null;
     if (from === null || from === index) return;
@@ -387,7 +436,7 @@ export default function MediaPage() {
   }
 
   return (
-    <main className="min-h-screen bg-white pt-28 pb-8 px-8">
+    <main className="min-h-screen bg-gradient-to-br from-gray-50 to-white pt-28 pb-8 px-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
@@ -404,15 +453,26 @@ export default function MediaPage() {
         <InteractiveProgressBar currentStep={2} propertyId={propertyId} />
 
         {/* Content Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Left Column - Photos */}
-          <div>
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
             <h2 className="text-xl font-semibold mb-2">Add Photos</h2>
             <p className="text-gray-600 mb-6">More photos = more informed renters</p>
             
             {/* Upload Area */}
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 bg-gray-50 flex flex-col items-center justify-center min-h-[200px] mb-4">
+            <div 
+              className={`border-2 border-dashed rounded-xl p-8 flex flex-col items-center justify-center min-h-[200px] mb-6 transition-all duration-200 ${
+                dragOver 
+                  ? 'border-blue-400 bg-blue-50' 
+                  : 'border-gray-300 bg-gray-50 hover:border-gray-400 hover:bg-gray-100'
+              }`}
+              onDragEnter={handleDragEnter}
+              onDragLeave={handleDragLeave}
+              onDragOver={handleDragOver}
+              onDrop={handleDrop}
+            >
               <input
+                ref={fileInputRef}
                 type="file"
                 id="photos"
                 multiple
@@ -421,72 +481,89 @@ export default function MediaPage() {
                 className="hidden"
                 disabled={uploading}
               />
-              <label
-                htmlFor="photos"
-                className={`px-6 py-3 rounded-md transition-colors cursor-pointer ${
-                  uploading 
-                    ? 'bg-gray-400 text-gray-600 cursor-not-allowed' 
-                    : 'bg-blue-600 text-white hover:bg-blue-700'
-                }`}
-              >
-                {uploading ? 'Uploading...' : 'Upload From Computer'}
-              </label>
-              <p className="text-xs text-gray-500 mt-2">
-                Supports JPEG, PNG, WebP (max 5MB each)
-              </p>
+              
+              {dragOver ? (
+                <div className="text-center">
+                  <Upload className="w-12 h-12 text-blue-500 mx-auto mb-4" />
+                  <p className="text-lg font-medium text-blue-600 mb-2">Drop images here</p>
+                  <p className="text-sm text-blue-500">Release to upload your photos</p>
+                </div>
+              ) : (
+                <div className="text-center">
+                  <ImageIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <label
+                    htmlFor="photos"
+                    className={`inline-flex items-center px-6 py-3 rounded-lg font-medium transition-all cursor-pointer ${
+                      uploading 
+                        ? 'bg-gray-400 text-gray-600 cursor-not-allowed' 
+                        : 'bg-blue-600 text-white hover:bg-blue-700 hover:shadow-lg'
+                    }`}
+                  >
+                    <Upload className="w-5 h-5 mr-2" />
+                    {uploading ? 'Uploading...' : 'Upload Photos'}
+                  </label>
+                  <p className="text-sm text-gray-500 mt-3">
+                    or drag and drop images here
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Supports JPEG, PNG, WebP (max 5MB each)
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Loading State */}
             {loading && (
-              <div className="flex items-center justify-center py-4">
-                <Spinner size={16} className="text-blue-600" />
-                <span className="ml-2 text-sm text-gray-600">Loading existing images...</span>
+              <div className="flex items-center justify-center py-8">
+                <div className="text-center">
+                  <Spinner size={24} className="text-blue-600 mx-auto mb-3" />
+                  <p className="text-sm text-gray-600">Loading your images...</p>
+                </div>
               </div>
             )}
 
             {/* Empty State */}
             {!loading && existingImages.length === 0 && photos.length === 0 && (
-              <div className="text-center py-6">
-                <svg className="mx-auto h-12 w-12 text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 48 48">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6 6l-3.5 3.5a2 2 0 01-2.83 0L4 20m16 20l4.586-4.586a2 2 0 012.828 0L32 40m-2-2l1.586-1.586a2 2 0 012.828 0L36 34m-6 6l-3.5 3.5a2 2 0 01-2.83 0L20 36"/>
-                </svg>
-                <p className="text-sm text-gray-500">No images uploaded yet</p>
-                <p className="text-xs text-gray-400 mt-1">Upload some photos to showcase your property</p>
+              <div className="text-center py-8 bg-gray-50 rounded-lg border border-gray-200">
+                <ImageIcon className="mx-auto h-12 w-12 text-gray-400 mb-3" />
+                <p className="text-sm font-medium text-gray-600">No images uploaded yet</p>
+                <p className="text-xs text-gray-500 mt-1">Upload some photos to showcase your property</p>
               </div>
             )}
 
             {/* Existing Images */}
-            {!loading && existingImages.length > 0 && (
-              <div className="space-y-3 mb-6">
-                <div className="flex justify-between items-center mb-1">
-                  <h3 className="font-medium text-gray-700">
+            {existingImages.length > 0 && (
+              <div className="space-y-4 mb-6">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-lg font-semibold text-gray-800">
                     Uploaded Images ({existingImages.length})
                   </h3>
                   {/* Link to dedicated sort page */}
                   <button
                     onClick={() => router.push(`/sell/create/media/sort?property_id=${propertyId}`)}
-                    className="text-sm text-blue-600 hover:underline"
+                    className="inline-flex items-center px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-800 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
                   >
+                    <RotateCcw className="w-4 h-4 mr-2" />
                     Reorder
                   </button>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {existingImages.map((image, idx) => (
                     <div
                       key={image.id}
-                      className="relative border rounded-lg overflow-hidden bg-white"
+                      className="group relative border border-gray-200 rounded-xl overflow-hidden bg-white hover:shadow-md transition-all duration-200"
                       draggable
                       onDragStart={() => handleDragStart(idx)}
                       onDragOver={(e) => e.preventDefault()}
-                      onDrop={() => handleDrop(idx)}
+                      onDrop={() => handleImageReorder(idx)}
                       title="Drag to reorder"
                     >
                       {/* Image Thumbnail */}
-                      <div className="aspect-video relative">
+                      <div className="aspect-video relative overflow-hidden">
                         <img
                           src={image.url}
                           alt={image.alt_text || 'Property image'}
-                          className="w-full h-full object-cover"
+                          className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
                           onError={(e) => {
                             const target = e.target as HTMLImageElement;
                             target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yMCAyNkM5LjUwNjU5IDI2IDEgMTcuNzMzIDEgNy43MzNWNkg0MFY3LjczM0M0MCAxNy43MzMgMzAuNDkzNCAyNiAyMCAyNloiIGZpbGw9IiM5Q0E0QUYiLz4KPC9zdmc+Cg==';
@@ -495,7 +572,8 @@ export default function MediaPage() {
                         
                         {/* Primary Badge */}
                         {image.is_primary && (
-                          <div className="absolute top-2 left-2 bg-blue-600 text-white px-2 py-1 rounded text-xs font-medium">
+                          <div className="absolute top-3 left-3 bg-blue-600 text-white px-2 py-1 rounded-full text-xs font-medium flex items-center">
+                            <CheckCircle className="w-3 h-3 mr-1" />
                             Primary
                           </div>
                         )}
@@ -504,26 +582,26 @@ export default function MediaPage() {
                         <button
                           onClick={() => deleteExistingImage(image.id, image.s3_key)}
                           disabled={deleting === image.id}
-                          className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center transition-colors disabled:bg-gray-400"
+                          className="absolute top-3 right-3 bg-red-500 hover:bg-red-600 text-white rounded-full w-8 h-8 flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 disabled:bg-gray-400"
                           title="Delete image"
                         >
                           {deleting === image.id ? (
-                            <Spinner size={12} colorClass="text-white" />
+                            <Spinner size={14} colorClass="text-white" />
                           ) : (
-                            '×'
+                            <Trash2 className="w-4 h-4" />
                           )}
                         </button>
                       </div>
                       
                       {/* Image Info */}
-                      <div className="p-2">
-                        <p className="text-xs text-gray-600 truncate">
+                      <div className="p-3">
+                        <p className="text-sm font-medium text-gray-700 truncate">
                           {image.room_type ? 
                             image.room_type.charAt(0).toUpperCase() + image.room_type.slice(1).replace('_', ' ') : 
                             'Property Image'
                           }
                         </p>
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-gray-500 mt-1">
                           Order: {idx + 1}
                         </p>
                       </div>
@@ -536,37 +614,48 @@ export default function MediaPage() {
             {/* Currently Uploading Photos */}
             {photos.length > 0 && (
               <div className="space-y-3">
-                <h3 className="font-medium text-gray-700">Currently Uploading ({photos.length})</h3>
+                <h3 className="text-lg font-semibold text-gray-800">Currently Uploading ({photos.length})</h3>
                 <div className="grid grid-cols-2 gap-3">
                   {photos.map((photo, index) => (
-                    <div key={index} className="relative border rounded-lg p-3 bg-white">
+                    <div key={index} className="relative border border-gray-200 rounded-xl p-4 bg-white">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-600 truncate flex-1">
+                        <span className="text-sm font-medium text-gray-700 truncate flex-1">
                           {photo.file.name}
                         </span>
                         <button
                           onClick={() => removePhoto(index)}
-                          className="text-red-500 hover:text-red-700 ml-2"
+                          className="text-red-500 hover:text-red-700 ml-2 p-1 rounded-full hover:bg-red-50 transition-colors"
                           disabled={photo.uploading}
                         >
-                          ×
+                          <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
                       
                       {/* Preview */}
                       {photo.url && (
-                        <img src={photo.url} alt="preview" className="w-full h-28 object-cover mt-2 rounded" />
+                        <img src={photo.url} alt="preview" className="w-full h-32 object-cover mt-3 rounded-lg" />
                       )}
 
                       {photo.uploading && (
-                        <div className="mt-2 flex items-center space-x-2">
-                          <Spinner size={16} className="text-blue-600" />
-                          <p className="text-xs text-gray-500">Uploading...</p>
+                        <div className="mt-3">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-xs font-medium text-blue-600">Uploading...</span>
+                            <span className="text-xs text-gray-500">{photo.progress || 0}%</span>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div 
+                              className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                              style={{ width: `${photo.progress || 0}%` }}
+                            />
+                          </div>
                         </div>
                       )}
                       
                       {photo.error && (
-                        <p className="text-xs text-red-500 mt-1">{photo.error}</p>
+                        <div className="mt-3 flex items-center text-red-600">
+                          <AlertCircle className="w-4 h-4 mr-2" />
+                          <p className="text-xs">{photo.error}</p>
+                        </div>
                       )}
                     </div>
                   ))}
@@ -576,13 +665,14 @@ export default function MediaPage() {
           </div>
 
           {/* Right Column - 3D Tour */}
-          <div>
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
             <h2 className="text-xl font-semibold mb-2">Add 3D Tour</h2>
             <p className="text-gray-600 mb-6">A tour can save time from in-person visits</p>
             
             {/* Upload Area */}
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 bg-gray-50 flex flex-col items-center justify-center min-h-[200px] mb-4">
+            <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 bg-gray-50 hover:bg-gray-100 hover:border-gray-400 transition-all flex flex-col items-center justify-center min-h-[200px] mb-6">
               <input
+                ref={tourInputRef}
                 type="file"
                 id="tour"
                 accept=".glb,.gltf"
@@ -590,50 +680,62 @@ export default function MediaPage() {
                 className="hidden"
                 disabled={uploading || !!tourFile}
               />
-              <label
-                htmlFor="tour"
-                className={`px-6 py-3 rounded-md transition-colors cursor-pointer ${
-                  uploading || tourFile
-                    ? 'bg-gray-400 text-gray-600 cursor-not-allowed' 
-                    : 'bg-blue-600 text-white hover:bg-blue-700'
-                }`}
-              >
-                {uploading ? 'Uploading...' : tourFile ? 'File Selected' : 'Upload From Computer'}
-              </label>
-              <p className="text-xs text-gray-500 mt-2">
-                Supports GLB, GLTF (max 50MB)
-              </p>
+              
+              <div className="text-center">
+                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Upload className="w-8 h-8 text-blue-600" />
+                </div>
+                <label
+                  htmlFor="tour"
+                  className={`inline-flex items-center px-6 py-3 rounded-lg font-medium transition-all cursor-pointer ${
+                    uploading || tourFile
+                      ? 'bg-gray-400 text-gray-600 cursor-not-allowed' 
+                      : 'bg-blue-600 text-white hover:bg-blue-700 hover:shadow-lg'
+                  }`}
+                >
+                  {uploading ? 'Uploading...' : tourFile ? 'File Selected' : 'Upload 3D Tour'}
+                </label>
+                <p className="text-sm text-gray-500 mt-3">
+                  Supports GLB, GLTF files (max 50MB)
+                </p>
+              </div>
             </div>
 
             {/* Uploaded Tour */}
             {tourFile && (
-              <div className="border rounded-lg p-4 bg-white">
+              <div className="border border-gray-200 rounded-xl p-4 bg-white">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600 truncate flex-1">
+                  <span className="text-sm font-medium text-gray-700 truncate flex-1">
                     {tourFile.file.name}
                   </span>
                   <button
                     onClick={removeTour}
-                    className="text-red-500 hover:text-red-700 ml-2"
+                    className="text-red-500 hover:text-red-700 ml-2 p-1 rounded-full hover:bg-red-50 transition-colors"
                     disabled={tourFile.uploading}
                   >
-                    ×
+                    <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
                 
                 {tourFile.uploading && (
-                  <div className="mt-2">
-                    <Spinner size={16} className="text-blue-600" />
-                    <p className="text-xs text-gray-500 mt-1">Uploading...</p>
+                  <div className="mt-3 flex items-center">
+                    <Spinner size={16} className="text-blue-600 mr-2" />
+                    <p className="text-sm text-blue-600 font-medium">Uploading 3D tour...</p>
                   </div>
                 )}
                 
                 {tourFile.error && (
-                  <p className="text-xs text-red-500 mt-1">{tourFile.error}</p>
+                  <div className="mt-3 flex items-center text-red-600">
+                    <AlertCircle className="w-4 h-4 mr-2" />
+                    <p className="text-sm">{tourFile.error}</p>
+                  </div>
                 )}
                 
                 {tourFile.url && !tourFile.uploading && (
-                  <p className="text-xs text-green-600 mt-1">✓ Uploaded successfully</p>
+                  <div className="mt-3 flex items-center text-green-600">
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                    <p className="text-sm font-medium">Uploaded successfully</p>
+                  </div>
                 )}
               </div>
             )}
@@ -644,17 +746,18 @@ export default function MediaPage() {
         <div className="flex justify-between items-center mt-12">
           <button 
             onClick={() => router.push(`/sell/create/rent-details?property_id=${propertyId}`)}
-            className="px-6 py-3 text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors flex items-center"
+            className="inline-flex items-center px-6 py-3 text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors font-medium"
           >
-            <span className="mr-2">←</span>
+            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
             Back
           </button>
           <button 
             onClick={() => router.push(`/sell/create/amenities?property_id=${propertyId}`)}
-            className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+            className="inline-flex items-center px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 hover:shadow-lg transition-all font-medium disabled:bg-gray-400 disabled:cursor-not-allowed"
             disabled={uploading}
           >
             {uploading ? 'Uploading...' : 'Next'}
+            <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
           </button>
         </div>
       </div>

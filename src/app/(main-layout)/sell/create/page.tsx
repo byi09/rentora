@@ -299,7 +299,7 @@ export default function CreateListingPage() {
         </div>
 
         {/* Progress Bar */}
-        <InteractiveProgressBar currentStep={0} />
+        <InteractiveProgressBar currentStep={0} propertyId={propertyId} />
 
         {/* Form */}
         <form onSubmit={handleSubmit}>
