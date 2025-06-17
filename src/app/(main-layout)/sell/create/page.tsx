@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import InteractiveProgressBar from '@/src/components/ui/InteractiveProgressBar';
 
@@ -8,6 +8,9 @@ const FORM_STORAGE_KEY = 'sell-create-form-data';
 
 export default function CreateListingPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const propertyId = searchParams.get('property_id');
+  
   const [beds, setBeds] = useState('1');
   const [baths, setBaths] = useState('1');
   const [squareFootage, setSquareFootage] = useState('1500');
@@ -25,29 +28,65 @@ export default function CreateListingPage() {
 
   // Load form data from localStorage on mount
   useEffect(() => {
-    const savedData = localStorage.getItem(FORM_STORAGE_KEY);
-    if (savedData) {
-      try {
-        const parsed = JSON.parse(savedData);
-        setBeds(parsed.beds || '1');
-        setBaths(parsed.baths || '1');
-        setSquareFootage(parsed.squareFootage || '1500');
-        setPropertyType(parsed.propertyType || 'apartment');
-        setAddressLine1(parsed.addressLine1 || '');
-        setAddressLine2(parsed.addressLine2 || '');
-        setCity(parsed.city || '');
-        setState(parsed.state || '');
-        setZipCode(parsed.zipCode || '');
-        setYearBuilt(parsed.yearBuilt || '');
-        setDescription(parsed.description || '');
-      } catch (error) {
-        console.error('Error loading saved form data:', error);
+    const loadFormData = async () => {
+      if (propertyId) {
+        // Load existing property data from database
+        try {
+          const supabase = createClient();
+          const { data: property, error } = await supabase
+            .from('properties')
+            .select('*')
+            .eq('id', propertyId)
+            .single();
+          
+          if (!error && property) {
+            setBeds(property.bedrooms?.toString() || '1');
+            setBaths(property.bathrooms?.toString() || '1');
+            setSquareFootage(property.square_footage?.toString() || '1500');
+            setPropertyType(property.property_type || 'apartment');
+            setAddressLine1(property.address_line_1 || '');
+            setAddressLine2(property.address_line_2 || '');
+            setCity(property.city || '');
+            setState(property.state || '');
+            setZipCode(property.zip_code || '');
+            setYearBuilt(property.year_built?.toString() || '');
+            setDescription(property.description || '');
+          }
+        } catch (error) {
+          console.error('Error loading property data:', error);
+        }
+      } else {
+        // Load from localStorage for new properties
+        const savedData = localStorage.getItem(FORM_STORAGE_KEY);
+        if (savedData) {
+          try {
+            const parsed = JSON.parse(savedData);
+            setBeds(parsed.beds || '1');
+            setBaths(parsed.baths || '1');
+            setSquareFootage(parsed.squareFootage || '1500');
+            setPropertyType(parsed.propertyType || 'apartment');
+            setAddressLine1(parsed.addressLine1 || '');
+            setAddressLine2(parsed.addressLine2 || '');
+            setCity(parsed.city || '');
+            setState(parsed.state || '');
+            setZipCode(parsed.zipCode || '');
+            setYearBuilt(parsed.yearBuilt || '');
+            setDescription(parsed.description || '');
+          } catch (error) {
+            console.error('Error loading saved form data:', error);
+          }
+        }
       }
-    }
-  }, []);
+    };
+    
+    loadFormData();
+  }, [propertyId]);
 
   // Auto-save form data to localStorage whenever it changes
   useEffect(() => {
+    // Only auto-save to localStorage for new properties
+    if (propertyId) return;
+    
     const formData = {
       beds,
       baths,
@@ -72,82 +111,116 @@ export default function CreateListingPage() {
       const formData = new FormData(e.currentTarget);
       const supabase = createClient();
       
-      // Get the authenticated user
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
-      
-      if (authError || !user) {
-        console.error('Authentication error:', authError);
-        alert('Please sign in to create a property');
-        setIsSubmitting(false);
-        return;
+      if (propertyId) {
+        // Update existing property
+        const propertyData = {
+          address_line_1: formData.get('address_line_1') as string,
+          address_line_2: formData.get('address_line_2') as string || null,
+          city: formData.get('city') as string,
+          state: formData.get('state') as string,
+          zip_code: formData.get('zip_code') as string,
+          property_type: formData.get('property_type') as string || 'apartment',
+          bedrooms: parseInt(formData.get('bedrooms') as string),
+          bathrooms: parseFloat(formData.get('bathrooms') as string),
+          square_footage: parseInt(formData.get('square_footage') as string),
+          description: formData.get('description') as string || null,
+          year_built: formData.get('year_built') ? parseInt(formData.get('year_built') as string) : null,
+        };
+
+        const { error } = await supabase
+          .from('properties')
+          .update(propertyData)
+          .eq('id', propertyId);
+
+        if (error) {
+          console.error('Error updating property:', error);
+          alert('Error updating property. Please try again.');
+          setIsSubmitting(false);
+          return;
+        }
+
+        console.log('Property updated successfully');
+        router.push(`/sell/create/rent-details?property_id=${propertyId}`);
+        
+      } else {
+        // Create new property
+        // Get the authenticated user
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        
+        if (authError || !user) {
+          console.error('Authentication error:', authError);
+          alert('Please sign in to create a property');
+          setIsSubmitting(false);
+          return;
+        }
+
+        // Step 1: find the customer record linked to the signed-in user
+        const { data: customerData, error: customerError } = await supabase
+          .from('customers')
+          .select('id')
+          .eq('user_id', user.id)
+          .single();
+
+        if (customerError || !customerData) {
+          console.error('Customer record not found:', customerError);
+          alert('Account profile not found. Please finish onboarding.');
+          setIsSubmitting(false);
+          return;
+        }
+
+        // Step 2: fetch the landlord record for that customer
+        const { data: landlordRow, error: landlordRowError } = await supabase
+          .from('landlords')
+          .select('id')
+          .eq('customer_id', customerData.id)
+          .single();
+
+        if (landlordRowError || !landlordRow) {
+          console.error('Landlord profile not found:', landlordRowError);
+          alert('Landlord profile not found. Please complete your onboarding.');
+          setIsSubmitting(false);
+          return;
+        }
+
+        const landlordId = landlordRow.id;
+        
+        // Extract form data
+        const propertyData = {
+          landlord_id: landlordId,
+          address_line_1: formData.get('address_line_1') as string,
+          address_line_2: formData.get('address_line_2') as string || null,
+          city: formData.get('city') as string,
+          state: formData.get('state') as string,
+          zip_code: formData.get('zip_code') as string,
+          property_type: formData.get('property_type') as string || 'apartment',
+          bedrooms: parseInt(formData.get('bedrooms') as string),
+          bathrooms: parseFloat(formData.get('bathrooms') as string),
+          square_footage: parseInt(formData.get('square_footage') as string),
+          description: formData.get('description') as string || null,
+          year_built: formData.get('year_built') ? parseInt(formData.get('year_built') as string) : null,
+        };
+
+        // Insert the property
+        const { data, error } = await supabase
+          .from('properties')
+          .insert([propertyData])
+          .select();
+
+        if (error) {
+          console.error('Error creating property:', error);
+          alert('Error creating property. Please try again.');
+          setIsSubmitting(false);
+          return;
+        }
+
+        console.log('Property created successfully:', data);
+        
+        // Clear saved form data on successful submission
+        localStorage.removeItem(FORM_STORAGE_KEY);
+        
+        // Client-side redirect - much more reliable
+        router.push(`/sell/create/rent-details?property_id=${data[0].id}`);
       }
-
-      // Step 1: find the customer record linked to the signed-in user
-      const { data: customerData, error: customerError } = await supabase
-        .from('customers')
-        .select('id')
-        .eq('user_id', user.id)
-        .single();
-
-      if (customerError || !customerData) {
-        console.error('Customer record not found:', customerError);
-        alert('Account profile not found. Please finish onboarding.');
-        setIsSubmitting(false);
-        return;
-      }
-
-      // Step 2: fetch the landlord record for that customer
-      const { data: landlordRow, error: landlordRowError } = await supabase
-        .from('landlords')
-        .select('id')
-        .eq('customer_id', customerData.id)
-        .single();
-
-      if (landlordRowError || !landlordRow) {
-        console.error('Landlord profile not found:', landlordRowError);
-        alert('Landlord profile not found. Please complete your onboarding.');
-        setIsSubmitting(false);
-        return;
-      }
-
-      const landlordId = landlordRow.id;
-      
-      // Extract form data
-      const propertyData = {
-        landlord_id: landlordId,
-        address_line_1: formData.get('address_line_1') as string,
-        address_line_2: formData.get('address_line_2') as string || null,
-        city: formData.get('city') as string,
-        state: formData.get('state') as string,
-        zip_code: formData.get('zip_code') as string,
-        property_type: formData.get('property_type') as string || 'apartment',
-        bedrooms: parseInt(formData.get('bedrooms') as string),
-        bathrooms: parseFloat(formData.get('bathrooms') as string),
-        square_footage: parseInt(formData.get('square_footage') as string),
-        description: formData.get('description') as string || null,
-        year_built: formData.get('year_built') ? parseInt(formData.get('year_built') as string) : null,
-      };
-
-      // Insert the property
-      const { data, error } = await supabase
-        .from('properties')
-        .insert([propertyData])
-        .select();
-
-      if (error) {
-        console.error('Error creating property:', error);
-        alert('Error creating property. Please try again.');
-        setIsSubmitting(false);
-        return;
-      }
-
-      console.log('Property created successfully:', data);
-      
-      // Clear saved form data on successful submission
-      localStorage.removeItem(FORM_STORAGE_KEY);
-      
-      // Client-side redirect - much more reliable
-      router.push(`/sell/create/rent-details?property_id=${data[0].id}`);
       
     } catch (error) {
       console.error('Unexpected error:', error);
@@ -161,7 +234,9 @@ export default function CreateListingPage() {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-2xl font-semibold">Property Information</h1>
+          <h1 className="text-2xl font-semibold">
+            {propertyId ? 'Edit Property Information' : 'Property Information'}
+          </h1>
           <button 
             onClick={() => router.push('/')}
             className="px-6 py-2 text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
@@ -395,7 +470,7 @@ export default function CreateListingPage() {
                 : 'bg-blue-600 hover:bg-blue-700'
             } text-white`}
           >
-            {isSubmitting ? 'Creating Property...' : 'Next'}
+            {isSubmitting ? (propertyId ? 'Updating Property...' : 'Creating Property...') : 'Next'}
           </button>
         </div>
         </form>
