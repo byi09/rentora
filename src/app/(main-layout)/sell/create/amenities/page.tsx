@@ -278,6 +278,39 @@ export default function AmenitiesPage() {
     }
   };
 
+  const exitToDashboard = async () => {
+    try {
+      await saveCurrentFormData();
+    } catch (err) {
+      console.error('Error saving before exit:', err);
+    } finally {
+      router.push('/');
+    }
+  };
+
+  // ---- NEW EFFECT: auto-save on browser navigation/back/unload ----
+  useEffect(() => {
+    if (!propertyId) return;
+
+    const handleBeforeUnload = () => {
+      // Fire and forget – we do not await here because the page is unloading
+      saveCurrentFormData();
+    };
+
+    const handlePopState = () => {
+      // User pressed Back/Forward in browser history
+      saveCurrentFormData();
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('popstate', handlePopState);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [propertyId, saveCurrentFormData]);
+
   if (!propertyId) {
     return <div>Loading...</div>;
   }
@@ -289,7 +322,7 @@ export default function AmenitiesPage() {
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-2xl font-semibold">Amenities</h1>
           <button 
-            onClick={() => router.push('/')}
+            onClick={exitToDashboard}
             className="px-6 py-2 text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
           >
             Save and Exit
