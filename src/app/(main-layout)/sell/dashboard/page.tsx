@@ -189,6 +189,11 @@ export default function PropertyDashboard() {
     try {
       const supabase = createClient();
       
+      // Check if basic property information is missing (address, property type, etc.)
+      if (!property.address_line_1 || !property.city || !property.state || !property.property_type) {
+        return `/sell/create?property_id=${property.id}`;
+      }
+      
       // Check if property has basic info (bedrooms, bathrooms should be set from rent-details)
       if (!property.bedrooms || !property.bathrooms) {
         return `/sell/create/rent-details?property_id=${property.id}`;
