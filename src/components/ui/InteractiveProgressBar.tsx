@@ -82,14 +82,14 @@ const InteractiveProgressBar: React.FC<InteractiveProgressBarProps> = ({
   const progressWidth = currentStep === 0 ? 0 : (currentStep / (steps.length - 1)) * 100;
 
   return (
-    <div className="mb-12 relative">
+    <div className="mb-12 relative sticky top-24 z-20 bg-white/80 backdrop-blur">
       {/* Step Circles */}
       <div className="flex justify-between relative w-full">
         {steps.map((step, index) => (
           <div key={step.label} className="relative flex flex-col items-center">
             <button
               onClick={() => handleStepClick(index)}
-              className={`w-4 h-4 rounded-full transition-all duration-200 ${getStepClassName(index)} relative z-10`}
+              className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full transition-all duration-200 ${getStepClassName(index)} relative z-10`}
               title={completedSteps[index] || index === currentStep ? `Go to ${step.label}` : `Complete previous steps to unlock ${step.label}`}
               disabled={!completedSteps[index] && index !== currentStep}
             >

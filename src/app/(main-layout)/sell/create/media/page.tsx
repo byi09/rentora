@@ -547,66 +547,68 @@ export default function MediaPage() {
                     Reorder
                   </button>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {existingImages.map((image, idx) => (
-                    <div
-                      key={image.id}
-                      className="group relative border border-gray-200 rounded-xl overflow-hidden bg-white hover:shadow-md transition-all duration-200"
-                      draggable
-                      onDragStart={() => handleDragStart(idx)}
-                      onDragOver={(e) => e.preventDefault()}
-                      onDrop={() => handleImageReorder(idx)}
-                      title="Drag to reorder"
-                    >
-                      {/* Image Thumbnail */}
-                      <div className="aspect-video relative overflow-hidden">
-                        <img
-                          src={image.url}
-                          alt={image.alt_text || 'Property image'}
-                          className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yMCAyNkM5LjUwNjU5IDI2IDEgMTcuNzMzIDEgNy43MzNWNkg0MFY3LjczM0M0MCAxNy43MzMgMzAuNDkzNCAyNiAyMCAyNloiIGZpbGw9IiM5Q0E0QUYiLz4KPC9zdmc+Cg==';
-                          }}
-                        />
-                        
-                        {/* Primary Badge */}
-                        {image.is_primary && (
-                          <div className="absolute top-3 left-3 bg-blue-600 text-white px-2 py-1 rounded-full text-xs font-medium flex items-center">
-                            <CheckCircle className="w-3 h-3 mr-1" />
-                            Primary
-                          </div>
-                        )}
-                        
-                        {/* Delete Button */}
-                        <button
-                          onClick={() => deleteExistingImage(image.id, image.s3_key)}
-                          disabled={deleting === image.id}
-                          className="absolute top-3 right-3 bg-red-500 hover:bg-red-600 text-white rounded-full w-8 h-8 flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 disabled:bg-gray-400"
-                          title="Delete image"
-                        >
-                          {deleting === image.id ? (
-                            <Spinner size={14} colorClass="text-white" />
-                          ) : (
-                            <Trash2 className="w-4 h-4" />
+                <div className="max-h-[60vh] overflow-y-auto pr-1">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 auto-rows-fr">
+                    {existingImages.map((image, idx) => (
+                      <div
+                        key={image.id}
+                        className="group relative border border-gray-200 rounded-xl overflow-hidden bg-white hover:shadow-md transition-all duration-200"
+                        draggable
+                        onDragStart={() => handleDragStart(idx)}
+                        onDragOver={(e) => e.preventDefault()}
+                        onDrop={() => handleImageReorder(idx)}
+                        title="Drag to reorder"
+                      >
+                        {/* Image Thumbnail */}
+                        <div className="aspect-video relative overflow-hidden">
+                          <img
+                            src={image.url}
+                            alt={image.alt_text || 'Property image'}
+                            className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yMCAyNkM5LjUwNjU5IDI2IDEgMTcuNzMzIDEgNy43MzNWNkg0MFY3LjczM0M0MCAxNy43MzMgMzAuNDkzNCAyNiAyMCAyNloiIGZpbGw9IiM5Q0E0QUYiLz4KPC9zdmc+Cg==';
+                            }}
+                          />
+                          
+                          {/* Primary Badge */}
+                          {image.is_primary && (
+                            <div className="absolute top-3 left-3 bg-blue-600 text-white px-2 py-1 rounded-full text-xs font-medium flex items-center">
+                              <CheckCircle className="w-3 h-3 mr-1" />
+                              Primary
+                            </div>
                           )}
-                        </button>
+                          
+                          {/* Delete Button */}
+                          <button
+                            onClick={() => deleteExistingImage(image.id, image.s3_key)}
+                            disabled={deleting === image.id}
+                            className="absolute top-3 right-3 bg-red-500 hover:bg-red-600 text-white rounded-full w-8 h-8 flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 disabled:bg-gray-400"
+                            title="Delete image"
+                          >
+                            {deleting === image.id ? (
+                              <Spinner size={14} colorClass="text-white" />
+                            ) : (
+                              <Trash2 className="w-4 h-4" />
+                            )}
+                          </button>
+                        </div>
+                        
+                        {/* Image Info */}
+                        <div className="p-3">
+                          <p className="text-sm font-medium text-gray-700 truncate">
+                            {image.room_type ? 
+                              image.room_type.charAt(0).toUpperCase() + image.room_type.slice(1).replace('_', ' ') : 
+                              'Property Image'
+                            }
+                          </p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            Order: {idx + 1}
+                          </p>
+                        </div>
                       </div>
-                      
-                      {/* Image Info */}
-                      <div className="p-3">
-                        <p className="text-sm font-medium text-gray-700 truncate">
-                          {image.room_type ? 
-                            image.room_type.charAt(0).toUpperCase() + image.room_type.slice(1).replace('_', ' ') : 
-                            'Property Image'
-                          }
-                        </p>
-                        <p className="text-xs text-gray-500 mt-1">
-                          Order: {idx + 1}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               </div>
             )}
