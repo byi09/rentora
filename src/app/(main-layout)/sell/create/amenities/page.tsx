@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import InteractiveProgressBar from '@/src/components/ui/InteractiveProgressBar';
@@ -12,6 +12,7 @@ export default function AmenitiesPage() {
   const [customAmenities, setCustomAmenities] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedFeatures, setSelectedFeatures] = useState<Record<string, string>>({});
+  const formRef = useRef<HTMLFormElement>(null);
 
   // Enhanced navigation with auto-save
   const handleNavigation = async (path: string) => {
@@ -33,69 +34,33 @@ export default function AmenitiesPage() {
     try {
       const supabase = createClient();
       
-      // Delete existing features for this property to avoid duplicates
-      await supabase
-        .from('property_features')
-        .delete()
-        .eq('property_id', propertyId);
+      // Delete existing features first
+      await supabase.from('property_features').delete().eq('property_id', propertyId);
 
-      // Prepare features data
-      const features: Array<{
-        property_id: string;
-        feature_name: string;
-        feature_category: 'interior' | 'exterior' | 'building_amenities' | 'appliances' | 'utilities';
-        feature_value: string;
-      }> = [];
-      
-      // Add selected features
-      Object.entries(selectedFeatures).forEach(([key, value]) => {
-        if (value && value !== '' && propertyId) {
+      const features: Array<{property_id:string;feature_name:string;feature_category:'interior'|'exterior'|'building_amenities'|'appliances'|'utilities';feature_value:string;}> = [];
+
+      if (formRef.current) {
+        const formData = new FormData(formRef.current);
+        for (const [key,value] of formData.entries()) {
+          if (!key.startsWith('feature_')) continue;
           const parts = key.split('_');
-          if (parts.length >= 3) {
-            let category: string;
-            let name: string;
-            
-            if (parts[1] === 'building' && parts[2] === 'amenities') {
-              category = 'building_amenities';
-              name = parts.slice(3).join('_');
-            } else {
-              category = parts[1];
-              name = parts.slice(2).join('_');
-            }
-            
-            const validCategories = ['interior', 'exterior', 'building_amenities', 'appliances', 'utilities'];
-            if (validCategories.includes(category)) {
-              const cleanFeatureName = name
-                .replace(/([A-Z])/g, ' $1')
-                .toLowerCase()
-                .replace(/^./, str => str.toUpperCase())
-                .replace(/\b\w/g, l => l.toUpperCase());
-              
-              features.push({
-                property_id: propertyId,
-                feature_name: cleanFeatureName,
-                feature_category: category as 'interior' | 'exterior' | 'building_amenities' | 'appliances' | 'utilities',
-                feature_value: value
-              });
-            }
-          }
+          if (parts.length < 3) continue;
+          let category:string;
+          let name:string;
+          if (parts[1]==='building' && parts[2]==='amenities') {category='building_amenities'; name=parts.slice(3).join('_');}
+          else {category=parts[1]; name=parts.slice(2).join('_');}
+          const valid=['interior','exterior','building_amenities','appliances','utilities'];
+          if (!valid.includes(category)) continue;
+          const cleanName=name.replace(/([A-Z])/g,' $1').toLowerCase().replace(/^./,s=>s.toUpperCase()).replace(/\b\w/g,l=>l.toUpperCase());
+          features.push({property_id:propertyId!,feature_name:cleanName,feature_category:category as any,feature_value:String(value)});
         }
-      });
-
-      // Add custom amenities
-      if (customAmenities && customAmenities.trim() && propertyId) {
-        const customFeatures = customAmenities.split(/[,\n]/).map(amenity => amenity.trim()).filter(amenity => amenity);
-        
-        customFeatures.forEach(amenity => {
-          features.push({
-            property_id: propertyId,
-            feature_name: amenity,
-            feature_category: 'building_amenities' as const,
-            feature_value: 'available'
-          });
-        });
       }
 
+      // custom amenities
+      if (customAmenities && customAmenities.trim()) {
+        customAmenities.split(/[,\n]/).map(a=>a.trim()).filter(a=>a).forEach(a=>features.push({property_id:propertyId!,feature_name:a,feature_category:'building_amenities',feature_value:'available'}));
+      }
+      
       // Insert features if any exist
       if (features.length > 0) {
         const { error } = await supabase
@@ -149,6 +114,17 @@ export default function AmenitiesPage() {
           if (customAmenitiesList.length > 0) {
             setCustomAmenities(customAmenitiesList.join(', '));
           }
+
+          // Imperatively check inputs to reflect loaded data
+          setTimeout(() => {
+            Object.entries(featureMap).forEach(([field,val])=>{
+              const inputs=document.getElementsByName(field);
+              inputs.forEach((el:any)=>{
+                if(el.type==='checkbox') el.checked=true;
+                else if(el.type==='radio' && el.value===val) el.checked=true;
+              });
+            });
+          },0);
         }
       } catch (error) {
         console.error('Error loading existing features:', error);
@@ -333,7 +309,7 @@ export default function AmenitiesPage() {
         <InteractiveProgressBar currentStep={3} propertyId={propertyId} />
 
         {/* Form */}
-        <form onSubmit={handleSubmit}>
+        <form ref={formRef} onSubmit={handleSubmit}>
 
         {/* Main Content */}
         <div className="max-w-4xl mx-auto">
