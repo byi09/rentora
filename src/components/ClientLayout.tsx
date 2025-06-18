@@ -100,10 +100,11 @@ export default function ClientLayout({ children }: ClientLayoutProps) {
       {showHeader && <Header user={user} />}
 
       {/*
-        Only offset content when the header is the solid authenticated version (i.e., a user is logged in).
-        For guests we want the hero/landing sections to sit beneath the transparent header.
+        Apply consistent top padding when header is shown to prevent content overlap.
+        For authenticated users: always apply padding (solid white header)
+        For guests: no padding needed (transparent header overlays content)
       */}
-      <main className={`${user ? 'pt-16' : ''} flex-1`}>{children}</main>
+      <main className={`${showHeader && user ? 'pt-16' : ''} flex-1`}>{children}</main>
 
       {/* Footer removed as per design update */}
     </div>

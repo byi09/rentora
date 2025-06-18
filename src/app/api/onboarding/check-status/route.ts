@@ -8,6 +8,7 @@ const ONBOARDING_COOKIE_NAME = 'onboarding-status'
 const COOKIE_MAX_AGE = 60 * 60 * 24 // 24 hours
 
 export async function GET() {
+  console.log('🔍 GET /api/onboarding/check-status called');
   try {
     const supabase = await createClient();
     const { data: { user }, error } = await supabase.auth.getUser();

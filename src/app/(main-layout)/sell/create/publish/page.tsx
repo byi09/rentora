@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
+import { X, ChevronLeft, ChevronRight, ZoomIn, CheckCircle } from 'lucide-react';
 import InteractiveProgressBar from '@/src/components/ui/InteractiveProgressBar';
 import { createClient } from '@/utils/supabase/client';
 
@@ -61,6 +62,125 @@ interface PropertyData {
   };
 }
 
+// Photo Modal Component
+interface PhotoModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  images: PropertyImage[];
+  currentIndex: number;
+  onNavigate: (index: number) => void;
+}
+
+const PhotoModal = ({ isOpen, onClose, images, currentIndex, onNavigate }: PhotoModalProps) => {
+  if (!isOpen || images.length === 0) return null;
+
+  const currentImage = images[currentIndex];
+  const supabase = createClient();
+  const { data: { publicUrl } } = supabase.storage
+    .from('property-images')
+    .getPublicUrl(currentImage.s3_key);
+
+  const handlePrevious = () => {
+    const newIndex = currentIndex > 0 ? currentIndex - 1 : images.length - 1;
+    onNavigate(newIndex);
+  };
+
+  const handleNext = () => {
+    const newIndex = currentIndex < images.length - 1 ? currentIndex + 1 : 0;
+    onNavigate(newIndex);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Escape') onClose();
+    if (e.key === 'ArrowLeft') handlePrevious();
+    if (e.key === 'ArrowRight') handleNext();
+  };
+
+  return (
+    <div 
+      className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center p-2 sm:p-4"
+      onClick={onClose}
+      onKeyDown={handleKeyDown}
+      tabIndex={0}
+    >
+      {/* Close Button */}
+      <button
+        onClick={onClose}
+        className="absolute top-2 right-2 sm:top-4 sm:right-4 text-white hover:text-gray-300 z-10 bg-black bg-opacity-50 rounded-full p-2 transition-colors"
+        aria-label="Close modal"
+      >
+        <X className="w-5 h-5 sm:w-6 sm:h-6" />
+      </button>
+
+      {/* Photo Counter */}
+      <div className="absolute top-2 left-2 sm:top-4 sm:left-4 text-white bg-black bg-opacity-50 px-2 py-1 sm:px-3 sm:py-1 rounded-full text-xs sm:text-sm">
+        {currentIndex + 1} of {images.length}
+      </div>
+
+      {/* Navigation Buttons */}
+      {images.length > 1 && (
+        <>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handlePrevious();
+            }}
+            className="absolute left-2 sm:left-4 top-1/2 transform -translate-y-1/2 text-white hover:text-gray-300 bg-black bg-opacity-50 rounded-full p-2 sm:p-3 transition-colors"
+            aria-label="Previous photo"
+          >
+            <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6" />
+          </button>
+          
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleNext();
+            }}
+            className="absolute right-2 sm:right-4 top-1/2 transform -translate-y-1/2 text-white hover:text-gray-300 bg-black bg-opacity-50 rounded-full p-2 sm:p-3 transition-colors"
+            aria-label="Next photo"
+          >
+            <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6" />
+          </button>
+        </>
+      )}
+
+      {/* Main Image */}
+      <div 
+        className="relative max-w-full max-h-full flex items-center justify-center"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <img
+          src={publicUrl}
+          alt={currentImage.alt_text || 'Property image'}
+          className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
+          style={{ maxHeight: '90vh', maxWidth: '90vw' }}
+        />
+        
+        {/* Image Info */}
+        <div className="absolute bottom-2 left-2 right-2 sm:bottom-4 sm:left-4 sm:right-4 bg-black bg-opacity-50 text-white p-2 sm:p-3 rounded-lg">
+          <div className="flex items-center justify-between">
+            <div>
+              {currentImage.room_type && (
+                <p className="font-medium text-sm sm:text-base">
+                  {currentImage.room_type.charAt(0).toUpperCase() + currentImage.room_type.slice(1).replace('_', ' ')}
+                </p>
+              )}
+              {currentImage.is_primary && (
+                <p className="text-xs sm:text-sm text-gray-300">
+                  <span className="inline-flex items-center">
+                    <CheckCircle className="w-3 h-3 mr-1" />
+                    Primary Photo
+                  </span>
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export default function PublishPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -68,6 +188,10 @@ export default function PublishPage() {
   const [propertyData, setPropertyData] = useState<PropertyData | null>(null);
   const [loading, setLoading] = useState(true);
   const [isPublishing, setIsPublishing] = useState(false);
+
+  // Photo modal state
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
 
   useEffect(() => {
     const fetchPropertyData = async () => {
@@ -185,6 +309,40 @@ export default function PublishPage() {
       setIsPublishing(false);
     }
   };
+
+  // Photo modal handlers
+  const openPhotoModal = (index: number) => {
+    setCurrentPhotoIndex(index);
+    setIsModalOpen(true);
+  };
+
+  const closePhotoModal = () => {
+    setIsModalOpen(false);
+  };
+
+  const navigatePhoto = (index: number) => {
+    setCurrentPhotoIndex(index);
+  };
+
+  // Keyboard navigation for modal
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!isModalOpen) return;
+      
+      if (e.key === 'Escape') {
+        closePhotoModal();
+      } else if (e.key === 'ArrowLeft') {
+        const newIndex = currentPhotoIndex > 0 ? currentPhotoIndex - 1 : (propertyData?.property_images?.length || 1) - 1;
+        navigatePhoto(newIndex);
+      } else if (e.key === 'ArrowRight') {
+        const newIndex = currentPhotoIndex < (propertyData?.property_images?.length || 1) - 1 ? currentPhotoIndex + 1 : 0;
+        navigatePhoto(newIndex);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isModalOpen, currentPhotoIndex, propertyData?.property_images?.length]);
 
   if (loading) {
     return (
@@ -454,7 +612,12 @@ export default function PublishPage() {
                       .getPublicUrl(image.s3_key);
                     
                     return (
-                      <div key={image.id} className="relative aspect-video bg-gray-100 rounded-lg overflow-hidden">
+                      <div 
+                        key={image.id} 
+                        className="group relative aspect-video bg-gray-100 rounded-lg overflow-hidden cursor-pointer"
+                        onClick={() => openPhotoModal(index)}
+                        title="Click to view full size"
+                      >
                         <Image
                           src={publicUrl}
                           alt={image.alt_text || `Property photo ${index + 1}`}
@@ -462,6 +625,12 @@ export default function PublishPage() {
                           className="object-cover hover:scale-105 transition-transform duration-300"
                           sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
                         />
+                        
+                        {/* Zoom Icon Overlay */}
+                        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200 flex items-center justify-center">
+                          <ZoomIn className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+                        </div>
+                        
                         {image.is_primary && (
                           <div className="absolute top-2 left-2 bg-blue-600 text-white px-2 py-1 rounded text-sm font-medium">
                             Primary
@@ -615,6 +784,17 @@ export default function PublishPage() {
           </div>
         </div>
       </div>
+
+      {/* Photo Modal */}
+      {isModalOpen && propertyData?.property_images && (
+        <PhotoModal
+          isOpen={isModalOpen}
+          onClose={closePhotoModal}
+          images={propertyData.property_images.sort((a, b) => a.image_order - b.image_order)}
+          currentIndex={currentPhotoIndex}
+          onNavigate={navigatePhoto}
+        />
+      )}
     </main>
   );
 }

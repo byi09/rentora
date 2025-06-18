@@ -3,6 +3,7 @@ import { Button } from '@/src/components/ui/button';
 import { StepProps } from '@/src/types/onboarding';
 import { cn } from '@/utils/styles';
 import { Label } from '@/src/components/ui/label';
+import { AlertCircle } from 'lucide-react';
 
 const OPTIONS: Array<{ value: 'renter' | 'landlord' | 'both'; title: string; desc: string; gradient: string }> = [
   { 
@@ -27,17 +28,60 @@ const OPTIONS: Array<{ value: 'renter' | 'landlord' | 'both'; title: string; des
 
 const GENDERS = ['', 'Male', 'Female', 'Other', 'Prefer not to say'];
 
-const UserTypeStep: React.FC<StepProps> = ({ data, onUpdate, onNext, onPrevious }) => {
-  const [type, setType] = useState<'renter' | 'landlord' | 'both' | ''>(data.userType as 'renter' | 'landlord' | 'both' || '');
+const UserTypeStep: React.FC<StepProps> = ({ data, onUpdate, onNext, onPrevious, validationErrors = {} }) => {
+  const [type, setType] = useState<'renter' | 'landlord' | 'both' | undefined>(
+    (data.userType as 'renter' | 'landlord') === 'renter' ? 'renter' :
+    (data.userType as 'renter' | 'landlord') === 'landlord' ? 'landlord' :
+    undefined
+  );
   const [gender, setGender] = useState<string>(data.gender || '');
-  const [err, setErr] = useState('');
+  const [localErrors, setLocalErrors] = useState<Record<string, string>>({});
+
+  // Combine validation errors from parent and local errors
+  const allErrors = { ...validationErrors, ...localErrors };
 
   const handleNext = () => {
-    if (!type) { setErr('Please select an option'); return; }
+    const newErrors: Record<string, string> = {};
+    
+    if (!type) { 
+      newErrors.userType = 'Please select an option';
+    }
+    
+    if (Object.keys(newErrors).length > 0) {
+      setLocalErrors(newErrors);
+      return;
+    }
+    
+    setLocalErrors({});
+    
     // Map "both" to "renter" as primary role (backend creates both roles anyway)
-    const userType = type === 'both' ? 'renter' : type;
+    const userType: 'renter' | 'landlord' = type === 'both' ? 'renter' : type!;
     onUpdate({ userType, gender });
     onNext?.();
+  };
+
+  const handleTypeSelect = (selectedType: 'renter' | 'landlord' | 'both') => {
+    setType(selectedType);
+    // Clear any type-related errors
+    if (allErrors.userType) {
+      setLocalErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors.userType;
+        return newErrors;
+      });
+    }
+  };
+
+  const renderFieldError = (fieldName: string) => {
+    const error = allErrors[fieldName];
+    if (!error) return null;
+    
+    return (
+      <div className="flex items-center justify-center mt-3 text-red-600">
+        <AlertCircle className="w-4 h-4 mr-1 flex-shrink-0" />
+        <span className="text-sm font-medium">{error}</span>
+      </div>
+    );
   };
 
   return (
@@ -53,12 +97,13 @@ const UserTypeStep: React.FC<StepProps> = ({ data, onUpdate, onNext, onPrevious 
         {OPTIONS.map((opt) => (
           <button
             key={opt.value}
-            onClick={() => { setType(opt.value); setErr(''); }}
+            onClick={() => handleTypeSelect(opt.value)}
             className={cn(
               "w-full p-4 lg:p-5 rounded-xl border-2 transition-all duration-200 text-left group hover:scale-[1.02] active:scale-[0.98]",
               type === opt.value
                 ? "border-blue-500 bg-blue-50/80 shadow-lg ring-2 ring-blue-200"
-                : "border-gray-200 bg-white/80 hover:border-gray-300 hover:shadow-md"
+                : "border-gray-200 bg-white/80 hover:border-gray-300 hover:shadow-md",
+              allErrors.userType && "border-red-300 hover:border-red-400"
             )}
           >
             <div className="flex items-center justify-between">
@@ -93,6 +138,9 @@ const UserTypeStep: React.FC<StepProps> = ({ data, onUpdate, onNext, onPrevious 
             </div>
           </button>
         ))}
+        
+        {/* Error message for user type selection */}
+        {renderFieldError("userType")}
       </div>
 
       {/* Gender selection */}
@@ -112,10 +160,6 @@ const UserTypeStep: React.FC<StepProps> = ({ data, onUpdate, onNext, onPrevious 
           ))}
         </select>
       </div>
-
-      {err && (
-        <p className="text-xs lg:text-sm text-red-500 text-center font-medium">{err}</p>
-      )}
 
       <div className="flex justify-between items-center pt-4 lg:pt-5 max-w-lg mx-auto">
         <Button 
