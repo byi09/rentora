@@ -1,8 +1,5 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
-import { db } from '@/src/db';
-import { users, customers } from '@/src/db/schema';
-import { eq } from 'drizzle-orm';
 
 const ONBOARDING_COOKIE_NAME = 'onboarding-status'
 const COOKIE_MAX_AGE = 60 * 60 * 24 // 24 hours
@@ -20,19 +17,18 @@ export async function GET() {
       }, { status: 401 });
     }
 
-    // Check if user exists in our database and is onboarded
-    const [userRow, customerRow] = await Promise.all([
-      db.query.users.findFirst({
-        where: eq(users.id, user.id),
-        columns: { id: true }
-      }),
-      db.query.customers.findFirst({
-        where: eq(customers.userId, user.id),
-        columns: { id: true }
-      })
-    ]);
+    // Retrieve onboarded flag from users table
+    const { data: profile, error: profileError } = await supabase
+      .from('users')
+      .select('onboarded')
+      .eq('id', user.id)
+      .single();
 
-    const onboarded = !!userRow && !!customerRow;
+    if (profileError) {
+      console.error('Error fetching user profile:', profileError);
+    }
+
+    const onboarded = !!profile?.onboarded;
     
     // Create response and set the onboarding cookie
     const response = NextResponse.json({ onboarded });
