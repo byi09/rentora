@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
+import { Eye } from 'lucide-react';
 import InteractiveProgressBar from '@/src/components/ui/InteractiveProgressBar';
 import { createClient } from '@/utils/supabase/client';
 import ImageLightbox from '@/src/components/ui/ImageLightbox';
@@ -486,6 +487,10 @@ export default function PublishPage() {
                             {image.room_type.charAt(0).toUpperCase() + image.room_type.slice(1).replace('_', ' ')}
                           </div>
                         )}
+                        {/* View Hint Icon */}
+                        <div className="absolute bottom-2 right-2 bg-black/60 text-white rounded-full p-1 opacity-0 hover:opacity-100 md:group-hover:opacity-100 transition-opacity">
+                          <Eye className="w-4 h-4" />
+                        </div>
                       </div>
                     );
                   })}

@@ -5,7 +5,7 @@ import { createClient } from '@/utils/supabase/client';
 import { useToast } from '@/src/components/ui/Toast';
 import InteractiveProgressBar from '@/src/components/ui/InteractiveProgressBar';
 import Spinner from '@/src/components/ui/Spinner';
-import { Upload, Image as ImageIcon, Trash2, RotateCcw, CheckCircle, AlertCircle } from 'lucide-react';
+import { Upload, Image as ImageIcon, Trash2, RotateCcw, CheckCircle, AlertCircle, Eye } from 'lucide-react';
 import ImageLightbox from '@/src/components/ui/ImageLightbox';
 
 /* eslint-disable @next/next/no-img-element */
@@ -749,6 +749,11 @@ export default function MediaPage() {
                               <Trash2 className="w-4 h-4" />
                             )}
                           </button>
+
+                          {/* View Hint Icon */}
+                          <div className="absolute bottom-3 right-3 bg-black/60 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity" title="Click to view">
+                            <Eye className="w-4 h-4" />
+                          </div>
                         </div>
                         
                         {/* Image Info */}
