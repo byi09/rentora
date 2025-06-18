@@ -146,7 +146,7 @@ const InteractiveProgressBar: React.FC<InteractiveProgressBarProps> = ({
       )}
       
       {/* Progress Bar Background */}
-      <div className="absolute inset-x-0 top-[18px] sm:top-[20px] h-0.5 bg-blue-100 mx-6">
+      <div className="absolute inset-x-0 top-[22px] sm:top-[26px] h-0.5 bg-blue-100 mx-6">
         <div
           className="h-full bg-blue-600 transition-all duration-300 ease-in-out"
           style={{ width: `${progressWidth}%` }}
