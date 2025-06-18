@@ -7,9 +7,9 @@ import { ToastProvider } from "../components/ui/Toast";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Livaro - Student Renting Made Social",
+  title: "Livaro",
   description:
-    "Find your perfect student housing with Livaro. Connect with fellow students and find your ideal living space.",
+    "Find your perfec housing with Livaro. Connect and find your ideal living space.",
   icons: {
     icon: "/favicon.ico",
     shortcut: "/favicon.ico",
