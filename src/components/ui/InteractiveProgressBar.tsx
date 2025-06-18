@@ -137,7 +137,7 @@ const InteractiveProgressBar: React.FC<InteractiveProgressBarProps> = ({
   const progressWidth = furthestStep === 0 ? 0 : (furthestStep / (steps.length - 1)) * 100;
 
   return (
-    <div className="mb-12 relative sticky top-24 z-20 bg-white/80 backdrop-blur">
+    <div className="mb-12 relative sticky top-16 z-20 bg-white/80 backdrop-blur">
       {/* Debug info - remove in production */}
       {process.env.NODE_ENV === 'development' && (
         <div className="mb-4 p-2 bg-yellow-100 text-xs">

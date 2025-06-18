@@ -6,6 +6,7 @@ import { useToast } from '@/src/components/ui/Toast';
 import InteractiveProgressBar from '@/src/components/ui/InteractiveProgressBar';
 import Spinner from '@/src/components/ui/Spinner';
 import { Upload, Image as ImageIcon, Trash2, RotateCcw, CheckCircle, AlertCircle } from 'lucide-react';
+import ImageLightbox from '@/src/components/ui/ImageLightbox';
 
 /* eslint-disable @next/next/no-img-element */
 
@@ -59,6 +60,8 @@ export default function MediaPage() {
   const [photos, setPhotos] = useState<UploadedFile[]>([]);
   const [existingImages, setExistingImages] = useState<ExistingImage[]>([]);
   const [tourFile, setTourFile] = useState<UploadedFile | null>(null);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState<string | null>(null);
@@ -582,6 +585,8 @@ export default function MediaPage() {
     }
   };
 
+  const lightboxImages = existingImages.map((img) => ({ src: img.url, alt: img.alt_text }));
+
   if (!propertyId) {
     return <div>Loading...</div>;
   }
@@ -703,7 +708,8 @@ export default function MediaPage() {
                     {existingImages.map((image, idx) => (
                       <div
                         key={image.id}
-                        className="group relative border border-gray-200 rounded-xl overflow-hidden bg-white hover:shadow-md transition-all duration-200"
+                        className="group relative border border-gray-200 rounded-xl overflow-hidden bg-white hover:shadow-md transition-all duration-200 cursor-pointer"
+                        onClick={() => { setLightboxIndex(idx); setLightboxOpen(true); }}
                         draggable
                         onDragStart={() => handleDragStart(idx)}
                         onDragOver={(e) => e.preventDefault()}
@@ -732,7 +738,7 @@ export default function MediaPage() {
                           
                           {/* Delete Button */}
                           <button
-                            onClick={() => deleteExistingImage(image.id, image.s3_key)}
+                            onClick={(e) => { e.stopPropagation(); deleteExistingImage(image.id, image.s3_key); }}
                             disabled={deleting === image.id}
                             className="absolute top-3 right-3 bg-red-500 hover:bg-red-600 text-white rounded-full w-8 h-8 flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 disabled:bg-gray-400"
                             title="Delete image"
@@ -776,7 +782,7 @@ export default function MediaPage() {
                           {photo.file.name}
                         </span>
                         <button
-                          onClick={() => removePhoto(photo.id)}
+                          onClick={(e) => { e.stopPropagation(); removePhoto(photo.id); }}
                           className="text-red-500 hover:text-red-700 ml-2 p-1 rounded-full hover:bg-red-50 transition-colors"
                           disabled={photo.uploading}
                         >
@@ -864,7 +870,7 @@ export default function MediaPage() {
                     {tourFile.file.name}
                   </span>
                   <button
-                    onClick={removeTour}
+                    onClick={(e) => { e.stopPropagation(); removeTour(); }}
                     className="text-red-500 hover:text-red-700 ml-2 p-1 rounded-full hover:bg-red-50 transition-colors"
                     disabled={tourFile.uploading}
                   >
@@ -916,6 +922,13 @@ export default function MediaPage() {
           </button>
         </div>
       </div>
+      {lightboxOpen && (
+        <ImageLightbox
+          images={lightboxImages}
+          startIndex={lightboxIndex}
+          onClose={() => setLightboxOpen(false)}
+        />
+      )}
     </main>
   );
 }

@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import InteractiveProgressBar from '@/src/components/ui/InteractiveProgressBar';
 import { createClient } from '@/utils/supabase/client';
+import ImageLightbox from '@/src/components/ui/ImageLightbox';
 
 interface PropertyFeature {
   id: string;
@@ -68,6 +69,8 @@ export default function PublishPage() {
   const [propertyData, setPropertyData] = useState<PropertyData | null>(null);
   const [loading, setLoading] = useState(true);
   const [isPublishing, setIsPublishing] = useState(false);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
 
   useEffect(() => {
     const fetchPropertyData = async () => {
@@ -382,6 +385,17 @@ export default function PublishPage() {
   // Check if landlord is verified
   const isVerified = landlord?.identity_verified || false;
 
+  // Prepare images for lightbox
+  const galleryImages = (propertyData.property_images || [])
+    .sort((a, b) => a.image_order - b.image_order)
+    .map((image) => {
+      const supabase = createClient();
+      const { data: { publicUrl } } = supabase.storage
+        .from('property-images')
+        .getPublicUrl(image.s3_key);
+      return { src: publicUrl, alt: image.alt_text };
+    });
+
   return (
     <main className="min-h-screen bg-white pt-28 pb-8 px-8">
       <div className="max-w-7xl mx-auto">
@@ -454,7 +468,7 @@ export default function PublishPage() {
                       .getPublicUrl(image.s3_key);
                     
                     return (
-                      <div key={image.id} className="relative aspect-video bg-gray-100 rounded-lg overflow-hidden">
+                      <div key={image.id} className="relative aspect-video bg-gray-100 rounded-lg overflow-hidden cursor-pointer" onClick={() => { setLightboxIndex(index); setLightboxOpen(true); }}>
                         <Image
                           src={publicUrl}
                           alt={image.alt_text || `Property photo ${index + 1}`}
@@ -615,6 +629,13 @@ export default function PublishPage() {
           </div>
         </div>
       </div>
+      {lightboxOpen && (
+        <ImageLightbox
+          images={galleryImages}
+          startIndex={lightboxIndex}
+          onClose={() => setLightboxOpen(false)}
+        />
+      )}
     </main>
   );
 }
