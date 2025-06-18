@@ -36,5 +36,6 @@ export interface OnboardingData {
     onNext?: () => void;
     onPrevious?: () => void;
     onComplete?: () => void;
+    validationErrors?: Record<string, string>;
   }
   

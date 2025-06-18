@@ -137,7 +137,7 @@ const InteractiveProgressBar: React.FC<InteractiveProgressBarProps> = ({
   const progressWidth = furthestStep === 0 ? 0 : (furthestStep / (steps.length - 1)) * 100;
 
   return (
-    <div className="mb-12 relative sticky top-24 z-20 bg-white/80 backdrop-blur">
+    <div className="relative sticky top-16 z-20 bg-white border-b border-gray-100 pt-2 pb-4">
       {/* Debug info - remove in production */}
       {process.env.NODE_ENV === 'development' && (
         <div className="mb-4 p-2 bg-yellow-100 text-xs">
@@ -145,21 +145,21 @@ const InteractiveProgressBar: React.FC<InteractiveProgressBarProps> = ({
         </div>
       )}
       
-      {/* Progress Bar Background - positioned to go through circle centers */}
-      <div className="absolute left-0 right-0 top-[10px] sm:top-[12px] h-0.5 bg-blue-100">
+      {/* Progress Bar Background */}
+      <div className="absolute inset-x-0 top-[22px] sm:top-[26px] h-0.5 bg-blue-100 mx-6">
         <div
           className="h-full bg-blue-600 transition-all duration-300 ease-in-out"
           style={{ width: `${progressWidth}%` }}
         />
       </div>
       
-      {/* Step Circles */}
-      <div className="flex justify-between relative w-full">
+      {/* Step Circles - Using CSS Grid for perfect spacing */}
+      <div className="grid grid-cols-9 gap-0 relative w-full px-6 mt-2">
         {steps.map((step, index) => (
-          <div key={step.label} className="flex-1 relative flex flex-col items-center">
+          <div key={step.label} className="flex flex-col items-center justify-start">
             <button
               onClick={() => handleStepClick(index)}
-              className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full transition-all duration-200 ${getStepClassName(index)} relative z-10`}
+              className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full transition-all duration-200 ${getStepClassName(index)} relative z-10 flex-shrink-0`}
               title={allowedSteps[index] ? `Go to ${step.label}` : `Complete previous steps to unlock ${step.label}`}
               disabled={!allowedSteps[index]}
             >
@@ -174,8 +174,8 @@ const InteractiveProgressBar: React.FC<InteractiveProgressBarProps> = ({
             </button>
             
             {/* Step Label */}
-            <div className={`text-xs mt-6 text-center whitespace-nowrap transition-colors ${getStepTextClassName(index)}`}>
-              {step.label}
+            <div className={`text-xs mt-6 text-center transition-colors leading-tight max-w-full ${getStepTextClassName(index)}`}>
+              <span className="block">{step.label}</span>
             </div>
           </div>
         ))}

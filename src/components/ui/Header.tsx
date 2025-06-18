@@ -115,7 +115,7 @@ const Header = ({ toggleSidebar, user }: HeaderProps) => {
     // Header for non-logged in users (translucent, transforms to dark on scroll)
     return (
       <header
-        className={`fixed top-0 z-50 w-full transition-all duration-300 text-white ${
+        className={`fixed top-0 left-0 right-0 z-50 w-full transition-all duration-300 text-white ${
           scrolled ? 'backdrop-blur-md shadow-lg border-b border-gray-800' : ''
         }`}
         style={{ backgroundColor: `rgba(17, 24, 39, ${bgOpacity})` }}
@@ -144,9 +144,9 @@ const Header = ({ toggleSidebar, user }: HeaderProps) => {
     );
   }
 
-  // Header for logged in users – always white
+  // Header for logged in users – always white with consistent positioning
   return (
-    <header className="fixed top-0 z-50 w-full bg-white text-gray-900 shadow-sm border-b border-gray-200">
+    <header className="fixed top-0 left-0 right-0 z-50 w-full bg-white text-gray-900 shadow-sm border-b border-gray-200">
       <div className="w-full px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}

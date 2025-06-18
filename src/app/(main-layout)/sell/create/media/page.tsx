@@ -5,7 +5,7 @@ import { createClient } from '@/utils/supabase/client';
 import { useToast } from '@/src/components/ui/Toast';
 import InteractiveProgressBar from '@/src/components/ui/InteractiveProgressBar';
 import Spinner from '@/src/components/ui/Spinner';
-import { Upload, Image as ImageIcon, Trash2, RotateCcw, CheckCircle, AlertCircle } from 'lucide-react';
+import { Upload, Image as ImageIcon, Trash2, RotateCcw, CheckCircle, AlertCircle, X, ChevronLeft, ChevronRight, ZoomIn } from 'lucide-react';
 
 /* eslint-disable @next/next/no-img-element */
 
@@ -28,6 +28,175 @@ interface ExistingImage {
   room_type?: string;
   url: string;
 }
+
+// Photo Modal Component
+interface PhotoModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  photos: ExistingImage[];
+  currentIndex: number;
+  onNavigate: (index: number) => void;
+}
+
+const PhotoModal = ({ isOpen, onClose, photos, currentIndex, onNavigate }: PhotoModalProps) => {
+  if (!isOpen || photos.length === 0) return null;
+
+  const currentPhoto = photos[currentIndex];
+
+  const handlePrevious = () => {
+    const newIndex = currentIndex > 0 ? currentIndex - 1 : photos.length - 1;
+    onNavigate(newIndex);
+  };
+
+  const handleNext = () => {
+    const newIndex = currentIndex < photos.length - 1 ? currentIndex + 1 : 0;
+    onNavigate(newIndex);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Escape') onClose();
+    if (e.key === 'ArrowLeft') handlePrevious();
+    if (e.key === 'ArrowRight') handleNext();
+  };
+
+  return (
+    <div 
+      className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center p-2 sm:p-4"
+      onClick={onClose}
+      onKeyDown={handleKeyDown}
+      tabIndex={0}
+    >
+      {/* Close Button */}
+      <button
+        onClick={onClose}
+        className="absolute top-2 right-2 sm:top-4 sm:right-4 text-white hover:text-gray-300 z-10 bg-black bg-opacity-50 rounded-full p-2 transition-colors"
+        aria-label="Close modal"
+      >
+        <X className="w-5 h-5 sm:w-6 sm:h-6" />
+      </button>
+
+      {/* Photo Counter */}
+      <div className="absolute top-2 left-2 sm:top-4 sm:left-4 text-white bg-black bg-opacity-50 px-2 py-1 sm:px-3 sm:py-1 rounded-full text-xs sm:text-sm">
+        {currentIndex + 1} of {photos.length}
+      </div>
+
+      {/* Navigation Buttons */}
+      {photos.length > 1 && (
+        <>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handlePrevious();
+            }}
+            className="absolute left-2 sm:left-4 top-1/2 transform -translate-y-1/2 text-white hover:text-gray-300 bg-black bg-opacity-50 rounded-full p-2 sm:p-3 transition-colors"
+            aria-label="Previous photo"
+          >
+            <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6" />
+          </button>
+          
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleNext();
+            }}
+            className="absolute right-2 sm:right-4 top-1/2 transform -translate-y-1/2 text-white hover:text-gray-300 bg-black bg-opacity-50 rounded-full p-2 sm:p-3 transition-colors"
+            aria-label="Next photo"
+          >
+            <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6" />
+          </button>
+        </>
+      )}
+
+      {/* Main Image */}
+      <div 
+        className="relative max-w-full max-h-full flex items-center justify-center"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <img
+          src={currentPhoto.url}
+          alt={currentPhoto.alt_text || 'Property image'}
+          className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
+          style={{ maxHeight: '90vh', maxWidth: '90vw' }}
+        />
+        
+        {/* Image Info */}
+        <div className="absolute bottom-2 left-2 right-2 sm:bottom-4 sm:left-4 sm:right-4 bg-black bg-opacity-50 text-white p-2 sm:p-3 rounded-lg">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-medium text-sm sm:text-base">
+                {currentPhoto.room_type ? 
+                  currentPhoto.room_type.charAt(0).toUpperCase() + currentPhoto.room_type.slice(1).replace('_', ' ') : 
+                  'Property Image'
+                }
+              </p>
+              <p className="text-xs sm:text-sm text-gray-300">
+                {currentPhoto.is_primary && (
+                  <span className="inline-flex items-center mr-2">
+                    <CheckCircle className="w-3 h-3 mr-1" />
+                    Primary Photo
+                  </span>
+                )}
+                Order: {currentPhoto.image_order + 1}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Preview Modal Component for Upload Photos
+interface PreviewModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  photo: UploadedFile;
+}
+
+const PreviewModal = ({ isOpen, onClose, photo }: PreviewModalProps) => {
+  if (!isOpen || !photo.url) return null;
+
+  return (
+    <div 
+      className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center p-2 sm:p-4"
+      onClick={onClose}
+    >
+      {/* Close Button */}
+      <button
+        onClick={onClose}
+        className="absolute top-2 right-2 sm:top-4 sm:right-4 text-white hover:text-gray-300 z-10 bg-black bg-opacity-50 rounded-full p-2 transition-colors"
+        aria-label="Close preview"
+      >
+        <X className="w-5 h-5 sm:w-6 sm:h-6" />
+      </button>
+
+      {/* Main Image */}
+      <div 
+        className="relative max-w-full max-h-full flex items-center justify-center"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <img
+          src={photo.url}
+          alt="Upload preview"
+          className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
+          style={{ maxHeight: '90vh', maxWidth: '90vw' }}
+        />
+        
+        {/* Image Info */}
+        <div className="absolute bottom-2 left-2 right-2 sm:bottom-4 sm:left-4 sm:right-4 bg-black bg-opacity-50 text-white p-2 sm:p-3 rounded-lg">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-medium text-sm sm:text-base">{photo.file.name}</p>
+              <p className="text-xs sm:text-sm text-gray-300">
+                {photo.uploading ? `Uploading ${photo.progress || 0}%` : 'Upload Preview'}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 // Improved concurrency utility
 const processWithConcurrency = async <T, R>(
@@ -63,6 +232,14 @@ export default function MediaPage() {
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
+
+  // Photo modal state
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
+
+  // Preview modal state for upload photos
+  const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
+  const [previewPhoto, setPreviewPhoto] = useState<UploadedFile | null>(null);
 
   // Local drag state for image re-ordering
   const dragItemIndex = useRef<number | null>(null);
@@ -582,6 +759,51 @@ export default function MediaPage() {
     }
   };
 
+  // Photo modal handlers
+  const openPhotoModal = (index: number) => {
+    setCurrentPhotoIndex(index);
+    setIsModalOpen(true);
+  };
+
+  const closePhotoModal = () => {
+    setIsModalOpen(false);
+  };
+
+  const navigatePhoto = (index: number) => {
+    setCurrentPhotoIndex(index);
+  };
+
+  // Preview modal handlers
+  const openPreviewModal = (photo: UploadedFile) => {
+    setPreviewPhoto(photo);
+    setIsPreviewModalOpen(true);
+  };
+
+  const closePreviewModal = () => {
+    setIsPreviewModalOpen(false);
+    setPreviewPhoto(null);
+  };
+
+  // Keyboard navigation for modal
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!isModalOpen) return;
+      
+      if (e.key === 'Escape') {
+        closePhotoModal();
+      } else if (e.key === 'ArrowLeft') {
+        const newIndex = currentPhotoIndex > 0 ? currentPhotoIndex - 1 : existingImages.length - 1;
+        navigatePhoto(newIndex);
+      } else if (e.key === 'ArrowRight') {
+        const newIndex = currentPhotoIndex < existingImages.length - 1 ? currentPhotoIndex + 1 : 0;
+        navigatePhoto(newIndex);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isModalOpen, currentPhotoIndex, existingImages.length]);
+
   if (!propertyId) {
     return <div>Loading...</div>;
   }
@@ -711,7 +933,11 @@ export default function MediaPage() {
                         title="Drag to reorder"
                       >
                         {/* Image Thumbnail */}
-                        <div className="aspect-video relative overflow-hidden">
+                        <div 
+                          className="aspect-video relative overflow-hidden cursor-pointer"
+                          onClick={() => openPhotoModal(idx)}
+                          title="Click to view full size"
+                        >
                           <img
                             src={image.url}
                             alt={image.alt_text || 'Property image'}
@@ -721,6 +947,11 @@ export default function MediaPage() {
                               target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yMCAyNkM5LjUwNjU5IDI2IDEgMTcuNzMzIDEgNy43MzNWNkg0MFY3LjczM0M0MCAxNy43MzMgMzAuNDkzNCAyNiAyMCAyNloiIGZpbGw9IiM5Q0E0QUYiLz4KPC9zdmc+Cg==';
                             }}
                           />
+                          
+                          {/* Zoom Icon Overlay */}
+                          <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200 flex items-center justify-center">
+                            <ZoomIn className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+                          </div>
                           
                           {/* Primary Badge */}
                           {image.is_primary && (
@@ -732,7 +963,10 @@ export default function MediaPage() {
                           
                           {/* Delete Button */}
                           <button
-                            onClick={() => deleteExistingImage(image.id, image.s3_key)}
+                            onClick={(e) => {
+                              e.stopPropagation(); // Prevent opening modal when clicking delete
+                              deleteExistingImage(image.id, image.s3_key);
+                            }}
                             disabled={deleting === image.id}
                             className="absolute top-3 right-3 bg-red-500 hover:bg-red-600 text-white rounded-full w-8 h-8 flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 disabled:bg-gray-400"
                             title="Delete image"
@@ -786,7 +1020,24 @@ export default function MediaPage() {
                       
                       {/* Preview */}
                       {photo.url && (
-                        <img src={photo.url} alt="preview" className="w-full h-32 object-cover mb-3 rounded-lg" />
+                        <div className="group relative mb-3">
+                          <div 
+                            className="relative overflow-hidden rounded-lg cursor-pointer"
+                            onClick={() => openPreviewModal(photo)}
+                            title="Click to view full size"
+                          >
+                            <img 
+                              src={photo.url} 
+                              alt="preview" 
+                              className="w-full h-32 object-cover transition-transform duration-200 group-hover:scale-105" 
+                            />
+                            
+                            {/* Zoom Icon Overlay */}
+                            <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200 flex items-center justify-center">
+                              <ZoomIn className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+                            </div>
+                          </div>
+                        </div>
                       )}
 
                       {photo.uploading && (
@@ -916,6 +1167,26 @@ export default function MediaPage() {
           </button>
         </div>
       </div>
+
+      {/* Photo Modal */}
+      {isModalOpen && (
+        <PhotoModal
+          isOpen={isModalOpen}
+          onClose={closePhotoModal}
+          photos={existingImages}
+          currentIndex={currentPhotoIndex}
+          onNavigate={navigatePhoto}
+        />
+      )}
+
+      {/* Preview Modal */}
+      {isPreviewModalOpen && (
+        <PreviewModal
+          isOpen={isPreviewModalOpen}
+          onClose={closePreviewModal}
+          photo={previewPhoto!}
+        />
+      )}
     </main>
   );
 }
