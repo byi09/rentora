@@ -343,7 +343,7 @@ export default function AmenitiesPage() {
         </div>
 
         {/* Progress Bar */}
-        <InteractiveProgressBar currentStep={3} propertyId={propertyId} />
+        <InteractiveProgressBar currentStep={3} propertyId={propertyId} beforeNavigate={saveCurrentFormData} />
 
         {/* Form */}
         <form ref={formRef} onSubmit={handleSubmit}>

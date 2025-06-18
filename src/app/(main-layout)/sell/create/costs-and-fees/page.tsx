@@ -177,7 +177,7 @@ export default function CostsAndFeesPage() {
         </div>
 
         {/* Progress Bar */}
-        <InteractiveProgressBar currentStep={5} propertyId={propertyId} />
+        <InteractiveProgressBar currentStep={5} propertyId={propertyId} beforeNavigate={saveCurrentFormData} />
 
         {/* Main Content */}
         <div className="max-w-2xl mx-auto">

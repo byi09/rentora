@@ -751,8 +751,8 @@ export default function MediaPage() {
                           </button>
 
                           {/* View Hint Icon */}
-                          <div className="absolute bottom-3 right-3 bg-black/60 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity" title="Click to view">
-                            <Eye className="w-4 h-4" />
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/20 transition bg-opacity-0 group-hover:bg-opacity-20">
+                            <Eye className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
                           </div>
                         </div>
                         

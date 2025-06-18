@@ -147,7 +147,7 @@ export default function FinalDetailsPage() {
         </div>
 
         {/* Progress Bar */}
-        <InteractiveProgressBar currentStep={6} propertyId={propertyId} />
+        <InteractiveProgressBar currentStep={6} propertyId={propertyId} beforeNavigate={saveCurrentFormData} />
 
         {/* Main Content */}
         <div className="max-w-2xl mx-auto">

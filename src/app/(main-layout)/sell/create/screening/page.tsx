@@ -151,7 +151,7 @@ export default function ScreeningPage() {
         </div>
 
         {/* Progress Bar */}
-        <InteractiveProgressBar currentStep={4} propertyId={propertyId} />
+        <InteractiveProgressBar currentStep={4} propertyId={propertyId} beforeNavigate={saveCurrentFormData} />
 
         {/* Main Content */}
         <div className="max-w-2xl mx-auto">

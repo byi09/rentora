@@ -31,19 +31,9 @@ export default function ClientLayout({ children }: ClientLayoutProps) {
       } = await supabase.auth.getUser();
       
       if (user) {
-        // Fetch username from profile API
-        try {
-          const response = await fetch('/api/profile');
-          if (response.ok) {
-            const profile = await response.json();
-            setUser({ ...user, username: profile.username });
-          } else {
-            setUser(user);
-          }
-        } catch (error) {
-          console.error('Error fetching username:', error);
-          setUser(user);
-        }
+        // If you store username in user_metadata, append it; otherwise just use Supabase user object.
+        const username = (user.user_metadata && user.user_metadata.username) || undefined;
+        setUser({ ...user, username });
       } else {
         setUser(null);
       }
@@ -57,19 +47,8 @@ export default function ClientLayout({ children }: ClientLayoutProps) {
       data: { subscription }
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session?.user) {
-        // Fetch username for new session
-        try {
-          const response = await fetch('/api/profile');
-          if (response.ok) {
-            const profile = await response.json();
-            setUser({ ...session.user, username: profile.username });
-          } else {
-            setUser(session.user);
-          }
-        } catch (error) {
-          console.error('Error fetching username:', error);
-          setUser(session.user);
-        }
+        const username = (session.user.user_metadata && session.user.user_metadata.username) || undefined;
+        setUser({ ...session.user, username });
       } else {
         setUser(null);
       }

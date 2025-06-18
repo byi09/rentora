@@ -65,6 +65,11 @@ export default function RentDetailsPage() {
     }
   };
 
+  // Reusable save helper for progress bar clicks
+  const saveAllData = async () => {
+    await Promise.all([savePropertyData(), saveListingData()]);
+  };
+
   // Load existing property data if available
   useEffect(() => {
     if (!propertyId) {
@@ -221,7 +226,7 @@ export default function RentDetailsPage() {
         </div>
 
         {/* Progress Bar */}
-        <InteractiveProgressBar currentStep={1} propertyId={propertyId} />
+        <InteractiveProgressBar currentStep={1} propertyId={propertyId} beforeNavigate={saveAllData} />
 
         {/* Form */}
         <form onSubmit={handleSubmit}>
