@@ -96,9 +96,9 @@ export default function SignIn() {
       setLoading(false);
       showError('Sign in failed', error.message);
     } else {
-      success('Welcome back!', 'Redirecting to your dashboard...');
-      // Success - redirect to home page for onboarding check
-      router.push('/');
+      success('Welcome back!', 'Redirecting...');
+      // Full page reload so that onboarding status and header sync correctly
+      window.location.href = '/';
     }
   }
 
