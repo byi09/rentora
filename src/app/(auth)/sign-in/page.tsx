@@ -29,7 +29,7 @@ export default function SignIn() {
       
       if (user) {
         try {
-          const res = await fetch('/api/onboarding/status');
+          const res = await fetch('/api/onboarding/check-status');
           if (res.ok) {
             const { onboarded } = await res.json();
             if (onboarded) {
