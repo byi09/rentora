@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import * as React from "react";
 import DatePicker from "react-datepicker";
 import type { ComponentProps } from "react";
@@ -39,7 +40,7 @@ function Calendar({
     <DatePicker
       inline
       selected={selected}
-      onChange={(date: any) => onSelect?.(date as Date | null)}
+      onChange={((date: any) => onSelect?.(Array.isArray(date) ? date[0] : date)) as any}
       {...(numberOfMonths && numberOfMonths > 1
         ? { monthsShown: numberOfMonths }
         : {})}

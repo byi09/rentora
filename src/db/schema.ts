@@ -508,23 +508,29 @@ export const groupInvitations = pgTable('group_invitations', {
 
 // ==================== USER PREFERENCES ====================
 
-export const userPreferences = pgTable('user_preferences', {
-    userId: uuid('user_id').primaryKey().references(() => users.id, { onDelete: 'cascade' }),
+export const userPreferences = pgTable("user_preferences", {
+  userId: uuid("user_id")
+    .primaryKey()
+    .references(() => users.id, { onDelete: "cascade" }),
 
-    // Saved properties updates
-    updatesSavedPropertiesEmail: boolean('updates_saved_properties_email').default(true),
-    updatesSavedPropertiesPush: boolean('updates_saved_properties_push').default(true),
+  // Saved properties updates
+  updatesSavedPropertiesEmail: boolean("updates_saved_properties_email")
+    .default(true)
+    .notNull(),
+  updatesSavedPropertiesPush: boolean("updates_saved_properties_push")
+    .default(true)
+    .notNull(),
 
-    // New matching properties
-    newPropertiesEmail: boolean('new_properties_email').default(true),
-    newPropertiesPush: boolean('new_properties_push').default(true),
+  // New matching properties
+  newPropertiesEmail: boolean("new_properties_email").default(true).notNull(),
+  newPropertiesPush: boolean("new_properties_push").default(true).notNull(),
 
-    // General news
-    newsEmail: boolean('news_email').default(true),
-    newsPush: boolean('news_push').default(true),
+  // General news
+  newsEmail: boolean("news_email").default(true).notNull(),
+  newsPush: boolean("news_push").default(true).notNull(),
 
-    createdAt: timestamp('created_at').defaultNow(),
-    updatedAt: timestamp('updated_at').defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
 });
 
 // ==================== NOTIFICATIONS TABLE ====================

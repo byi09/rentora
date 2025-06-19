@@ -1,32 +1,145 @@
 'use client';
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { createClient } from '@/utils/supabase/client';
+import InteractiveProgressBar from '@/src/components/ui/InteractiveProgressBar';
 
 export default function FinalDetailsPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const propertyId = searchParams.get('property_id');
   const [leasePolicy, setLeasePolicy] = useState('');
   const [rentersInsurance, setRentersInsurance] = useState<'Yes' | 'No' | ''>('');
+  const FEATURE_CATEGORY = 'utilities' as const;
 
-  const steps = [
-    'Property Info',
-    'Rent Details',
-    'Media',
-    'Amenities',
-    'Screening',
-    'Costs and Fees',
-    'Final details',
-    'Review',
-    'Publish'
-  ];
+  // Enhanced navigation with auto-save
+  const handleNavigation = async (path: string) => {
+    try {
+      // Save current form data before navigating
+      await saveCurrentFormData();
+      router.push(path);
+    } catch (error) {
+      console.error('Error saving data before navigation:', error);
+      // Navigate anyway to prevent user from being stuck
+      router.push(path);
+    }
+  };
+
+  // Function to save current form data
+  const saveCurrentFormData = async () => {
+    if (!propertyId) return;
+
+    try {
+      const supabase = createClient();
+      
+      // Save final details as property features
+      const features = [];
+      
+      if (leasePolicy && leasePolicy.trim() !== '') {
+        features.push({
+          property_id: propertyId,
+          feature_name: 'Lease Policy',
+          feature_category: FEATURE_CATEGORY,
+          feature_value: leasePolicy
+        });
+      }
+      
+      if (rentersInsurance) {
+        features.push({
+          property_id: propertyId,
+          feature_name: 'Renters Insurance Required',
+          feature_category: FEATURE_CATEGORY,
+          feature_value: rentersInsurance
+        });
+      }
+
+      // Delete existing policy features by name (handles legacy category values)
+      const names = ['Lease Policy', 'Renters Insurance Required'];
+      await supabase
+        .from('property_features')
+        .delete()
+        .eq('property_id', propertyId)
+        .in('feature_name', names);
+
+      // Insert new policy features if any exist
+      if (features.length > 0) {
+        const { error } = await supabase
+          .from('property_features')
+          .insert(features);
+
+        if (error) {
+          console.error('Error saving final details data:', error);
+          throw error;
+        }
+      }
+    } catch (error) {
+      console.error('Error in saveCurrentFormData:', error);
+      throw error;
+    }
+  };
+
+  const exitToDashboard = async () => {
+    try {
+      await saveCurrentFormData();
+    } catch (err) {
+      console.error('Error saving before exit:', err);
+    } finally {
+      router.push('/');
+    }
+  };
+
+  useEffect(() => {
+    if (!propertyId) return;
+    const handleBeforeUnload = () => { saveCurrentFormData(); };
+    const handlePopState = () => { saveCurrentFormData(); };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('popstate', handlePopState);
+    return () => { window.removeEventListener('beforeunload', handleBeforeUnload); window.removeEventListener('popstate', handlePopState); };
+  }, [propertyId, saveCurrentFormData]);
+
+  // Load existing final details data on mount
+  useEffect(() => {
+    const loadExistingData = async () => {
+      if (!propertyId) return;
+
+      try {
+        const supabase = createClient();
+        const { data: features, error } = await supabase
+          .from('property_features')
+          .select('*')
+          .eq('property_id', propertyId)
+          .in('feature_name', ['Lease Policy', 'Renters Insurance Required']);
+
+        if (error) {
+          console.error('Error loading existing final details data:', error);
+          return;
+        }
+
+        if (features) {
+          features.forEach(feature => {
+            if (feature.feature_name === 'Lease Policy') {
+              setLeasePolicy(feature.feature_value);
+            } else if (feature.feature_name === 'Renters Insurance Required') {
+              setRentersInsurance(feature.feature_value as 'Yes' | 'No');
+            }
+          });
+        }
+      } catch (error) {
+        console.error('Error loading existing final details data:', error);
+      }
+    };
+
+    loadExistingData();
+  }, [propertyId]);
 
   return (
-    <main className="min-h-screen bg-white p-8">
+    <main className="min-h-screen bg-white pt-28 pb-8 px-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-2xl font-semibold">Final Details</h1>
           <button 
-            onClick={() => router.push('/')}
+            onClick={exitToDashboard}
             className="px-6 py-2 text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
           >
             Save and Exit
@@ -34,23 +147,7 @@ export default function FinalDetailsPage() {
         </div>
 
         {/* Progress Bar */}
-        <div className="mb-12 relative">
-          <div className="h-2 bg-blue-100 rounded-full">
-            <div className="h-full w-7/9 bg-blue-600 rounded-full"></div>
-          </div>
-          <div className="flex justify-between absolute w-full" style={{ top: '-8px' }}>
-            {steps.map((step, index) => (
-              <div 
-                key={step}
-                className={`w-4 h-4 rounded-full ${index <= 6 ? 'bg-blue-600' : 'bg-blue-200'}`}
-              >
-                <div className="text-xs text-gray-600 mt-6 -ml-4 w-20 text-center">
-                  {step}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+        <InteractiveProgressBar currentStep={6} propertyId={propertyId} beforeNavigate={saveCurrentFormData} />
 
         {/* Main Content */}
         <div className="max-w-2xl mx-auto">
@@ -96,11 +193,20 @@ export default function FinalDetailsPage() {
             </div>
           </div>
 
-          {/* Next Button */}
-          <div className="flex justify-end">
+          {/* Navigation Buttons */}
+          <div className="flex justify-between items-center">
             <button 
-              onClick={() => router.push('/sell/create/review')}
+              onClick={() => handleNavigation(`/sell/create/costs-and-fees?property_id=${propertyId}`)}
+              className="px-6 py-3 text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors flex items-center"
+              type="button"
+            >
+              <span className="mr-2">←</span>
+              Back
+            </button>
+            <button 
+              onClick={() => handleNavigation(`/sell/create/review?property_id=${propertyId}`)}
               className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              type="button"
             >
               Next
             </button>

@@ -2,6 +2,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
+import InteractiveProgressBar from '@/src/components/ui/InteractiveProgressBar';
+import { useAutoSave } from '@/src/hooks/useAutoSave';
 
 export default function RentDetailsPage() {
   const router = useRouter();
@@ -17,25 +19,111 @@ export default function RentDetailsPage() {
   const [availableDate, setAvailableDate] = useState('');
   const [listingTitle, setListingTitle] = useState('');
   const [listingDescription, setListingDescription] = useState('');
+  const [bedrooms, setBedrooms] = useState('1');
+  const [bathrooms, setBathrooms] = useState('1');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const steps = [
-    'Property Info',
-    'Rent Details',
-    'Media',
-    'Amenities',
-    'Screening',
-    'Costs and Fees',
-    'Final details',
-    'Review',
-    'Publish'
-  ];
+  // Auto-save hook for property data
+  const { saveImmediately: savePropertyData } = useAutoSave({
+    propertyId,
+    formData: { bedrooms, bathrooms },
+    tableName: 'properties',
+    debounceMs: 1500,
+  });
 
-  // Redirect if no property ID
+  // Auto-save hook for listing data
+  const { saveImmediately: saveListingData } = useAutoSave({
+    propertyId,
+    formData: {
+      monthly_rent: rent,
+      security_deposit: securityDeposit,
+      pet_deposit: petDeposit,
+      application_fee: applicationFee,
+      minimum_lease_term: minLeaseTerm,
+      maximum_lease_term: maxLeaseTerm,
+      available_date: availableDate,
+      listing_title: listingTitle,
+      listing_description: listingDescription,
+    },
+    tableName: 'property_listings',
+    debounceMs: 1500,
+  });
+
+  // Enhanced navigation with auto-save
+  const handleNavigation = async (path: string) => {
+    try {
+      // Save all data immediately before navigating
+      await Promise.all([
+        savePropertyData(),
+        saveListingData()
+      ]);
+      router.push(path);
+    } catch (error) {
+      console.error('Error saving data before navigation:', error);
+      // Navigate anyway to prevent user from being stuck
+      router.push(path);
+    }
+  };
+
+  // Reusable save helper for progress bar clicks
+  const saveAllData = async () => {
+    await Promise.all([savePropertyData(), saveListingData()]);
+  };
+
+  // Load existing property data if available
   useEffect(() => {
     if (!propertyId) {
       router.push('/sell/create');
+      return;
     }
+
+    const loadPropertyData = async () => {
+      try {
+        const supabase = createClient();
+        
+        // Fetch existing property data
+        const { data: property, error: propertyError } = await supabase
+          .from('properties')
+          .select('bedrooms, bathrooms')
+          .eq('id', propertyId)
+          .single();
+
+        if (propertyError) {
+          console.error('Error loading property data:', propertyError);
+          return;
+        }
+
+        // Load existing values if they exist
+        if (property) {
+          if (property.bedrooms !== null) setBedrooms(property.bedrooms.toString());
+          if (property.bathrooms !== null) setBathrooms(property.bathrooms.toString());
+        }
+
+        // Fetch existing listing data if available
+        const { data: listing, error: listingError } = await supabase
+          .from('property_listings')
+          .select('*')
+          .eq('property_id', propertyId)
+          .maybeSingle();
+
+        if (!listingError && listing) {
+          // Load existing listing values
+          if (listing.monthly_rent) setRent(listing.monthly_rent.toString());
+          if (listing.security_deposit) setSecurityDeposit(listing.security_deposit.toString());
+          if (listing.pet_deposit) setPetDeposit(listing.pet_deposit.toString());
+          if (listing.application_fee) setApplicationFee(listing.application_fee.toString());
+          if (listing.minimum_lease_term) setMinLeaseTerm(listing.minimum_lease_term.toString());
+          if (listing.maximum_lease_term) setMaxLeaseTerm(listing.maximum_lease_term.toString());
+          if (listing.available_date) setAvailableDate(listing.available_date);
+          if (listing.listing_title) setListingTitle(listing.listing_title);
+          if (listing.listing_description) setListingDescription(listing.listing_description);
+        }
+      } catch (error) {
+        console.error('Unexpected error loading property data:', error);
+      }
+    };
+
+    loadPropertyData();
   }, [propertyId, router]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -46,7 +134,23 @@ export default function RentDetailsPage() {
       const formData = new FormData(e.currentTarget);
       const supabase = createClient();
       
-      // Extract form data
+      // First, update the properties table with bedroom and bathroom info
+      const { error: propertyError } = await supabase
+        .from('properties')
+        .update({
+          bedrooms: parseInt(formData.get('bedrooms') as string),
+          bathrooms: parseFloat(formData.get('bathrooms') as string),
+        })
+        .eq('id', propertyId);
+
+      if (propertyError) {
+        console.error('Error updating property details:', propertyError);
+        alert('Error updating property details. Please try again.');
+        setIsSubmitting(false);
+        return;
+      }
+      
+      // Extract form data for listing
       const listingData = {
         property_id: propertyId,
         monthly_rent: parseFloat(formData.get('monthly_rent') as string),
@@ -58,23 +162,40 @@ export default function RentDetailsPage() {
         available_date: formData.get('available_date') as string || null,
         listing_title: formData.get('listing_title') as string || null,
         listing_description: formData.get('listing_description') as string || null,
-        listing_status: 'active',
+        listing_status: 'pending',
       };
 
-      // Insert the property listing
-      const { data, error } = await supabase
+      // Check if listing already exists
+      const { data: existingListing, error: checkError } = await supabase
         .from('property_listings')
-        .insert([listingData])
-        .select();
+        .select('id')
+        .eq('property_id', propertyId)
+        .maybeSingle();
 
-      if (error) {
-        console.error('Error creating property listing:', error);
-        alert('Error creating property listing. Please try again.');
+      let listingOperation;
+      if (existingListing && !checkError) {
+        // Update existing listing
+        listingOperation = await supabase
+          .from('property_listings')
+          .update(listingData)
+          .eq('property_id', propertyId)
+          .select();
+      } else {
+        // Create new listing
+        listingOperation = await supabase
+          .from('property_listings')
+          .insert([listingData])
+          .select();
+      }
+
+      if (listingOperation.error) {
+        console.error('Error saving property listing:', listingOperation.error);
+        alert('Error saving property listing. Please try again.');
         setIsSubmitting(false);
         return;
       }
 
-      console.log('Property listing created successfully:', data);
+      console.log('Property listing saved successfully:', listingOperation.data);
       
       // Client-side redirect
       router.push(`/sell/create/media?property_id=${propertyId}`);
@@ -91,7 +212,7 @@ export default function RentDetailsPage() {
   }
 
   return (
-    <main className="min-h-screen bg-white p-8">
+    <main className="min-h-screen bg-white pt-28 pb-8 px-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
@@ -105,23 +226,7 @@ export default function RentDetailsPage() {
         </div>
 
         {/* Progress Bar */}
-        <div className="mb-12 relative">
-          <div className="h-2 bg-blue-100 rounded-full">
-            <div className="h-full w-2/9 bg-blue-600 rounded-full"></div>
-          </div>
-          <div className="flex justify-between absolute w-full" style={{ top: '-8px' }}>
-            {steps.map((step, index) => (
-              <div 
-                key={step}
-                className={`w-4 h-4 rounded-full ${index <= 1 ? 'bg-blue-600' : 'bg-blue-200'}`}
-              >
-                <div className="text-xs text-gray-600 mt-6 -ml-4 w-20 text-center">
-                  {step}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+        <InteractiveProgressBar currentStep={1} propertyId={propertyId} beforeNavigate={saveAllData} />
 
         {/* Form */}
         <form onSubmit={handleSubmit}>
@@ -132,7 +237,7 @@ export default function RentDetailsPage() {
             {/* Listing Title */}
             <div>
               <label className="block text-lg font-medium text-gray-700 mb-3">
-                Listing Title
+                Listing Title*
               </label>
               <input
                 type="text"
@@ -149,7 +254,7 @@ export default function RentDetailsPage() {
             {/* Listing Description */}
             <div>
               <label className="block text-lg font-medium text-gray-700 mb-3">
-                Listing Description
+                Listing Description*
               </label>
               <textarea
                 name="listing_description"
@@ -161,6 +266,55 @@ export default function RentDetailsPage() {
                 required
                 disabled={isSubmitting}
               />
+            </div>
+
+            {/* Property Details */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-lg font-medium text-gray-700 mb-3">
+                  Number of Bedrooms *
+                </label>
+                <select
+                  name="bedrooms"
+                  value={bedrooms}
+                  onChange={(e) => setBedrooms(e.target.value)}
+                  className="block w-full px-4 py-3 text-base border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 rounded-lg bg-white"
+                  required
+                  disabled={isSubmitting}
+                >
+                  <option value="0">Studio (0 bedroom)</option>
+                  <option value="1">1 bedroom</option>
+                  <option value="2">2 bedrooms</option>
+                  <option value="3">3 bedrooms</option>
+                  <option value="4">4 bedrooms</option>
+                  <option value="5">5 bedrooms</option>
+                  <option value="6">6+ bedrooms</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-lg font-medium text-gray-700 mb-3">
+                  Number of Bathrooms *
+                </label>
+                <select
+                  name="bathrooms"
+                  value={bathrooms}
+                  onChange={(e) => setBathrooms(e.target.value)}
+                  className="block w-full px-4 py-3 text-base border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 rounded-lg bg-white"
+                  required
+                  disabled={isSubmitting}
+                >
+                  <option value="0.5">0.5 bathroom</option>
+                  <option value="1">1 bathroom</option>
+                  <option value="1.5">1.5 bathrooms</option>
+                  <option value="2">2 bathrooms</option>
+                  <option value="2.5">2.5 bathrooms</option>
+                  <option value="3">3 bathrooms</option>
+                  <option value="3.5">3.5 bathrooms</option>
+                  <option value="4">4 bathrooms</option>
+                  <option value="4.5">4.5 bathrooms</option>
+                  <option value="5">5+ bathrooms</option>
+                </select>
+              </div>
             </div>
             
             {/* Monthly Rent */}
@@ -297,16 +451,20 @@ export default function RentDetailsPage() {
             </div>
           </div>
 
-          {/* Next Button */}
-          <div className="flex justify-end mt-12">
+          {/* Navigation Buttons */}
+          <div className="flex justify-between items-center mt-12">
+            <button 
+              onClick={() => handleNavigation(`/sell/create?property_id=${propertyId}`)}
+              className="px-6 py-3 text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors flex items-center"
+              type="button"
+            >
+              <span className="mr-2">←</span>
+              Back
+            </button>
             <button 
               type="submit"
               disabled={isSubmitting}
-              className={`px-8 py-3 rounded-lg transition-colors ${
-                isSubmitting 
-                  ? 'bg-gray-400 cursor-not-allowed' 
-                  : 'bg-blue-600 hover:bg-blue-700'
-              } text-white`}
+              className={`px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors`}
             >
               {isSubmitting ? 'Saving Listing...' : 'Next'}
             </button>

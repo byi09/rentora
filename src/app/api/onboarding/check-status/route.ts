@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import { db } from '@/src/db';
 import { users, customers } from '@/src/db/schema';
@@ -7,7 +7,7 @@ import { eq } from 'drizzle-orm';
 const ONBOARDING_COOKIE_NAME = 'onboarding-status'
 const COOKIE_MAX_AGE = 60 * 60 * 24 // 24 hours
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const supabase = await createClient();
     const { data: { user }, error } = await supabase.auth.getUser();

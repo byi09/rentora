@@ -2,7 +2,7 @@ import { drizzle } from 'drizzle-orm/postgres-js';
 import { migrate } from 'drizzle-orm/postgres-js/migrator';
 import postgres from 'postgres';
 import * as schema from './schema';
-import { eq } from 'drizzle-orm';
+
 
 // Use the direct connection string
 const DATABASE_URL = 'postgresql://postgres:Home135!a38xQ6@db.fzkkrztvbflpbnayrfne.supabase.co:5432/postgres';
@@ -14,7 +14,7 @@ const migrationClient = postgres(DATABASE_URL, { max: 1 });
 const seedClient = postgres(DATABASE_URL);
 const db = drizzle(seedClient, { schema });
 
-async function cleanupDatabase(db: any) {
+async function cleanupDatabase(db: ReturnType<typeof drizzle>) {
   console.log('🧹 Cleaning up existing data...');
   
   // Delete in reverse order of dependencies

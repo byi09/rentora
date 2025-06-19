@@ -72,7 +72,7 @@ const NotificationBell: React.FC = () => {
       <PopoverContent className="w-72 p-0 bg-white">
         <div className="py-2 max-h-64 overflow-y-auto">
           {loading ? (
-            <div className="flex justify-center py-4"><Spinner size="sm" /></div>
+            <div className="flex justify-center py-4"><Spinner size={24} /></div>
           ) : items.length === 0 ? (
             <p className="text-center text-sm text-gray-500 py-4">No notifications</p>
           ) : (

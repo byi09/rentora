@@ -1,34 +1,149 @@
 'use client';
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { createClient } from '@/utils/supabase/client';
+import InteractiveProgressBar from '@/src/components/ui/InteractiveProgressBar';
+
+// Valid feature category enum value to store screening info
+const SCREENING_CATEGORY = 'utilities' as const;
 
 export default function ScreeningPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const propertyId = searchParams.get('property_id');
   const [incomeRatio, setIncomeRatio] = useState('1.5X');
   const [creditScore, setCreditScore] = useState('850');
 
-  const steps = [
-    'Property Info',
-    'Rent Details',
-    'Media',
-    'Amenities',
-    'Screening',
-    'Costs and Fees',
-    'Final details',
-    'Review',
-    'Publish'
-  ];
-
   const incomeRatioOptions = ['1.5X', '2X', '2.5X', '3X'];
 
+  // Enhanced navigation with auto-save
+  const handleNavigation = async (path: string) => {
+    try {
+      // Save current form data before navigating
+      await saveCurrentFormData();
+      router.push(path);
+    } catch (error) {
+      console.error('Error saving data before navigation:', error);
+      // Navigate anyway to prevent user from being stuck
+      router.push(path);
+    }
+  };
+
+  // Function to save current form data
+  const saveCurrentFormData = async () => {
+    if (!propertyId) return;
+
+    try {
+      const supabase = createClient();
+      
+      const features = [
+        {
+          property_id: propertyId,
+          feature_name: 'Income to Rent Ratio',
+          feature_category: SCREENING_CATEGORY,
+          feature_value: incomeRatio
+        },
+        {
+          property_id: propertyId,
+          feature_name: 'Minimum Credit Score',
+          feature_category: SCREENING_CATEGORY,
+          feature_value: creditScore
+        }
+      ];
+
+      const screeningNames = ['Income to Rent Ratio', 'Minimum Credit Score'];
+      await supabase
+        .from('property_features')
+        .delete()
+        .eq('property_id', propertyId)
+        .in('feature_name', screeningNames);
+
+      // Insert new screening features
+      const { error } = await supabase
+        .from('property_features')
+        .insert(features);
+
+      if (error) {
+        console.error('Error saving screening data:', error);
+        throw error;
+      }
+    } catch (error) {
+      console.error('Error in saveCurrentFormData:', error);
+      throw error;
+    }
+  };
+
+  // Load existing screening data on mount
+  useEffect(() => {
+    const loadExistingData = async () => {
+      if (!propertyId) return;
+
+      try {
+        const supabase = createClient();
+        const { data: features, error } = await supabase
+          .from('property_features')
+          .select('*')
+          .eq('property_id', propertyId)
+          .in('feature_name', ['Income to Rent Ratio', 'Minimum Credit Score']);
+
+        if (error) {
+          console.error('Error loading existing screening data:', error);
+          return;
+        }
+
+        if (features) {
+          features.forEach(feature => {
+            if (feature.feature_name === 'Income to Rent Ratio') {
+              setIncomeRatio(feature.feature_value);
+            } else if (feature.feature_name === 'Minimum Credit Score') {
+              setCreditScore(feature.feature_value);
+            }
+          });
+        }
+      } catch (error) {
+        console.error('Error loading existing screening data:', error);
+      }
+    };
+
+    loadExistingData();
+  }, [propertyId]);
+
+  const exitToDashboard = async () => {
+    try {
+      await saveCurrentFormData();
+    } catch (err) {
+      console.error('Error saving before exit:', err);
+    } finally {
+      router.push('/');
+    }
+  };
+
+  // Save on browser back/unload
+  useEffect(() => {
+    if (!propertyId) return;
+
+    const handleBeforeUnload = () => {
+      saveCurrentFormData();
+    };
+    const handlePopState = () => {
+      saveCurrentFormData();
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [propertyId, saveCurrentFormData]);
+
   return (
-    <main className="min-h-screen bg-white p-8">
+    <main className="min-h-screen bg-white pt-28 pb-8 px-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-2xl font-semibold">Screening Requirements</h1>
           <button 
-            onClick={() => router.push('/')}
+            onClick={exitToDashboard}
             className="px-6 py-2 text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
           >
             Save and Exit
@@ -36,23 +151,7 @@ export default function ScreeningPage() {
         </div>
 
         {/* Progress Bar */}
-        <div className="mb-12 relative">
-          <div className="h-2 bg-blue-100 rounded-full">
-            <div className="h-full w-5/9 bg-blue-600 rounded-full"></div>
-          </div>
-          <div className="flex justify-between absolute w-full" style={{ top: '-8px' }}>
-            {steps.map((step, index) => (
-              <div 
-                key={step}
-                className={`w-4 h-4 rounded-full ${index <= 4 ? 'bg-blue-600' : 'bg-blue-200'}`}
-              >
-                <div className="text-xs text-gray-600 mt-6 -ml-4 w-20 text-center">
-                  {step}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+        <InteractiveProgressBar currentStep={4} propertyId={propertyId} beforeNavigate={saveCurrentFormData} />
 
         {/* Main Content */}
         <div className="max-w-2xl mx-auto">
@@ -99,11 +198,20 @@ export default function ScreeningPage() {
             />
           </div>
 
-          {/* Next Button */}
-          <div className="flex justify-end">
+          {/* Navigation Buttons */}
+          <div className="flex justify-between items-center mt-12">
             <button 
-              onClick={() => router.push('/sell/create/costs-and-fees')}
+              onClick={() => handleNavigation(`/sell/create/amenities?property_id=${propertyId}`)}
+              className="px-6 py-3 text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors flex items-center"
+              type="button"
+            >
+              <span className="mr-2">←</span>
+              Back
+            </button>
+            <button 
+              onClick={() => handleNavigation(`/sell/create/costs-and-fees?property_id=${propertyId}`)}
               className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              type="button"
             >
               Next
             </button>

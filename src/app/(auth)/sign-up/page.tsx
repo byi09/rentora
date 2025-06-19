@@ -5,12 +5,32 @@ import Link from 'next/link';
 import { signUpNewUser } from '@/utils/supabase/actions';
 import { useState } from 'react';
 import { createClient } from '@/utils/supabase/client';
-import { useRouter } from 'next/navigation';
+
+// Password validation utility
+const validatePassword = (password: string) => {
+  const requirements = {
+    minLength: password.length >= 8,
+    hasUppercase: /[A-Z]/.test(password),
+    hasLowercase: /[a-z]/.test(password),
+    hasNumber: /\d/.test(password),
+    hasSpecialChar: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)
+  };
+  
+  const isValid = Object.values(requirements).every(req => req);
+  
+  return { requirements, isValid };
+};
 
 export default function SignUpPage() {
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
-  const router = useRouter();
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPasswordRequirements, setShowPasswordRequirements] = useState(false);
+  
+
+  const { requirements, isValid: isPasswordValid } = validatePassword(password);
+  const passwordsMatch = password === confirmPassword;
 
   const handleGoogleSignIn = async () => {
     setLoading(true);
@@ -25,6 +45,29 @@ export default function SignUpPage() {
     }
   };
 
+  const handleSubmit = async (formData: FormData) => {
+    // Client-side password validation before submission
+    if (!isPasswordValid) {
+      setErrorMessage('Please ensure your password meets all requirements.');
+      return;
+    }
+    
+    if (!passwordsMatch) {
+      setErrorMessage('Passwords do not match.');
+      return;
+    }
+    
+    setLoading(true);
+    setErrorMessage('');
+    
+    try {
+      await signUpNewUser(formData);
+    } catch {
+      setLoading(false);
+      setErrorMessage('An error occurred during sign up. Please try again.');
+    }
+  };
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50">
       <div className="w-full max-w-md bg-white rounded-lg shadow-lg p-8 relative">
@@ -32,14 +75,14 @@ export default function SignUpPage() {
         <div className="flex items-center justify-center mb-8">
           <div className="relative w-10 h-10 mr-2">
             <Image
-              src="/rentora-logo.svg"
-              alt="Rentora Logo"
+              src="/logo.png"
+              alt="Livaro Logo"
               fill
               className="object-contain"
               priority
             />
           </div>
-          <span className="text-xl font-bold text-gray-900">Rentora</span>
+          <span className="text-xl font-bold text-gray-900">Livaro</span>
         </div>
         <h1 className="text-2xl font-bold text-gray-900 mb-6 text-center">Create your account</h1>
 
@@ -49,14 +92,73 @@ export default function SignUpPage() {
           </div>
         )}
 
-        <form method="POST" className="flex flex-col gap-5" autoComplete="off">
+        <form action={handleSubmit} className="flex flex-col gap-5" autoComplete="off">
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">Email Address*</label>
             <input id="email" name="email" type="email" required className="block w-full px-4 py-3 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" placeholder="Enter your email" />
           </div>
           <div>
             <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">Password*</label>
-            <input id="password" name="password" type="password" required className="block w-full px-4 py-3 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" placeholder="Create a password" />
+            <input 
+              id="password" 
+              name="password" 
+              type="password" 
+              required 
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              onFocus={() => setShowPasswordRequirements(true)}
+              className={`block w-full px-4 py-3 border rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 ${
+                password && !isPasswordValid ? 'border-red-300' : 'border-gray-300'
+              }`}
+              placeholder="Create a password" 
+            />
+            
+            {/* Password Requirements */}
+            {showPasswordRequirements && (
+              <div className="mt-2 p-3 bg-gray-50 rounded-md border">
+                <p className="text-xs font-medium text-gray-700 mb-2">Password must contain:</p>
+                <ul className="space-y-1">
+                  <li className={`text-xs flex items-center ${requirements.minLength ? 'text-green-600' : 'text-gray-500'}`}>
+                    <span className={`mr-2 ${requirements.minLength ? '✓' : '○'}`}></span>
+                    At least 8 characters
+                  </li>
+                  <li className={`text-xs flex items-center ${requirements.hasUppercase ? 'text-green-600' : 'text-gray-500'}`}>
+                    <span className={`mr-2 ${requirements.hasUppercase ? '✓' : '○'}`}></span>
+                    One uppercase letter (A-Z)
+                  </li>
+                  <li className={`text-xs flex items-center ${requirements.hasLowercase ? 'text-green-600' : 'text-gray-500'}`}>
+                    <span className={`mr-2 ${requirements.hasLowercase ? '✓' : '○'}`}></span>
+                    One lowercase letter (a-z)
+                  </li>
+                  <li className={`text-xs flex items-center ${requirements.hasNumber ? 'text-green-600' : 'text-gray-500'}`}>
+                    <span className={`mr-2 ${requirements.hasNumber ? '✓' : '○'}`}></span>
+                    One number (0-9)
+                  </li>
+                  <li className={`text-xs flex items-center ${requirements.hasSpecialChar ? 'text-green-600' : 'text-gray-500'}`}>
+                    <span className={`mr-2 ${requirements.hasSpecialChar ? '✓' : '○'}`}></span>
+                    One special character (!@#$%^&*)
+                  </li>
+                </ul>
+              </div>
+            )}
+          </div>
+          <div>
+            <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">Confirm Password*</label>
+            <input 
+              id="confirmPassword" 
+              name="confirmPassword" 
+              type="password" 
+              required 
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              className={`block w-full px-4 py-3 border rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 ${
+                confirmPassword && !passwordsMatch ? 'border-red-300' : 'border-gray-300'
+              }`}
+              placeholder="Confirm your password" 
+            />
+            {confirmPassword && !passwordsMatch && (
+              <p className="mt-1 text-xs text-red-600">Passwords do not match</p>
+            )}
           </div>
           <div className="relative py-3 mt-6">
             <div className="absolute inset-0 flex items-center">
@@ -82,7 +184,17 @@ export default function SignUpPage() {
               Continue with Google
             </button>
           </div>
-          <button formAction={signUpNewUser} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded mt-2">Sign up</button>
+          <button 
+            type="submit" 
+            disabled={loading || !!(password && !isPasswordValid) || !!(confirmPassword && !passwordsMatch)}
+            className={`w-full font-semibold py-3 px-4 rounded mt-2 transition-all duration-200 ${
+              loading || !!(password && !isPasswordValid) || !!(confirmPassword && !passwordsMatch)
+                ? 'bg-gray-400 cursor-not-allowed text-white'
+                : 'bg-blue-600 hover:bg-blue-700 text-white'
+            }`}
+          >
+            {loading ? 'Creating Account...' : 'Sign up'}
+          </button>
         </form>
         <div className="mt-5 text-center">
           <p className="text-sm text-gray-600">
@@ -92,7 +204,7 @@ export default function SignUpPage() {
         </div>
         <div className="mt-6 text-center">
           <p className="text-xs text-gray-500">
-            By submitting, I accept Rentora's <a href="/terms" className="text-blue-600 hover:text-blue-800">terms of use</a>
+            By submitting, I accept Rentora&apos;s <a href="/terms" className="text-blue-600 hover:text-blue-800">terms of use</a>
           </p>
         </div>
       </div>

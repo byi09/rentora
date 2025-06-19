@@ -1,7 +1,8 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
+import InteractiveProgressBar from '@/src/components/ui/InteractiveProgressBar';
 
 export default function AmenitiesPage() {
   const router = useRouter();
@@ -10,18 +11,147 @@ export default function AmenitiesPage() {
   
   const [customAmenities, setCustomAmenities] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
 
-  const steps = [
-    'Property Info',
-    'Rent Details',
-    'Media',
-    'Amenities',
-    'Screening',
-    'Costs and Fees',
-    'Final details',
-    'Review',
-    'Publish'
-  ];
+  // Enhanced navigation with auto-save
+  const handleNavigation = async (path: string) => {
+    try {
+      // Save current form data before navigating
+      await saveCurrentFormData();
+      router.push(path);
+    } catch (error) {
+      console.error('Error saving data before navigation:', error);
+      // Navigate anyway to prevent user from being stuck
+      router.push(path);
+    }
+  };
+
+  // Function to save current form data
+  const saveCurrentFormData = useCallback(async () => {
+    if (!propertyId) return;
+
+    try {
+      const supabase = createClient();
+      
+      const features: Array<{property_id:string;feature_name:string;feature_category:'interior'|'exterior'|'building_amenities'|'appliances'|'utilities';feature_value:string;}> = [];
+
+      if (formRef.current) {
+        const formData = new FormData(formRef.current);
+        for (const [key,value] of formData.entries()) {
+          if (!key.startsWith('feature_')) continue;
+          const parts = key.split('_');
+          if (parts.length < 3) continue;
+          let category:string;
+          let name:string;
+          if (parts[1]==='building' && parts[2]==='amenities') {category='building_amenities'; name=parts.slice(3).join('_');}
+          else {category=parts[1]; name=parts.slice(2).join('_');}
+          const valid=['interior','exterior','building_amenities','appliances','utilities'];
+          if (!valid.includes(category)) continue;
+          const cleanName=name.replace(/([A-Z])/g,' $1').toLowerCase().replace(/^./,s=>s.toUpperCase()).replace(/\b\w/g,l=>l.toUpperCase());
+          features.push({property_id:propertyId!,feature_name:cleanName,feature_category:category as 'interior'|'exterior'|'building_amenities'|'appliances'|'utilities',feature_value:String(value)});
+        }
+      }
+
+      // custom amenities
+      if (customAmenities && customAmenities.trim()) {
+        customAmenities.split(/[,\n]/).map(a=>a.trim()).filter(a=>a).forEach(a=>features.push({property_id:propertyId!,feature_name:a,feature_category:'building_amenities',feature_value:'available'}));
+      }
+      
+      // Determine which existing feature rows need replacing
+      const namesToReplace = features.map(f => f.feature_name);
+
+      // Delete existing amenity features for this property (only those we will overwrite)
+      if (namesToReplace.length) {
+        const { error: deleteError } = await supabase
+          .from('property_features')
+          .delete()
+          .eq('property_id', propertyId)
+          .in('feature_name', namesToReplace);
+
+        if (deleteError) {
+          console.error('Error deleting previous features:', deleteError);
+          throw deleteError;
+        }
+      }
+
+      // Insert features after previous versions (if any) have been removed
+      if (features.length > 0) {
+        const { error: insertError } = await supabase
+          .from('property_features')
+          .insert(features);
+
+        if (insertError) {
+          console.error('Error saving features:', insertError);
+          throw insertError;
+        }
+      }
+    } catch (error) {
+      console.error('Error in saveCurrentFormData:', error);
+      throw error;
+    }
+  }, [propertyId, customAmenities]);
+
+  // Load existing features on mount
+  useEffect(() => {
+    const loadExistingFeatures = async () => {
+      if (!propertyId) return;
+
+      try {
+        const supabase = createClient();
+        const { data: features, error } = await supabase
+          .from('property_features')
+          .select('*')
+          .eq('property_id', propertyId);
+
+        if (error) {
+          console.error('Error loading existing features:', error);
+          return;
+        }
+
+        if (features) {
+          const customAmenitiesList: string[] = [];
+
+          features.forEach(feature => {
+            // Collect custom amenities (those not in standard categories)
+            if (feature.feature_category === 'building_amenities' && feature.feature_value === 'available') {
+              customAmenitiesList.push(feature.feature_name);
+            }
+          });
+
+          if (customAmenitiesList.length > 0) {
+            setCustomAmenities(customAmenitiesList.join(', '));
+          }
+
+          // Imperatively check inputs to reflect loaded data
+          setTimeout(() => {
+            const allInputs = Array.from(document.querySelectorAll<HTMLInputElement>('input[name^="feature_"]'));
+            allInputs.forEach(input => {
+              const parts = input.name.split('_');
+              if (parts.length < 3) return;
+              let cat:string;
+              let nameParts:string[];
+              if (parts[1]==='building' && parts[2]==='amenities') {
+                cat='building_amenities';
+                nameParts=parts.slice(3);
+              } else {
+                cat=parts[1];
+                nameParts=parts.slice(2);
+              }
+              const fname = nameParts.join('_').replace(/_/g,' ').replace(/\b\w/g,l=>l.toUpperCase());
+              const match = features.find(fe => fe.feature_category===cat && fe.feature_name===fname);
+              if (!match) return;
+              if (input.type==='checkbox') input.checked=true;
+              else if (input.type==='radio') input.checked = input.value === match.feature_value;
+            });
+          }, 0);
+        }
+      } catch (error) {
+        console.error('Error loading existing features:', error);
+      }
+    };
+
+    loadExistingFeatures();
+  }, [propertyId]);
 
   // Redirect if no property ID
   useEffect(() => {
@@ -44,11 +174,16 @@ export default function AmenitiesPage() {
       console.log('Supabase client created successfully');
       
       // Extract features data - this will be an array of features
-      const features = [];
+      const features: Array<{
+        property_id: string;
+        feature_name: string;
+        feature_category: 'interior' | 'exterior' | 'building_amenities' | 'appliances' | 'utilities';
+        feature_value: string;
+      }> = [];
       
       // Get all form fields that start with 'feature_'
       for (const [key, value] of formData.entries()) {
-        if (key.startsWith('feature_') && value && value !== '') {
+        if (key.startsWith('feature_') && value && value !== '' && propertyId) {
           const parts = key.split('_');
           if (parts.length >= 3) {
             // Handle compound categories like "building_amenities"
@@ -92,7 +227,7 @@ export default function AmenitiesPage() {
 
       // Handle custom amenities
       const customAmenitiesText = formData.get('custom_amenities') as string;
-      if (customAmenitiesText && customAmenitiesText.trim()) {
+      if (customAmenitiesText && customAmenitiesText.trim() && propertyId) {
         // Split custom amenities by line or comma and add them as individual features
         const customFeatures = customAmenitiesText.split(/[,\n]/).map(amenity => amenity.trim()).filter(amenity => amenity);
         
@@ -109,16 +244,34 @@ export default function AmenitiesPage() {
       console.log('Features to be inserted:', features);
       
       if (features.length > 0) {
+        const namesToReplace = features.map(f => f.feature_name);
+
+        // Remove any existing rows for these features first to avoid unique-constraint conflicts
+        if (namesToReplace.length) {
+          const { error: deleteError } = await supabase
+            .from('property_features')
+            .delete()
+            .eq('property_id', propertyId)
+            .in('feature_name', namesToReplace);
+
+          if (deleteError) {
+            console.error('Error deleting previous amenities:', deleteError);
+            alert(`Error saving amenities: ${deleteError.message}. Please try again.`);
+            setIsSubmitting(false);
+            return;
+          }
+        }
+
         // Insert the property features
-        const { data, error } = await supabase
+        const { data, error: insertError } = await supabase
           .from('property_features')
           .insert(features)
           .select();
 
-        if (error) {
-          console.error('Error creating property features:', error);
+        if (insertError) {
+          console.error('Error creating property features:', insertError);
           console.error('Features that failed:', features);
-          alert(`Error saving amenities: ${error.message}. Please try again.`);
+          alert(`Error saving amenities: ${insertError.message}. Please try again.`);
           setIsSubmitting(false);
           return;
         }
@@ -138,18 +291,51 @@ export default function AmenitiesPage() {
     }
   };
 
+  const exitToDashboard = async () => {
+    try {
+      await saveCurrentFormData();
+    } catch (err) {
+      console.error('Error saving before exit:', err);
+    } finally {
+      router.push('/');
+    }
+  };
+
+  // ---- NEW EFFECT: auto-save on browser navigation/back/unload ----
+  useEffect(() => {
+    if (!propertyId) return;
+
+    const handleBeforeUnload = () => {
+      // Fire and forget – we do not await here because the page is unloading
+      saveCurrentFormData();
+    };
+
+    const handlePopState = () => {
+      // User pressed Back/Forward in browser history
+      saveCurrentFormData();
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('popstate', handlePopState);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [propertyId, saveCurrentFormData]);
+
   if (!propertyId) {
     return <div>Loading...</div>;
   }
 
   return (
-    <main className="min-h-screen bg-white p-8">
+    <main className="min-h-screen bg-white pt-28 pb-8 px-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-2xl font-semibold">Amenities</h1>
           <button 
-            onClick={() => router.push('/')}
+            onClick={exitToDashboard}
             className="px-6 py-2 text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
           >
             Save and Exit
@@ -157,26 +343,10 @@ export default function AmenitiesPage() {
         </div>
 
         {/* Progress Bar */}
-        <div className="mb-12 relative">
-          <div className="h-2 bg-blue-100 rounded-full">
-            <div className="h-full w-4/9 bg-blue-600 rounded-full"></div>
-          </div>
-          <div className="flex justify-between absolute w-full" style={{ top: '-8px' }}>
-            {steps.map((step, index) => (
-              <div 
-                key={step}
-                className={`w-4 h-4 rounded-full ${index <= 3 ? 'bg-blue-600' : 'bg-blue-200'}`}
-              >
-                <div className="text-xs text-gray-600 mt-6 -ml-4 w-20 text-center">
-                  {step}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+        <InteractiveProgressBar currentStep={3} propertyId={propertyId} beforeNavigate={saveCurrentFormData} />
 
         {/* Form */}
-        <form onSubmit={handleSubmit}>
+        <form ref={formRef} onSubmit={handleSubmit}>
 
         {/* Main Content */}
         <div className="max-w-4xl mx-auto">
@@ -574,18 +744,22 @@ export default function AmenitiesPage() {
             />
           </div>
 
-          {/* Next Button */}
-          <div className="flex justify-end mt-8">
+          {/* Navigation Buttons */}
+          <div className="flex justify-between items-center mt-12">
             <button 
-                type="submit"
-                disabled={isSubmitting}
-                className={`px-8 py-3 rounded-lg transition-colors ${
-                  isSubmitting 
-                    ? 'bg-gray-400 cursor-not-allowed' 
-                    : 'bg-blue-600 hover:bg-blue-700'
-                } text-white`}
-              >
-                {isSubmitting ? 'Saving Amenities...' : 'Next'}
+              onClick={() => handleNavigation(`/sell/create/media?property_id=${propertyId}`)}
+              className="px-6 py-3 text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors flex items-center"
+              type="button"
+            >
+              <span className="mr-2">←</span>
+              Back
+            </button>
+            <button 
+              onClick={() => handleNavigation(`/sell/create/screening?property_id=${propertyId}`)}
+              className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              type="button"
+            >
+              Next
             </button>
           </div>
         </div>
@@ -594,3 +768,5 @@ export default function AmenitiesPage() {
     </main>
   );
 }
+
+export const dynamic = 'force-dynamic';

@@ -14,21 +14,14 @@ export default function SellPage() {
             <p className="text-xl md:text-2xl text-blue-100 max-w-3xl mx-auto">
               Get your property in front of thousands of qualified renters
             </p>
-          </div>
-
-          {/* Quick Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-12">
-            <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 text-center">
-              <div className="text-3xl font-bold mb-2">50K+</div>
-              <div className="text-blue-100">Active Renters</div>
-            </div>
-            <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 text-center">
-              <div className="text-3xl font-bold mb-2">24hr</div>
-              <div className="text-blue-100">Average Time to Rent</div>
-            </div>
-            <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 text-center">
-              <div className="text-3xl font-bold mb-2">95%</div>
-              <div className="text-blue-100">Success Rate</div>
+            {/* CTA button moved here */}
+            <div className="mt-10">
+              <Link
+                href="/sell/dashboard"
+                className="inline-flex justify-center py-3 px-8 border border-transparent rounded-md shadow-sm text-lg font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white transition-colors duration-200"
+              >
+                List My Property
+              </Link>
             </div>
           </div>
         </div>
@@ -82,23 +75,6 @@ export default function SellPage() {
               <h3 className="text-xl font-bold text-gray-900 mb-2 text-center">Get Tenants</h3>
               <p className="text-gray-600 text-center">Start receiving inquiries from qualified renters</p>
             </div>
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="py-16 bg-white">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <h2 className="text-3xl font-bold text-gray-900 mb-8">
-              Ready to List Your Property?
-            </h2>
-            <Link 
-              href="/sell/dashboard"
-              className="inline-flex justify-center py-3 px-8 border border-transparent rounded-md shadow-sm text-lg font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
-            >
-              List My Property
-            </Link>
           </div>
         </div>
       </section>

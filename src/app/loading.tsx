@@ -1,9 +1,10 @@
+"use client";
 import Spinner from "@/src/components/ui/Spinner";
 
-export default function Loading() {
+export default function GlobalLoading() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-white">
-      <Spinner size="lg" />
+    <div className="fixed inset-0 z-40 flex items-center justify-center bg-white/60 backdrop-blur-sm">
+      <Spinner size={48} className="text-blue-600" />
     </div>
   );
 } 

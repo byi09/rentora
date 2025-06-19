@@ -254,7 +254,7 @@ export default function CreateConversationModal({
               {/* User Search Results */}
               {isSearchingUsers && (
                 <div className="text-center py-4">
-                  <Spinner size="sm" />
+                  <Spinner size={24} />
                 </div>
               )}
 
@@ -322,7 +322,7 @@ export default function CreateConversationModal({
               {/* Property Search Results */}
               {isSearchingProperties && (
                 <div className="text-center py-4">
-                  <Spinner size="sm" />
+                  <Spinner size={24} />
                 </div>
               )}
 

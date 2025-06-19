@@ -10,9 +10,9 @@ import { ENABLE_MAP } from "@/lib/config";
 export default function MapPage() {
   return (
     <MapContextProvider>
-      <div className="flex flex-col h-[calc(100%-64.8px)] min-h-0">
+      <div className="flex flex-col min-h-screen h-screen pt-20">
         <MapFilters />
-        <div className="flex w-full h-[calc(100%-49.6px)]">
+        <div className="flex w-full flex-1 min-h-0">
           <div className="flex-1">
             <DefaultMap>
               <MapControls />

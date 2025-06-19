@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import { db } from '@/src/db';
 import { messages, conversationParticipants, users, customers, conversations } from '@/src/db/schema';
-import { eq, and, desc, ne } from 'drizzle-orm';
+import { eq, and, desc } from 'drizzle-orm';
 import { pusherServer } from '@/src/lib/pusher';
 import { userHasConversationAccess } from '@/src/db/queries';
 

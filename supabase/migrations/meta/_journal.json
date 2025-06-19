@@ -57,6 +57,13 @@
       "when": 1749750809763,
       "tag": "0007_sloppy_malice",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1750194765507,
+      "tag": "0008_add_form_progress_to_properties",
+      "breakpoints": true
     }
   ]
 }

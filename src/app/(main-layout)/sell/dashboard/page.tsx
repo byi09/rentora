@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
+import Spinner from '@/src/components/ui/Spinner';
 
 interface PropertyListing {
   id: string;
@@ -24,6 +25,9 @@ export default function PropertyDashboard() {
   const [properties, setProperties] = useState<PropertyListing[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [clickingPropertyId, setClickingPropertyId] = useState<string | null>(null);
+  const [deletingPropertyId, setDeletingPropertyId] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
 
   useEffect(() => {
     fetchProperties();
@@ -33,10 +37,58 @@ export default function PropertyDashboard() {
     try {
       const supabase = createClient();
       
-      // TODO: Replace with actual user's landlord_id from auth
-      const landlordId = 'b7ee8ae5-686c-48a7-9a45-df7fb9b2ab3f';
+      // Get the authenticated user
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError || !user) {
+        setError('Please sign in to view your properties');
+        setIsLoading(false);
+        return;
+      }
 
-      const { data, error } = await supabase
+      // Retrieve landlord id (join first, fallback to separate queries)
+      let landlordId: string | null = null;
+
+      const { data: landlordData } = await supabase
+        .from('users')
+        .select(`
+          customers!inner(
+            landlords!inner(id)
+          )
+        `)
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (landlordData?.customers?.length && landlordData.customers[0].landlords?.length) {
+        landlordId = landlordData.customers[0].landlords[0].id;
+      }
+
+      if (!landlordId) {
+        // Fallback path
+        const { data: customer } = await supabase
+          .from('customers')
+          .select('id')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (customer?.id) {
+          const { data: landlordRow } = await supabase
+            .from('landlords')
+            .select('id')
+            .eq('customer_id', customer.id)
+            .maybeSingle();
+          landlordId = landlordRow?.id ?? null;
+        }
+      }
+
+      if (!landlordId) {
+        // No landlord profile – return early but keep UI (empty table)
+        setProperties([]);
+        setIsLoading(false);
+        return;
+      }
+
+      const {error } = await supabase
         .from('properties')
         .select(`
           id,
@@ -133,11 +185,64 @@ export default function PropertyDashboard() {
     }).format(price);
   };
 
+  const determineNextStep = async (property: PropertyListing) => {
+    try {
+      // Always check basic property information first
+      // If any core property data is missing, go to the first page
+      if (!property.address_line_1 || !property.city || !property.state || 
+          !property.property_type || !property.bedrooms || !property.bathrooms) {
+        return `/sell/create?property_id=${property.id}`;
+      }
+      
+      // If basic property info is complete, check for listing data
+      if (!property.listing_status) {
+        return `/sell/create/rent-details?property_id=${property.id}`;
+      }
+
+      // For properties with listings, do minimal checks to avoid API errors
+      // If listing is active, go to publish page to view/manage
+      if (property.listing_status === 'active') {
+        return `/sell/create/publish?property_id=${property.id}`;
+      }
+
+      // If listing is pending/draft, go to review page
+      if (property.listing_status === 'pending') {
+        return `/sell/create/review?property_id=${property.id}`;
+      }
+
+      // Default to rent details for any other case
+      return `/sell/create/rent-details?property_id=${property.id}`;
+      
+    } catch (error) {
+      console.error('Error determining next step:', error);
+      // Always default to the first page on error
+      return `/sell/create?property_id=${property.id}`;
+    }
+  };
+
+  const handlePropertyClick = async (property: PropertyListing) => {
+    try {
+      setClickingPropertyId(property.id);
+      const nextStep = await determineNextStep(property);
+      console.log('Dashboard - navigating to:', nextStep);
+      console.log('Dashboard - property data:', property);
+      router.push(nextStep);
+    } catch (error) {
+      console.error('Error navigating to property:', error);
+      // Fallback navigation
+      const fallbackUrl = `/sell/create?property_id=${property.id}`;
+      console.log('Dashboard - fallback navigation to:', fallbackUrl);
+      router.push(fallbackUrl);
+    } finally {
+      setClickingPropertyId(null);
+    }
+  };
+
   const getStatusBadge = (status?: string) => {
     if (!status) {
       return (
         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-          Draft
+          In Progress
         </span>
       );
     }
@@ -146,20 +251,98 @@ export default function PropertyDashboard() {
       active: 'bg-green-100 text-green-800',
       inactive: 'bg-red-100 text-red-800',
       pending: 'bg-yellow-100 text-yellow-800',
+      rented: 'bg-blue-100 text-blue-800',
+      expired: 'bg-gray-100 text-gray-800',
+    };
+
+    const statusLabels = {
+      active: 'Published',
+      inactive: 'Inactive',
+      pending: 'Ready to Publish',
+      rented: 'Rented',
+      expired: 'Expired',
     };
 
     return (
       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusConfig[status as keyof typeof statusConfig] || 'bg-gray-100 text-gray-800'}`}>
-        {status?.charAt(0).toUpperCase() + status?.slice(1) || 'Unknown'}
+        {statusLabels[status as keyof typeof statusLabels] || status?.charAt(0).toUpperCase() + status?.slice(1) || 'Unknown'}
       </span>
     );
+  };
+
+  const getActionText = (property: PropertyListing): string => {
+    // If no bedrooms/bathrooms set, need to continue setup
+    if (!property.bedrooms || !property.bathrooms) {
+      return "Click to continue setup";
+    }
+
+    // If no listing created yet
+    if (!property.listing_status) {
+      return "Click to continue setup";
+    }
+
+    // Based on listing status
+    switch (property.listing_status) {
+      case 'active':
+        return "Click to manage listing";
+      case 'pending':
+        return "Click to review & publish";
+      case 'rented':
+        return "Click to view details";
+      case 'expired':
+        return "Click to renew listing";
+      case 'inactive':
+        return "Click to reactivate";
+      default:
+        return "Click to edit";
+    }
+  };
+
+  const handleDeleteProperty = async (propertyId: string) => {
+    setDeletingPropertyId(propertyId);
+    
+    try {
+      const supabase = createClient();
+      
+      // First delete the property listing (if exists)
+      const { error: listingError } = await supabase
+        .from('property_listings')
+        .delete()
+        .eq('property_id', propertyId);
+      
+      if (listingError) {
+        console.error('Error deleting property listing:', listingError);
+      }
+      
+      // Then delete the property itself
+      const { error: propertyError } = await supabase
+        .from('properties')
+        .delete()
+        .eq('id', propertyId);
+      
+      if (propertyError) {
+        console.error('Error deleting property:', propertyError);
+        alert('Failed to delete property. Please try again.');
+        return;
+      }
+      
+      // Remove from local state
+      setProperties(prev => prev.filter(p => p.id !== propertyId));
+      setShowDeleteConfirm(null);
+      
+    } catch (error) {
+      console.error('Unexpected error deleting property:', error);
+      alert('An unexpected error occurred. Please try again.');
+    } finally {
+      setDeletingPropertyId(null);
+    }
   };
 
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <Spinner size={48} className="mx-auto text-blue-600" />
           <p className="mt-4 text-gray-600">Loading your properties...</p>
         </div>
       </div>
@@ -184,7 +367,7 @@ export default function PropertyDashboard() {
 
   return (
     <main className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-8">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">My Property Listings</h1>
@@ -245,7 +428,7 @@ export default function PropertyDashboard() {
                 </div>
                 <div className="ml-5 w-0 flex-1">
                   <dl>
-                    <dt className="text-sm font-medium text-gray-500 truncate">Draft Listings</dt>
+                    <dt className="text-sm font-medium text-gray-500 truncate">In Progress</dt>
                     <dd className="text-lg font-medium text-gray-900">
                       {properties.filter(p => !p.listing_status || p.listing_status !== 'active').length}
                     </dd>
@@ -261,7 +444,7 @@ export default function PropertyDashboard() {
           <div className="px-4 py-5 sm:px-6 border-b border-gray-200">
             <h3 className="text-lg leading-6 font-medium text-gray-900">Your Properties</h3>
             <p className="mt-1 max-w-2xl text-sm text-gray-500">
-              Click on a property to edit or continue setting it up
+              Click on any property to edit details, continue setup, or manage your listing
             </p>
           </div>
 
@@ -276,16 +459,13 @@ export default function PropertyDashboard() {
           ) : (
             <ul className="divide-y divide-gray-200">
               {properties.map((property) => (
-                <li key={property.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => {
-                  // If the property has a listing, go to edit mode, otherwise continue creation
-                  if (property.listing_status) {
-                    // TODO: Navigate to edit/view page
-                    console.log('Edit property', property.id);
-                  } else {
-                    // Continue creation flow
-                    router.push(`/sell/create/rent-details?property_id=${property.id}`);
-                  }
-                }}>
+                <li 
+                  key={property.id} 
+                  className={`hover:bg-gray-50 cursor-pointer transition-colors ${
+                    clickingPropertyId === property.id ? 'bg-blue-50' : ''
+                  }`} 
+                  onClick={() => handlePropertyClick(property)}
+                >
                   <div className="px-4 py-4 sm:px-6">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center">
@@ -309,6 +489,12 @@ export default function PropertyDashboard() {
                             {formatAddress(property)} • {property.bedrooms} bed, {property.bathrooms} bath
                             {property.square_footage && ` • ${property.square_footage} sq ft`}
                           </p>
+                          <p className="text-xs text-blue-600 font-medium mt-1 flex items-center gap-1">
+                            {clickingPropertyId === property.id && (
+                              <Spinner size={12} colorClass="text-blue-600" />
+                            )}
+                            {clickingPropertyId === property.id ? 'Loading...' : getActionText(property)}
+                          </p>
                         </div>
                       </div>
                       <div className="flex items-center space-x-2">
@@ -322,6 +508,31 @@ export default function PropertyDashboard() {
                             </p>
                           )}
                         </div>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setShowDeleteConfirm(property.id);
+                          }}
+                          className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-md transition-colors"
+                          title="Delete property"
+                        >
+                          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                        {/* Edit Property Button */}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            router.push(`/sell/create?property_id=${property.id}`);
+                          }}
+                          className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-md transition-colors"
+                          title="Edit property details"
+                        >
+                          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                        </button>
                         <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                         </svg>
@@ -346,6 +557,65 @@ export default function PropertyDashboard() {
             Create New Property Listing
           </button>
         </div>
+
+        {/* Delete Confirmation Modal */}
+        {showDeleteConfirm && (
+          <div className="fixed inset-0 z-50 overflow-y-auto">
+            <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+              {/* Background overlay */}
+              <div 
+                className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+                onClick={() => setShowDeleteConfirm(null)}
+              />
+              
+              {/* Modal panel */}
+              <div className="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
+                <div className="sm:flex sm:items-start">
+                  <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
+                    <svg className="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                    </svg>
+                  </div>
+                  <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+                    <h3 className="text-lg leading-6 font-medium text-gray-900">
+                      Delete Property
+                    </h3>
+                    <div className="mt-2">
+                      <p className="text-sm text-gray-500">
+                        Are you sure you want to delete this property? This action cannot be undone and will permanently remove the property and its listing.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteProperty(showDeleteConfirm)}
+                    disabled={deletingPropertyId === showDeleteConfirm}
+                    className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {deletingPropertyId === showDeleteConfirm ? (
+                      <>
+                        <Spinner size={16} colorClass="text-white" className="mr-2" />
+                        Deleting...
+                      </>
+                    ) : (
+                      'Delete'
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowDeleteConfirm(null)}
+                    disabled={deletingPropertyId === showDeleteConfirm}
+                    className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </main>
   );

@@ -46,13 +46,33 @@ export async function signup(formData: FormData) {
   redirect('/')
 }
 
+// Password validation utility for server-side
+const validatePasswordServer = (password: string) => {
+  const requirements = {
+    minLength: password.length >= 8,
+    hasUppercase: /[A-Z]/.test(password),
+    hasLowercase: /[a-z]/.test(password),
+    hasNumber: /\d/.test(password),
+    hasSpecialChar: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)
+  };
+  
+  return Object.values(requirements).every(req => req);
+};
+
 export async function signUpNewUser(formData: FormData) {
   const supabase = await createClient()
   const email = formData.get('email') as string
   const password = formData.get('password') as string
+  
+  // Server-side password validation
+  if (!validatePasswordServer(password)) {
+    redirect('/error?type=weak_password&message=Password must be at least 8 characters and contain uppercase, lowercase, number, and special character')
+  }
+  
   // Build absolute redirect URL for email confirmation
   // Use request origin if available (server actions), otherwise fallback to env or localhost
-  const origin = headers().get('origin') || process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+  const headersList = await headers()
+  const origin = headersList.get('origin') || process.env.NEXT_PUBLIC_SITE_URL || 'http://www.rentlivaro.com'
   const emailRedirectTo = `${origin}/callback?next=/sign-in%3Fverified%3Dtrue`
   const { error } = await supabase.auth.signUp({
     email,
@@ -98,10 +118,59 @@ export async function createProperty(formData: FormData) {
   const supabase = await createClient()
   
   try {
+    // Get the authenticated user
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    
+    if (authError || !user) {
+      console.error('Authentication error:', authError);
+      redirect('/error?type=auth');
+    }
+
+    // Attempt to fetch landlord_id in two steps to avoid issues with RLS joins
+    let landlordId: string | null = null;
+
+    // First try the join query (more efficient)
+    const { data: landlordData, error: landlordError } = await supabase
+      .from('users')
+      .select(`
+        customers!inner(
+          landlords!inner(id)
+        )
+      `)
+      .eq('id', user.id)
+      .maybeSingle();
+
+    if (landlordData?.customers?.length && landlordData.customers[0].landlords?.length) {
+      landlordId = landlordData.customers[0].landlords[0].id;
+    }
+
+    // Fallback: fetch customer first, then landlord
+    if (!landlordId) {
+      const { data: customer, error: customerError } = await supabase
+        .from('customers')
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (!customerError && customer?.id) {
+        const { data: landlordRow } = await supabase
+          .from('landlords')
+          .select('id')
+          .eq('customer_id', customer.id)
+          .maybeSingle();
+
+        landlordId = landlordRow?.id ?? null;
+      }
+    }
+
+    if (!landlordId) {
+      console.error('Landlord profile not found for user', user.id);
+      redirect('/error?type=profile');
+    }
+
     // Extract form data
     const propertyData = {
-      // Using existing landlord_id - you'll need to replace this with actual user's landlord_id
-      landlord_id: 'b7ee8ae5-686c-48a7-9a45-df7fb9b2ab3f', // TODO: Get from current user
+      landlord_id: landlordId,
       address_line_1: formData.get('address_line_1') as string,
       address_line_2: formData.get('address_line_2') as string || null,
       city: formData.get('city') as string,

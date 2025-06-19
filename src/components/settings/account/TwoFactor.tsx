@@ -1,27 +1,24 @@
 "use client";
 
-import {
-  enrollTwoFactor,
-  unenrollTwoFactor,
-  verifyTwoFactor
-} from "@/src/db/actions";
-import { AlertDialog } from "radix-ui";
-import { useEffect, useState, useTransition } from "react";
-import { ImSpinner2 } from "react-icons/im";
-import { EditDialogCancel, EditDialogSubmit } from "./EditDialog";
+import { useState, useEffect, useTransition } from "react";
+import { useForm, Resolver, FieldErrors } from "react-hook-form";
+import * as AlertDialog from "@radix-ui/react-alert-dialog";
 import Image from "next/image";
+import { Input } from "../../ui/input";
+import { EditDialogCancel, EditDialogSubmit } from "./EditDialog";
+import { enrollTwoFactor, verifyTwoFactor, unenrollTwoFactor } from "@/src/db/actions";
 import { TOTPInfo } from "@/lib/types";
-import { Input } from "../ui/input";
-import { FieldErrors, Resolver, useForm } from "react-hook-form";
 import { useAccountSetting } from "@/src/contexts/AccountSettingContext";
 import { createClient } from "@/utils/supabase/client";
+import Spinner from "../../ui/Spinner";
+import { Skeleton } from "../../ui/LoadingSkeleton";
 
 export default function TwoFactorAction() {
   const { mfaEnabled } = useAccountSetting();
 
   if (mfaEnabled === null) {
     return (
-      <div className="w-[70px] bg-gray-200 rounded-md px-2 animate-pulse"></div>
+      <Skeleton className="w-[70px] h-[20px] rounded-md" />
     );
   }
 
@@ -148,7 +145,7 @@ function EnableTwoFactorAction() {
                 </ol>
                 {isEnrolling && (
                   <div className="w-full h-[300px] grid place-items-center">
-                    <ImSpinner2 className="animate-spin text-blue-700" />
+                    <Spinner size={16} colorClass="text-blue-700" />
                   </div>
                 )}
 

@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import Footer from "./ui/Footer";
+
 import Header from "./ui/Header";
 import { createClient } from "@/utils/supabase/client";
 import type { User } from "@supabase/supabase-js";
@@ -12,22 +12,31 @@ interface ClientLayoutProps {
   children: React.ReactNode;
 }
 
-const excludeFooterPaths = ["/map"];
+interface UserWithUsername extends User {
+  username?: string;
+}
 
 export default function ClientLayout({ children }: ClientLayoutProps) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<UserWithUsername | null>(null);
   const [loading, setLoading] = useState(true);
   const pathname = usePathname();
 
   useEffect(() => {
     const supabase = createClient();
 
-    // Get initial user
+    // Get initial user with username
     const getUser = async () => {
       const {
         data: { user }
       } = await supabase.auth.getUser();
-      setUser(user);
+      
+      if (user) {
+        // If you store username in user_metadata, append it; otherwise just use Supabase user object.
+        const username = (user.user_metadata && user.user_metadata.username) || undefined;
+        setUser({ ...user, username });
+      } else {
+        setUser(null);
+      }
       setLoading(false);
     };
 
@@ -36,8 +45,13 @@ export default function ClientLayout({ children }: ClientLayoutProps) {
     // Listen for auth changes
     const {
       data: { subscription }
-    } = supabase.auth.onAuthStateChange((event, session) => {
-      setUser(session?.user ?? null);
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session?.user) {
+        const username = (session.user.user_metadata && session.user.user_metadata.username) || undefined;
+        setUser({ ...session.user, username });
+      } else {
+        setUser(null);
+      }
       setLoading(false);
     });
 
@@ -51,20 +65,26 @@ export default function ClientLayout({ children }: ClientLayoutProps) {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Spinner size="lg" />
+      <div className="flex min-h-screen items-center justify-center bg-white">
+        <div className="text-center space-y-4">
+          <Spinner size={48} />
+          <p className="text-gray-600">Loading...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="h-[100svh] bg-white">
+    <div className="min-h-screen bg-white flex flex-col">
       {showHeader && <Header user={user} />}
 
-      {children}
+      {/*
+        Only offset content when the header is the solid authenticated version (i.e., a user is logged in).
+        For guests we want the hero/landing sections to sit beneath the transparent header.
+      */}
+      <main className={`${user ? 'pt-16' : ''} flex-1`}>{children}</main>
 
-      {/* Footer */}
-      {!excludeFooterPaths.includes(pathname) && <Footer />}
+      {/* Footer removed as per design update */}
     </div>
   );
 }

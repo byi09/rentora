@@ -73,7 +73,7 @@ const OneTapComponent = () => {
     }
     initializeGoogleOneTap()
     return () => window.removeEventListener('load', initializeGoogleOneTap)
-  }, [])
+  }, [router, supabase.auth])
 
   return (
     <>

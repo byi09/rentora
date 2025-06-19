@@ -26,6 +26,9 @@ export default function AuthErrorPage() {
         case 'invalid_credentials':
           setErrorMessage('Invalid email or password. Please try again.');
           break;
+        case 'weak_password':
+          setErrorMessage('Password must be at least 8 characters and contain uppercase, lowercase, number, and special character.');
+          break;
         default:
           setErrorMessage('An authentication error occurred. Please try again.');
       }
@@ -39,13 +42,13 @@ export default function AuthErrorPage() {
         <div className="flex items-center justify-center mb-6">
           <div className="relative w-10 h-10 mr-2">
             <Image
-              src="/rentora-logo.svg"
-              alt="Rentora Logo"
+              src="/logo.png"
+              alt="Livaro Logo"
               fill
               className="object-contain"
             />
           </div>
-          <span className="text-xl font-bold text-gray-900">Rentora</span>
+          <span className="text-xl font-bold text-gray-900">Livaro</span>
         </div>
 
         <div className="w-16 h-16 mx-auto bg-red-100 rounded-full flex items-center justify-center">
@@ -59,7 +62,7 @@ export default function AuthErrorPage() {
         
         <div className="space-y-3">
           <button 
-            onClick={() => router.push('/sign-in')} 
+            onClick={() => router.push(searchParams.get('type') === 'weak_password' ? '/sign-up' : '/sign-in')} 
             className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors"
           >
             Try Again
