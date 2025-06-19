@@ -190,11 +190,15 @@ export default function MediaPage() {
 
   const uploadFile = async (file: File, bucketName: string, folder: string): Promise<{ publicUrl: string; s3Key: string } | null> => {
     try {
+      console.log('Starting upload:', { fileName: file.name, bucketName, folder, fileSize: file.size });
+      
       const supabase = createClient();
       const fileExt = file.name.split('.').pop();
       const fileName = `${folder}/${propertyId}/${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
 
-      const { error } = await supabase.storage
+      console.log('Uploading to path:', fileName);
+
+      const { data, error } = await supabase.storage
         .from(bucketName)
         .upload(fileName, file, {
           cacheControl: '3600',
@@ -202,17 +206,54 @@ export default function MediaPage() {
         });
 
       if (error) {
-        throw error;
+        console.error('Supabase storage error:', {
+          message: error.message,
+          error: error
+        });
+        
+        // Try a simpler path structure if nested folders fail
+        const simpleFileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+        console.log('Retrying with simple path:', simpleFileName);
+        
+        const { data: retryData, error: retryError } = await supabase.storage
+          .from(bucketName)
+          .upload(simpleFileName, file, {
+            cacheControl: '3600',
+            upsert: false
+          });
+          
+        if (retryError) {
+          console.error('Retry also failed:', retryError);
+          throw new Error(`Storage upload failed: ${error.message}. Retry failed: ${retryError.message}`);
+        }
+        
+        console.log('Retry successful:', retryData);
+        
+        // Get public URL for simple path
+        const { data: { publicUrl } } = supabase.storage
+          .from(bucketName)
+          .getPublicUrl(simpleFileName);
+          
+        return { publicUrl, s3Key: simpleFileName };
       }
+
+      console.log('Upload successful, data:', data);
 
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from(bucketName)
         .getPublicUrl(fileName);
 
+      console.log('Generated public URL:', publicUrl);
+
       return { publicUrl, s3Key: fileName };
     } catch (error) {
-      console.error('Upload error:', error);
+      console.error('Upload error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        error: error,
+        fileName: file.name,
+        bucketName: bucketName
+      });
       throw error;
     }
   };
@@ -776,6 +817,29 @@ export default function MediaPage() {
                 <ImageIcon className="mx-auto h-12 w-12 text-gray-400 mb-3" />
                 <p className="text-sm font-medium text-gray-600">No images uploaded yet</p>
                 <p className="text-xs text-gray-500 mt-1">Upload some photos to showcase your property</p>
+                <button
+                  onClick={async () => {
+                    console.log('Manually initializing storage...');
+                    try {
+                      const response = await fetch('/api/storage/init', {
+                        method: 'POST',
+                      });
+                      const result = await response.json();
+                      console.log('Storage init result:', result);
+                      if (result.success) {
+                        success('Storage initialized successfully!');
+                      } else {
+                        showError('Storage initialization failed', JSON.stringify(result));
+                      }
+                    } catch (error) {
+                      console.error('Storage init error:', error);
+                      showError('Storage initialization error', error instanceof Error ? error.message : 'Unknown error');
+                    }
+                  }}
+                  className="mt-3 px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                >
+                  Initialize Storage
+                </button>
               </div>
             )}
 
