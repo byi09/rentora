@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import Spinner from "@/src/components/ui/Spinner";
+import ListingCard from "./listing-card";
 
 interface PropertyListing {
     id: string;
@@ -20,6 +21,8 @@ interface PropertyListing {
     square_footage?: number;
 }
 
+type ViewMode = "list" | "grid";
+
 export default function PropertyDashboard() {
     const router = useRouter();
     const [properties, setProperties] = useState<PropertyListing[]>([]);
@@ -34,6 +37,7 @@ export default function PropertyDashboard() {
     const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(
         null
     );
+    const [viewMode, setViewMode] = useState<ViewMode>("list");
 
     useEffect(() => {
         fetchProperties();
@@ -552,13 +556,67 @@ export default function PropertyDashboard() {
                 {/* Properties List */}
                 <div className="bg-white shadow overflow-hidden sm:rounded-md mb-8">
                     <div className="px-4 py-5 sm:px-6 border-b border-gray-200">
-                        <h3 className="text-lg leading-6 font-medium text-gray-900">
-                            Your Properties
-                        </h3>
-                        <p className="mt-1 max-w-2xl text-sm text-gray-500">
-                            Click on any property to edit details, continue
-                            setup, or manage your listing
-                        </p>
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h3 className="text-lg leading-6 font-medium text-gray-900">
+                                    Your Properties
+                                </h3>
+                                <p className="mt-1 max-w-2xl text-sm text-gray-500">
+                                    Click on any property to edit details,
+                                    continue setup, or manage your listing
+                                </p>
+                            </div>
+
+                            {/* View Toggle */}
+                            <div className="flex items-center bg-gray-100 rounded-lg p-1">
+                                <button
+                                    onClick={() => setViewMode("list")}
+                                    className={`flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                                        viewMode === "list"
+                                            ? "bg-white text-gray-900 shadow-sm"
+                                            : "text-gray-600 hover:text-gray-900"
+                                    }`}
+                                >
+                                    <svg
+                                        className="h-4 w-4 mr-2"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                            d="M4 6h16M4 10h16M4 14h16M4 18h16"
+                                        />
+                                    </svg>
+                                    List
+                                </button>
+                                <button
+                                    onClick={() => setViewMode("grid")}
+                                    className={`flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                                        viewMode === "grid"
+                                            ? "bg-white text-gray-900 shadow-sm"
+                                            : "text-gray-600 hover:text-gray-900"
+                                    }`}
+                                >
+                                    <svg
+                                        className="h-4 w-4 mr-2"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                            d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"
+                                        />
+                                    </svg>
+                                    Grid
+                                </button>
+                            </div>
+                        </div>
                     </div>
 
                     {properties.length === 0 ? (
@@ -584,7 +642,7 @@ export default function PropertyDashboard() {
                                 listing.
                             </p>
                         </div>
-                    ) : (
+                    ) : viewMode === "list" ? (
                         <ul className="divide-y divide-gray-200">
                             {properties.map((property) => (
                                 <li
@@ -736,6 +794,35 @@ export default function PropertyDashboard() {
                                 </li>
                             ))}
                         </ul>
+                    ) : (
+                        <div className="p-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {properties.map((property) => (
+                                    <ListingCard
+                                        key={property.id}
+                                        property={property}
+                                        onPropertyClick={handlePropertyClick}
+                                        onEditClick={(e) => {
+                                            e.stopPropagation();
+                                            router.push(
+                                                `/sell/create?property_id=${property.id}`
+                                            );
+                                        }}
+                                        onDeleteClick={(e) => {
+                                            e.stopPropagation();
+                                            setShowDeleteConfirm(property.id);
+                                        }}
+                                        isLoading={
+                                            clickingPropertyId === property.id
+                                        }
+                                        formatAddress={formatAddress}
+                                        formatPrice={formatPrice}
+                                        getStatusBadge={getStatusBadge}
+                                        getActionText={getActionText}
+                                    />
+                                ))}
+                            </div>
+                        </div>
                     )}
                 </div>
 
